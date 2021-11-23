@@ -1,14 +1,4 @@
-!------------------------------------------------------------------------------
-! TJU/Department of Mechanics, Fluid Mechanics, Code FooPSE
-!------------------------------------------------------------------------------
-!
-!  File: loaders.f90
-!> @file
-!> @breif loaders for different format for the grid and flow files, or the inlet
-!         flow.
-!  DESCRIPTION: support plot3d
-!>
-!------------------------------------------------------------------------------
+
 module mod_loaders
    use global_parameters
    implicit none
@@ -17,7 +7,7 @@ module mod_loaders
 contains
    subroutine plot3d_load()
       implicit none
-      integer            :: i, j, k    ! 索引
+      integer :: i,j,k 
       write(*,*) "-----------------------------------"
       write(*,*) "              读取数据              "
       write(*,*) "-----------------------------------"

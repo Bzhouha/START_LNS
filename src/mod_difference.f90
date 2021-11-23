@@ -3,7 +3,7 @@ module mod_difference
 ! 
 !  这个模块是计算导数的函数
 ! 
-!       1.call Cal_dif(result, array, Delta, istart, iend, ighost_start, ighost_end, ln) 计算某一行数据的一阶导数，不太使用了
+!       1.call Cal_dif(result, array, Delta, istart, iend, ighost_start, ighost_end, ln) 计算某一行数据的一阶导数，不使用了
 ! 
 !       2.call fd1(out_array,mo,no,po,qo,ro,so,in_array,mi,ni,pi,qi,ri,si,flg,tag) 计算一整块数据的一阶导数
 ! 

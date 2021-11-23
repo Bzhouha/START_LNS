@@ -11,7 +11,7 @@ module global_parameters
     real(R_P), dimension(:, :, :), allocatable :: xi_x,xi_y,xi_z,eta_x,eta_y,eta_z,phi_x,phi_y,phi_z
     real(R_P), dimension(:, :, :), allocatable :: xx, yy, zz 
     type(bf_point_type),dimension(:,:,:),allocatable :: bf 
-    real(R_P), dimension(:, :, :, :), allocatable :: qq ! 存储基本流数据的数组
+    real(R_P), dimension(:, :, :, :), allocatable :: qq
     real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge
     complex(R_P),dimension(:,:,:),pointer :: f_bc
