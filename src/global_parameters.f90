@@ -12,15 +12,16 @@ module global_parameters
     real(R_P), dimension(:, :, :), allocatable :: xx, yy, zz 
     type(bf_point_type),dimension(:,:,:),allocatable :: bf 
     real(R_P), dimension(:, :, :, :), allocatable :: qq
+    complex(R_P),dimension(:,:,:),allocatable :: wave
     real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge
-    complex(R_P),dimension(:,:,:),pointer :: f_bc
     integer :: is,js,ks,il,jl,kl,ie,je,ke
     character(len=256) :: FileLocation     
     character(len=256) :: gridfile 
     character(len=256) :: flowfile     
     DM :: meshDA, coordDA, DA
     PetscInt :: in,jn,kn,ln
+    complex(R_P) :: Alpha
     complex(R_P) :: Omega
     complex(R_P) :: Beta
     integer :: BC_type 

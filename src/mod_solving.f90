@@ -9,10 +9,10 @@ module mod_solving
 	use global_parameters
 	private
 	PetscErrorCode :: ierr
-	public :: solve
+	public :: Working
 	Vec :: rhs
 	contains
-	subroutine solve(comm)
+	subroutine Working(comm)
 		PetscInt,intent(in) :: comm
 		PetscErrorCode :: ierr 
 		call DMCreateGlobalVector(meshDA,turtle,ierr)
@@ -25,7 +25,7 @@ module mod_solving
 		call MPI_Barrier(comm,ierr)
 		call solving(comm)
 		call DropTheWaste()
-	end subroutine solve
+	end subroutine Working
 
 	subroutine solving(comm)
 		implicit none
@@ -96,6 +96,25 @@ module mod_solving
 			! #####设置每层迭代矩阵
 		endif
 	end subroutine WhaleReady
+
+	subroutine SetRightValues(comm)
+		implicit none 
+		PetscScalar,pointer :: tmp(:,:,:,:)
+		PetscInt,intent(in) :: comm
+		integer :: j,k 
+		call VecDuplicate(turtle,rhs,ierr)
+		if(is==0)then
+		call DMDAVecGetArrayF90(meshDA,rhs,tmp,ierr)
+		do k=ks,ke 
+			do j=js,je 
+				tmp(:,0,j,k)=wave(:,j,k)
+			enddo
+		enddo
+		call DMDAVecRestoreArrayF90(meshDA,rhs,tmp,ierr)
+		endif 
+		call MPI_Barrier(comm,ierr)
+		deallocate(wave)
+	end subroutine SetRightValues
 
 	subroutine DropTheWaste()
 		implicit none

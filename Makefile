@@ -132,11 +132,9 @@ clean ::
 	@rm -f $(OBJS_DIR)*.*
 	@rm -f *.mod 
 	@rm -f $(EXE_DIR)$(EXE)
-	@rm -f ./files/in/*.*
-	@rm -f ./files/out/*.*
-	@echo " Cleaning:"
-	@echo " = Cache has been deleted. ="
-	@echo " = Data Files have been sweeping away. ="
+	@echo " -               Clean               -"
+	@echo " =      Objs have been deleted.      ="
+	@echo " =   Mods have been sweeping away.   ="
 
 befor64_pack_data_m.o: \
 	befor64_pack_data_m.F90 \

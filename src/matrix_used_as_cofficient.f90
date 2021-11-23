@@ -348,12 +348,12 @@ module matrix_used_as_cofficient
 		class(lns_OP_point_type),intent(inout) :: this
 		type(lns_OP_point_type) :: Jor
 		integer,intent(in) :: i,j,k
-		real(R_P) :: G(5, 5), D(5, 5)
-		real(R_P) :: A(5,5), B(5,5), C(5,5)
-		real(R_P) :: A_p(5, 5), A_m(5, 5), A_v(5, 5)
-		real(R_P) :: B_p(5, 5), B_m(5, 5), B_v(5, 5)
-		real(R_P) :: C_p(5, 5), C_m(5, 5), C_v(5, 5)
-		real(R_P) :: Vxx(5, 5), Vyy(5, 5), Vzz(5, 5), Vxy(5, 5), Vxz(5, 5), Vyz(5, 5)
+		complex(R_P) :: G(5, 5), D(5, 5)
+		complex(R_P) :: A(5,5), B(5,5), C(5,5)
+		complex(R_P) :: A_p(5, 5), A_m(5, 5), A_v(5, 5)
+		complex(R_P) :: B_p(5, 5), B_m(5, 5), B_v(5, 5)
+		complex(R_P) :: C_p(5, 5), C_m(5, 5), C_v(5, 5)
+		complex(R_P) :: Vxx(5, 5), Vyy(5, 5), Vzz(5, 5), Vxy(5, 5), Vxz(5, 5), Vyz(5, 5)
 		! 初始化矩阵
 		G=0.0d0;D=0.0d0
 		A=0.0d0;B=0.0d0;C=0.0d0
@@ -487,6 +487,26 @@ module matrix_used_as_cofficient
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
 		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
 	end subroutine MintCubes
+
+	subroutine GreyCubes(this,i,j,k)
+		use global_parameters,only:Alpha,Beta,Omega
+		implicit none 
+		class(lns_OP_point_type),intent(inout) :: this
+		type(lns_OP_point_type) :: Jor
+		integer,intent(in) :: i,j,k
+		call Jor%GetAdornedCubes(i,j,k)
+		this%G=Jor%G
+		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
+		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
+		this%A_p=Jor%A_p; this%A_m=Jor%A_m
+		this%A_v=Jor%A_v-cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vxz 
+		this%B_p=Jor%B_p; this%B_m=Jor%B_m
+		this%B_v=Jor%B_v-cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vyz 
+		this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
+		this%D=Jor%D-cmplx(0.0d0,1.0d0,R_P)*Omega*Jor%G+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%C+Beta*Beta*Jor%Vzz
+		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
+		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
+	end subroutine GreyCubes
 
 	subroutine split(A,G,Aplus,Aminus)
 		implicit none

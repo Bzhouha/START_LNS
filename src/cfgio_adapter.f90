@@ -35,7 +35,7 @@ module mod_cfgio_adapter
         cfg=parse_cfg(trim(cfgfn))
         call cfg_filename(cfg)
         call cfg_freestream(cfg)
-        call cfg_bc(cfg)
+        !call cfg_bc(cfg)
         call cfg_turbulent(cfg)
         endif
     end subroutine cfg_loader
@@ -117,17 +117,23 @@ module mod_cfgio_adapter
         real(R_P), allocatable, dimension(:) :: Ber
         integer :: npar
         npar=2
-        if(cfg%has_key("Turbulent", "Omega"))then
-          call cfg%get("Turbulent", "Omega", Ber, npar)
-          Omega=cmplx(Ber(1),Ber(2),R_P)
+        if(cfg%has_key("Turbulent", "Alpha"))then
+          call cfg%get("Turbulent", "Alpha", Ber, npar)
+          Alpha=cmplx(Ber(1),Ber(2),R_P)
         else
-          print*, "No Omega is input."
+          print*, "No Alpha is input."
         endif
         if(cfg%has_key("Turbulent", "Beta"))then
           call cfg%get("Turbulent", "Beta", Ber, npar)
           Beta=cmplx(Ber(1),Ber(2),R_P)
         else
           print*, "No Beta is input."
+        endif
+        if(cfg%has_key("Turbulent", "Omega"))then
+          call cfg%get("Turbulent", "Omega", Ber, npar)
+          Omega=cmplx(Ber(1),Ber(2),R_P)
+        else
+          print*, "No Omega is input."
         endif
         if(cfg%has_key("Turbulent", "Mode"))then
           call cfg%get("Turbulent", "Mode", BC_type)

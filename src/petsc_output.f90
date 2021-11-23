@@ -6,9 +6,9 @@ module mod_petsc_output
     use global_parameters
     implicit none
     private
-    public :: petsc_output
+    public :: ResultToFile
     contains
-    subroutine petsc_output(comm)
+    subroutine ResultToFile(comm)
         implicit none
         PetscInt, INTENT(in) :: comm
         PetscViewer :: Viewer
@@ -18,7 +18,7 @@ module mod_petsc_output
         call VecView(turtle, Viewer, ierr)
         call PetscViewerDestroy(Viewer, ierr)
         call CurtainCall(comm)
-    end subroutine petsc_output
+    end subroutine ResultToFile
     subroutine LightTurningOff(comm)
         implicit none
         PetscInt, INTENT(in) :: comm

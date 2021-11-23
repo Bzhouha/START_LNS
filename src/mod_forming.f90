@@ -139,7 +139,7 @@ module mod_forming
 					else 
 						crab=0.0d0
 						call Jor%ColoredCubes(i,j,k)
-						call f4_index(i1,i2,j1,j2,i,j,k)
+						call f4_index(i1,i2,j1,j2,i,j)
 						call f2d1r(crab(:,1),x(:,i-1:i,j,k)) ! A1p
 						call f2d1f(crab(:,2),x(:,i:i+1,j,k)) ! A1m
 						call f4d1(crab(:,3),x(:,i1:i2,j,k),i,j,k,1) ! A2

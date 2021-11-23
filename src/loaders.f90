@@ -48,6 +48,24 @@ contains
       close(12)
       write(*,*) '  流场信息读取结束。'
       write(*,*) ""
+      ! 读取来流扰动
+      write(*,*) "开始读取来流扰动..."
+      open(13, file="..//files//in//Disturbance.dat",action='read',form='unformatted')
+      read(13)
+      read(13)
+      allocate(wave(ln,0:jn-1,0:kn-1))
+      do k=0,kn-1
+         do j=0,jn-1 
+               read(13) wave(:,j,k)
+         enddo
+      enddo
+      close(13)
+      write(*,*) "  来流扰动读取结束。"
+      call NowWeGetThese()
+   end subroutine plot3d_load
+   subroutine NowWeGetThese()
+      implicit none
+      write(*,*) ""
       write(*,*) "输出部分信息："
       write(*,"(A,F10.5,F10.5)") "  流向起止位置: ",xx(1, 1, 1), xx(in, jn, kn)
       write(*,103) "  第一个数据是：",qq(1,1,1,1),qq(2,1,1,1),qq(3,1,1,1),qq(4,1,1,1),qq(5,1,1,1)
@@ -59,5 +77,5 @@ contains
       write(*,104) "  第二个坐标是：",xx(2,1,1),yy(2,1,1),zz(2,1,1)
       write(*,104) "  第三个坐标是：",xx(3,1,1),yy(3,1,1),zz(3,1,1)
       write(*,*)
-   end subroutine plot3d_load
+   end subroutine NowWeGetThese
 end module mod_loaders

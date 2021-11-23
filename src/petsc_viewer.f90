@@ -78,7 +78,7 @@ contains
 
   subroutine mesh_output(comm)
     implicit none
-    PetscInt, INTENT(in) :: comm
+    PetscInt, intent(in) :: comm
     call PetscViewerBinaryOpen(comm, trim(FileLocation)//"in//"//"grid.petsc",FILE_MODE_WRITE, Viewer, ierr)
     call VecView(Coord, Viewer, ierr)
     call PetscViewerDestroy(Viewer, ierr)

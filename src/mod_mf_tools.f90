@@ -96,10 +96,10 @@ module mod_mf_tools
         call f4d1(out_array(:),tmp(:,:),i,j,k,flg)
     end subroutine f45d12 
 
-    subroutine f4_index(i1,i2,j1,j2,i,j,k)
+    subroutine f4_index(i1,i2,j1,j2,i,j)
         implicit none
         integer,intent(out) :: i1,i2,j1,j2
-        integer,intent(in) :: i,j,k
+        integer,intent(in) :: i,j
         if(i>=1 .and. i<=(in-3))then
             i1=i-1;i2=i+2
         else if(i==(in-2))then

@@ -2,55 +2,81 @@
 #include <slepc/finclude/slepc.h>
 
 module mod_petsc_loader ! 读入并分发数据
-  use petsc
-  use global_parameters
-  implicit none
-  private
-  PetscScalar, pointer :: grid(:,:,:,:)
-  PetscScalar, pointer :: flow(:,:,:,:)
-  Vec :: Coord_local, Flowfield_local
-  PetscErrorCode  :: ierr
-  Vec :: Coord, Flowfield
-  PetscViewer :: Viewer
-  public :: load_info
-  contains
-	subroutine load_info(comm)
+	use petsc
+	use global_parameters
+	implicit none
+	private
+	PetscScalar, pointer :: grid(:,:,:,:)
+	PetscScalar, pointer :: flow(:,:,:,:)
+	Vec :: Coord_local, Flowfield_local
+	PetscErrorCode  :: ierr
+	Vec :: Coord, Flowfield
+	PetscViewer :: Viewer
+	public :: LoadingData
+	contains
+	subroutine LoadingData(comm)
 		implicit none
 		PetscInt, intent(in) :: comm
+		call WeBcastSoHard(comm)
+		call InTheStormySea(comm)
 		call read_mesh_3d(comm)
 		call get_layout()
 		call load_mesh_info()
 		call load_flow_info()
 		call OhWeHaveThese(comm)
-	end subroutine load_info
+		call MPI_Barrier(comm,ierr)
+	end subroutine LoadingData
 
-	subroutine OhWeHaveThese(comm)
+	subroutine WeBcastSoHard(comm)
+		use global_parameters
 		implicit none 
-		PetscInt,intent(in) :: comm 
-		PetscErrorCode :: ierr  
-		call PetscPrintf(comm," -----------------------------------\n",ierr)
-		call PetscPrintf(comm,"          读入数据信息...      \n",ierr)
-		call PetscPrintf(comm," -----------------------------------\n",ierr)
-		if(rank==0)then
-			write(*,*)
-			write(*,*) "输出部分信息："
-			write(*,*) 
-			write(*,9) in,jn,kn
-			9 format ('   流向的网格数in=',I5,/,'   法向的网格数jn=',I5,/,'   展向的网格数kn=',I5)
-			write(*,113) "   第一个数据是：",qq(1,0,0,0),qq(2,0,0,0),qq(3,0,0,0),qq(4,0,0,0),qq(5,0,0,0)
-			113 format (A,5(F10.5))
-			write(*,113) "   第二个数据是：",qq(1,1,0,0),qq(2,1,0,0),qq(3,1,0,0),qq(4,1,0,0),qq(5,1,0,0)
-			write(*,113) "   第三个数据是：",qq(1,2,0,0),qq(2,2,0,0),qq(3,2,0,0),qq(4,2,0,0),qq(5,2,0,0)
-			write(*,114) "   第一个坐标是：",xx(0,0,0),yy(0,0,0),zz(0,0,0)
-			114 format (A,3(F10.5))
-			write(*,114) "   第二个坐标是：",xx(1,0,0),yy(1,0,0),zz(1,0,0)
-			write(*,114) "   第三个坐标是：",xx(2,0,0),yy(2,0,0),zz(2,0,0)
-			write(*,*) 
-		endif
-		call PetscPrintf(comm," -----------------------------------\n",ierr)
-		call PetscPrintf(comm,"        流场和网格数据已录入。      \n",ierr)
-		call PetscPrintf(comm," -----------------------------------\n",ierr)
-	end subroutine OhWeHaveThese
+		integer(KIND=MPI_ADDRESS_KIND) :: address_in,address_jn,address_kn,address_ln
+		integer(KIND=MPI_ADDRESS_KIND) :: address_Ma,address_Re,address_Te
+		integer(KIND=MPI_ADDRESS_KIND) :: address_Omega,address_Beta
+		integer(KIND=MPI_ADDRESS_KIND) :: displacement(9)
+		PetscInt,intent(in) :: comm
+		integer :: block_lengths(9)
+		PetscErrorCode :: ierr
+		integer :: pack_type
+		integer :: types(9)
+		call MPI_Get_address(in,address_in,ierr)
+		call MPI_Get_address(jn,address_jn,ierr)
+		call MPI_Get_address(kn,address_kn,ierr)
+		call MPI_Get_address(ln,address_ln,ierr)
+		call MPI_Get_address(Ma,address_Ma,ierr)
+		call MPI_Get_address(Re,address_Re,ierr)
+		call MPI_Get_address(Te,address_Te,ierr)
+		call MPI_Get_address(Omega,address_Omega,ierr)
+		call MPI_Get_address(Beta,address_Beta,ierr)
+		block_lengths=1
+		displacement(1)=0
+		displacement(2)=address_jn-address_in
+		displacement(3)=address_kn-address_in
+		displacement(4)=address_ln-address_in
+		displacement(5)=address_Ma-address_in
+		displacement(6)=address_Re-address_in
+		displacement(7)=address_Te-address_in
+		displacement(8)=address_Omega-address_in
+		displacement(9)=address_Beta-address_in
+		types=(/MPI_INT,MPI_INT,MPI_INT,MPI_INT,&
+			MPI_DOUBLE,MPI_DOUBLE,MPI_DOUBLE,&
+			MPI_DOUBLE_COMPLEX,MPI_DOUBLE_COMPLEX/)
+		call MPI_Type_create_struct(9,block_lengths,displacement,types,pack_type,ierr)
+		call MPI_Type_commit(pack_type,ierr)
+		call MPI_Bcast(in,1,pack_type,0,comm,ierr)
+		call MPI_Barrier(comm,ierr)
+		call MPI_Type_free(pack_type,ierr)
+		call MPI_Barrier(comm,ierr)
+	end subroutine WeBcastSoHard
+
+	subroutine InTheStormySea(comm)
+		implicit none
+		PetscInt,intent(in) :: comm
+		if(rank/=0) allocate(wave(ln,0:jn-1,0:kn-1))
+		call MPI_Barrier(comm,ierr)
+		call MPI_Bcast(wave,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,ierr)
+		call MPI_Barrier(comm,ierr)
+	end subroutine InTheStormySea
 
 	subroutine read_mesh_3d(comm)
 		implicit none
@@ -114,19 +140,47 @@ module mod_petsc_loader ! 读入并分发数据
 	end subroutine load_mesh_info
 
 	subroutine load_flow_info()
-		  implicit none
-		  integer :: i, j, k, l
-		  allocate(qq(5, igs:ige, jgs:jge, kgs:kge))
-		  call DMDAVecGetArrayReadF90(meshDA, Flowfield_local, flow, ierr)
-		  do k=kgs, kge
-			  do j=jgs, jge
-				do i=igs, ige
-				  do l=0,4
-					qq(l+1, i, j, k)=real(flow(l, i, j, k))
-				  enddo
-				enddo
-			  enddo
-		  enddo
-		  call DMDAVecRestoreArrayReadF90(meshDA, Flowfield_local, flow, ierr)
+			implicit none
+			integer :: i, j, k, l
+			allocate(qq(5, igs:ige, jgs:jge, kgs:kge))
+			call DMDAVecGetArrayReadF90(meshDA, Flowfield_local, flow, ierr)
+			do k=kgs, kge
+				do j=jgs, jge
+					do i=igs, ige
+						do l=0,4
+							qq(l+1, i, j, k)=real(flow(l, i, j, k))
+				  		enddo
+					enddo
+			  	enddo
+		  	enddo
+		  	call DMDAVecRestoreArrayReadF90(meshDA, Flowfield_local, flow, ierr)
 	end subroutine load_flow_info
+
+	subroutine OhWeHaveThese(comm)
+		implicit none 
+		PetscInt,intent(in) :: comm 
+		PetscErrorCode :: ierr  
+		call PetscPrintf(comm," -----------------------------------\n",ierr)
+		call PetscPrintf(comm,"          读入数据信息...      \n",ierr)
+		call PetscPrintf(comm," -----------------------------------\n",ierr)
+		if(rank==0)then
+			write(*,*)
+			write(*,*) "输出部分信息："
+			write(*,*) 
+			write(*,9) in,jn,kn
+			9 format ('   流向的网格数in=',I5,/,'   法向的网格数jn=',I5,/,'   展向的网格数kn=',I5)
+			write(*,113) "   第一个数据是：",qq(1,0,0,0),qq(2,0,0,0),qq(3,0,0,0),qq(4,0,0,0),qq(5,0,0,0)
+			113 format (A,5(F10.5))
+			write(*,113) "   第二个数据是：",qq(1,1,0,0),qq(2,1,0,0),qq(3,1,0,0),qq(4,1,0,0),qq(5,1,0,0)
+			write(*,113) "   第三个数据是：",qq(1,2,0,0),qq(2,2,0,0),qq(3,2,0,0),qq(4,2,0,0),qq(5,2,0,0)
+			write(*,114) "   第一个坐标是：",xx(0,0,0),yy(0,0,0),zz(0,0,0)
+			114 format (A,3(F10.5))
+			write(*,114) "   第二个坐标是：",xx(1,0,0),yy(1,0,0),zz(1,0,0)
+			write(*,114) "   第三个坐标是：",xx(2,0,0),yy(2,0,0),zz(2,0,0)
+			write(*,*) 
+		endif
+		call PetscPrintf(comm," -----------------------------------\n",ierr)
+		call PetscPrintf(comm,"        流场和网格数据已录入。      \n",ierr)
+		call PetscPrintf(comm," -----------------------------------\n",ierr)
+	end subroutine OhWeHaveThese
 end module mod_petsc_loader
