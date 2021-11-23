@@ -1,7 +1,14 @@
 !#include <petsc/finclude/petsc.h>
 #include <slepc/finclude/slepc.h>
 
-module mod_petsc_viewer ! 单进程生成PetsC格式文件
+module mod_petsc_viewer
+! ----------------------------------------------------------------
+!
+!  这个模块在0号进程生成PetsC格式文件。
+!
+!       call petsc_viewer(comm) 
+!
+! ----------------------------------------------------------------
   use petsc
   use global_parameters
   implicit none
@@ -16,26 +23,26 @@ contains
   subroutine petsc_viewer(comm)
     implicit none
     PetscInt, INTENT(in) :: comm
+    call Signal_Viewer()
+    call create_mesh_3d(comm)
+    call mesh_output(comm)
+    call deallocate_memory()
+  end subroutine petsc_viewer
+
+  subroutine Signal_Viewer()
+    implicit none 
     write(*,*) "-----------------------------------"
     write(*,*) "         转换数据并生成文件          "
     write(*,*) "-----------------------------------"
     write(*,*)
-    write(*,*) "开始转换为PetsC数据类型..."
-    call create_mesh_3d(comm)
-    write(*,*)
-    write(*,*) "开始生成文件..."
-    call mesh_output(comm)
-    deallocate(xx)
-    deallocate(yy)
-    deallocate(zz)
-    deallocate(qq)
-  end subroutine petsc_viewer
+  end subroutine Signal_Viewer
 
   subroutine create_mesh_3d(comm)
     implicit none
     PetscInt, INTENT(in) :: comm
     integer :: xs, ys, zs, xl, yl, zl
     integer :: i, j, k, l
+    write(*,*) "开始转换为PetsC数据类型..."
     ! 转换网格
     call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
     &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
@@ -74,11 +81,13 @@ contains
     enddo
     call DMDAVecRestoreArrayF90(MeshDA, Flowfield, flow,ierr)
     write(*,*) '  流场信息转换结束。'
+    write(*,*)
   end subroutine create_mesh_3d
 
   subroutine mesh_output(comm)
     implicit none
     PetscInt, intent(in) :: comm
+    write(*,*) "开始生成文件..."
     call PetscViewerBinaryOpen(comm, trim(FileLocation)//"in//"//"grid.petsc",FILE_MODE_WRITE, Viewer, ierr)
     call VecView(Coord, Viewer, ierr)
     call PetscViewerDestroy(Viewer, ierr)
@@ -88,4 +97,14 @@ contains
     call PetscViewerDestroy(Viewer, ierr)
     write(*,*) '  流场文件已生成。'
   end subroutine mesh_output
+
+  subroutine deallocate_memory()
+    implicit none 
+    deallocate(xx)
+    deallocate(yy)
+    deallocate(zz)
+    deallocate(qq)
+    call DMDestroy(coordDA,ierr)
+    call DMDestroy(meshDA,ierr)
+  end subroutine deallocate_memory
 end module mod_petsc_viewer

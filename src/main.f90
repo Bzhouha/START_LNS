@@ -15,6 +15,7 @@ program main
 	PetscErrorCode :: ierr
 	PetscBool :: set
 
+	!                   初始化PetsC                  
 	call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
 	if (ierr /= 0) then
 		write(*,*) 'PetscInitialize failed'
@@ -27,9 +28,8 @@ program main
 		write(*,*) 'should use -f option to determin the config file.'
 		stop
 	endif
-
+	!                读取信息               
 	call Signal_Loading(PETSC_COMM_WORLD)
-
 	call cfg_loader(trim(cfg_file))
 	if(rank==0)then
 		call plot3d_load()
@@ -37,16 +37,16 @@ program main
 		call cfg_writer(trim(cfg_file))
 	endif
 
+	!               分发并计算              
 	call Signal_Starting(PETSC_COMM_WORLD)
-
 	call LoadingData(PETSC_COMM_WORLD)
+	!call Working(PETSC_COMM_WORLD)
 
-	call Working(PETSC_COMM_WORLD)
-
+	!               输出文件              
 	call Signal_Ending(PETSC_COMM_WORLD)
+	!call ResultToFile(PETSC_COMM_WORLD)
 
-	call ResultToFile(PETSC_COMM_WORLD)
-
+	!        终止PetsC       
 	call PetscFinalize(ierr)
 end program main
 

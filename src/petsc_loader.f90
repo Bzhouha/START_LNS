@@ -13,14 +13,17 @@ module mod_petsc_loader ! 读入并分发数据
 	Vec :: Coord, Flowfield
 	PetscViewer :: Viewer
 	public :: LoadingData
+	integer :: request
 	contains
 	subroutine LoadingData(comm)
 		implicit none
+		integer :: status(MPI_STATUS_SIZE)
 		PetscInt, intent(in) :: comm
 		call WeBcastSoHard(comm)
 		call InTheStormySea(comm)
 		call read_mesh_3d(comm)
 		call get_layout()
+		call MPI_Wait(request,status,ierr)
 		call load_mesh_info()
 		call load_flow_info()
 		call OhWeHaveThese(comm)
@@ -32,13 +35,13 @@ module mod_petsc_loader ! 读入并分发数据
 		implicit none 
 		integer(KIND=MPI_ADDRESS_KIND) :: address_in,address_jn,address_kn,address_ln
 		integer(KIND=MPI_ADDRESS_KIND) :: address_Ma,address_Re,address_Te
-		integer(KIND=MPI_ADDRESS_KIND) :: address_Omega,address_Beta
-		integer(KIND=MPI_ADDRESS_KIND) :: displacement(9)
+		integer(KIND=MPI_ADDRESS_KIND) :: address_Alpha,address_Omega,address_Beta
+		integer(KIND=MPI_ADDRESS_KIND) :: displacement(10)
 		PetscInt,intent(in) :: comm
-		integer :: block_lengths(9)
+		integer :: block_lengths(10)
 		PetscErrorCode :: ierr
 		integer :: pack_type
-		integer :: types(9)
+		integer :: types(10)
 		call MPI_Get_address(in,address_in,ierr)
 		call MPI_Get_address(jn,address_jn,ierr)
 		call MPI_Get_address(kn,address_kn,ierr)
@@ -46,8 +49,9 @@ module mod_petsc_loader ! 读入并分发数据
 		call MPI_Get_address(Ma,address_Ma,ierr)
 		call MPI_Get_address(Re,address_Re,ierr)
 		call MPI_Get_address(Te,address_Te,ierr)
-		call MPI_Get_address(Omega,address_Omega,ierr)
+		call MPI_Get_address(Alpha,address_Alpha,ierr)
 		call MPI_Get_address(Beta,address_Beta,ierr)
+		call MPI_Get_address(Omega,address_Omega,ierr)
 		block_lengths=1
 		displacement(1)=0
 		displacement(2)=address_jn-address_in
@@ -56,17 +60,17 @@ module mod_petsc_loader ! 读入并分发数据
 		displacement(5)=address_Ma-address_in
 		displacement(6)=address_Re-address_in
 		displacement(7)=address_Te-address_in
-		displacement(8)=address_Omega-address_in
+		displacement(8)=address_Alpha-address_in
 		displacement(9)=address_Beta-address_in
+		displacement(10)=address_Omega-address_in
 		types=(/MPI_INT,MPI_INT,MPI_INT,MPI_INT,&
 			MPI_DOUBLE,MPI_DOUBLE,MPI_DOUBLE,&
-			MPI_DOUBLE_COMPLEX,MPI_DOUBLE_COMPLEX/)
-		call MPI_Type_create_struct(9,block_lengths,displacement,types,pack_type,ierr)
+			MPI_DOUBLE_COMPLEX,MPI_DOUBLE_COMPLEX,MPI_DOUBLE_COMPLEX/)
+		call MPI_Type_create_struct(10,block_lengths,displacement,types,pack_type,ierr)
 		call MPI_Type_commit(pack_type,ierr)
 		call MPI_Bcast(in,1,pack_type,0,comm,ierr)
 		call MPI_Barrier(comm,ierr)
 		call MPI_Type_free(pack_type,ierr)
-		call MPI_Barrier(comm,ierr)
 	end subroutine WeBcastSoHard
 
 	subroutine InTheStormySea(comm)
@@ -74,8 +78,9 @@ module mod_petsc_loader ! 读入并分发数据
 		PetscInt,intent(in) :: comm
 		if(rank/=0) allocate(wave(ln,0:jn-1,0:kn-1))
 		call MPI_Barrier(comm,ierr)
-		call MPI_Bcast(wave,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,ierr)
-		call MPI_Barrier(comm,ierr)
+		call MPI_Ibcast(wave,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,request,ierr)
+		!call MPI_Bcast(wave,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,ierr)
+		!call MPI_Barrier(comm,ierr)
 	end subroutine InTheStormySea
 
 	subroutine read_mesh_3d(comm)
