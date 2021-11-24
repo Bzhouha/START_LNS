@@ -20,7 +20,9 @@ module mod_petsc_loader ! 读入并分发数据
 		integer :: status(MPI_STATUS_SIZE)
 		PetscInt, intent(in) :: comm
 		call WeBcastSoHard(comm)
-		call InTheStormySea(comm)
+		if(check)then
+			call InTheStormySea(comm)
+		end if
 		call read_mesh_3d(comm)
 		call get_layout()
 		call MPI_Wait(request,status,ierr)

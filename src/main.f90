@@ -40,11 +40,11 @@ program main
 	!               分发并计算              
 	call Signal_Starting(PETSC_COMM_WORLD)
 	call LoadingData(PETSC_COMM_WORLD)
-	!call Working(PETSC_COMM_WORLD)
+	call Working(PETSC_COMM_WORLD)
 
 	!               输出文件              
 	call Signal_Ending(PETSC_COMM_WORLD)
-	!call ResultToFile(PETSC_COMM_WORLD)
+	call ResultToFile(PETSC_COMM_WORLD)
 
 	!        终止PetsC       
 	call PetscFinalize(ierr)

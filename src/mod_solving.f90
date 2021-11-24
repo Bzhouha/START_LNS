@@ -102,6 +102,7 @@ module mod_solving
 		PetscScalar,pointer :: tmp(:,:,:,:)
 		PetscInt,intent(in) :: comm
 		integer :: j,k 
+		if(check)then
 		call VecDuplicate(turtle,rhs,ierr)
 		if(is==0)then
 		call DMDAVecGetArrayF90(meshDA,rhs,tmp,ierr)
@@ -114,6 +115,7 @@ module mod_solving
 		endif 
 		call MPI_Barrier(comm,ierr)
 		deallocate(wave)
+		endif
 	end subroutine SetRightValues
 
 	subroutine DropTheWaste()

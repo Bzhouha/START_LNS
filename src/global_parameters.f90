@@ -20,6 +20,7 @@ module global_parameters
     character(len=256) :: gridfile 
     character(len=256) :: flowfile     
     DM :: meshDA, coordDA, DA
+    logical :: check=.False. 
     PetscInt :: in,jn,kn,ln
     complex(R_P) :: Alpha
     complex(R_P) :: Omega
@@ -27,7 +28,7 @@ module global_parameters
     integer :: BC_type 
     integer :: mode=0
     integer :: rank   
-    integer :: size  
+    integer :: size 
     Vec :: turtle
     Mat :: Dolphin
     Mat :: Whale      

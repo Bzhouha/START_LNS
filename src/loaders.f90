@@ -54,19 +54,21 @@ contains
       close(12)
       write(*,*) '  流场信息读取结束。'
       write(*,*) ""
-      ! 读取来流扰动
-      write(*,*) "开始读取来流扰动..."
-      open(13, file="..//files//in//Disturbance.dat",action='read',form='unformatted')
-      read(13)
-      read(13)
-      allocate(wave(ln,0:jn-1,0:kn-1))
-      do k=0,kn-1
-         do j=0,jn-1 
-               read(13) wave(:,j,k)
+      if(check)then
+         ! 读取来流扰动
+         write(*,*) "开始读取来流扰动..."
+         open(13, file="..//files//in//Disturbance.dat",action='read',form='unformatted')
+         read(13)
+         read(13)
+         allocate(wave(ln,0:jn-1,0:kn-1))
+         do k=0,kn-1
+            do j=0,jn-1 
+                  read(13) wave(:,j,k)
+            enddo
          enddo
-      enddo
-      close(13)
-      write(*,*) "  来流扰动读取结束。"
+         close(13)
+         write(*,*) "  来流扰动读取结束。"
+      end if
       call NowWeGetThese()
    end subroutine plot3d_load
    subroutine NowWeGetThese()
