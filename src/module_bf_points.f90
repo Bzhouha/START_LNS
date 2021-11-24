@@ -57,14 +57,6 @@ module bf_points
 		call DropTheWaste()
 		call TunasSayHi(comm)
 	end subroutine Tunas
-	subroutine TunasSayHi(comm)
-		implicit none 
-		PetscInt,intent(in) :: comm 
-		PetscErrorCode :: ierr  
-		call PetscPrintf(comm," -----------------------------------\n",ierr)
-		call PetscPrintf(comm,"         导数信息计算结束。      \n",ierr)
-		call PetscPrintf(comm," -----------------------------------\n",ierr)
-	end subroutine TunasSayHi
 	subroutine PrepareNet()
 		implicit none
 		allocate(bf(is:ie,js:je,ks:ke))
@@ -219,6 +211,14 @@ module bf_points
 		deallocate(qqxx);deallocate(qqyy);deallocate(qqzz)
 		deallocate(qqxy);deallocate(qqxz);deallocate(qqyz)
 	end subroutine DropTheWaste
+	subroutine TunasSayHi(comm)
+		implicit none 
+		PetscInt,intent(in) :: comm 
+		PetscErrorCode :: ierr  
+		call PetscPrintf(comm," -----------------------------------\n",ierr)
+		call PetscPrintf(comm,"         导数信息计算结束。      \n",ierr)
+		call PetscPrintf(comm," -----------------------------------\n",ierr)
+	end subroutine TunasSayHi
 	elemental subroutine TurnIToX(px,pi,pj,pk,ix,jx,kx)
 		implicit none
 		real(R_P),intent(out) :: px

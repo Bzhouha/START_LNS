@@ -12,42 +12,41 @@ module mod_petsc_loader ! 读入并分发数据
 	PetscErrorCode  :: ierr
 	Vec :: Coord, Flowfield
 	PetscViewer :: Viewer
-	public :: LoadingData
+	public :: loadingdata
 	integer :: request
 	contains
-	subroutine LoadingData(comm)
+	subroutine loadingdata(comm)
 		implicit none
 		integer :: status(MPI_STATUS_SIZE)
 		PetscInt, intent(in) :: comm
-		call WeBcastSoHard(comm)
-		if(check)then
-			call InTheStormySea(comm)
-		end if
+		call bcastparameters(comm)
+		call bcastinflow(comm)
 		call read_mesh_3d(comm)
 		call get_layout()
 		call MPI_Wait(request,status,ierr)
 		call load_mesh_info()
 		call load_flow_info()
-		call OhWeHaveThese(comm)
+		call printinfo(comm)
 		call MPI_Barrier(comm,ierr)
-	end subroutine LoadingData
+	end subroutine loadingdata
 
-	subroutine WeBcastSoHard(comm)
+	subroutine bcastparameters(comm)
 		use global_parameters
 		implicit none 
 		integer(KIND=MPI_ADDRESS_KIND) :: address_in,address_jn,address_kn,address_ln
-		integer(KIND=MPI_ADDRESS_KIND) :: address_Ma,address_Re,address_Te
+		integer(KIND=MPI_ADDRESS_KIND) :: address_mode,address_Ma,address_Re,address_Te
 		integer(KIND=MPI_ADDRESS_KIND) :: address_Alpha,address_Omega,address_Beta
-		integer(KIND=MPI_ADDRESS_KIND) :: displacement(10)
+		integer(KIND=MPI_ADDRESS_KIND) :: displacement(11)
 		PetscInt,intent(in) :: comm
-		integer :: block_lengths(10)
+		integer :: block_lengths(11)
 		PetscErrorCode :: ierr
 		integer :: pack_type
-		integer :: types(10)
+		integer :: types(11)
 		call MPI_Get_address(in,address_in,ierr)
 		call MPI_Get_address(jn,address_jn,ierr)
 		call MPI_Get_address(kn,address_kn,ierr)
 		call MPI_Get_address(ln,address_ln,ierr)
+		call MPI_Get_address(mode,address_mode,ierr)
 		call MPI_Get_address(Ma,address_Ma,ierr)
 		call MPI_Get_address(Re,address_Re,ierr)
 		call MPI_Get_address(Te,address_Te,ierr)
@@ -59,31 +58,37 @@ module mod_petsc_loader ! 读入并分发数据
 		displacement(2)=address_jn-address_in
 		displacement(3)=address_kn-address_in
 		displacement(4)=address_ln-address_in
-		displacement(5)=address_Ma-address_in
-		displacement(6)=address_Re-address_in
-		displacement(7)=address_Te-address_in
-		displacement(8)=address_Alpha-address_in
-		displacement(9)=address_Beta-address_in
-		displacement(10)=address_Omega-address_in
-		types=(/MPI_INT,MPI_INT,MPI_INT,MPI_INT,&
+		displacement(5)=address_mode-address_in
+		displacement(6)=address_Ma-address_in
+		displacement(7)=address_Re-address_in
+		displacement(8)=address_Te-address_in
+		displacement(9)=address_Alpha-address_in
+		displacement(10)=address_Beta-address_in
+		displacement(11)=address_Omega-address_in
+		types=(/MPI_INT,MPI_INT,MPI_INT,MPI_INT,MPI_INT,&
 			MPI_DOUBLE,MPI_DOUBLE,MPI_DOUBLE,&
 			MPI_DOUBLE_COMPLEX,MPI_DOUBLE_COMPLEX,MPI_DOUBLE_COMPLEX/)
-		call MPI_Type_create_struct(10,block_lengths,displacement,types,pack_type,ierr)
+		call MPI_Type_create_struct(11,block_lengths,displacement,types,pack_type,ierr)
 		call MPI_Type_commit(pack_type,ierr)
 		call MPI_Bcast(in,1,pack_type,0,comm,ierr)
 		call MPI_Barrier(comm,ierr)
 		call MPI_Type_free(pack_type,ierr)
-	end subroutine WeBcastSoHard
+	end subroutine bcastparameters
 
-	subroutine InTheStormySea(comm)
+	subroutine bcastinflow(comm)
 		implicit none
 		PetscInt,intent(in) :: comm
-		if(rank/=0) allocate(wave(ln,0:jn-1,0:kn-1))
-		call MPI_Barrier(comm,ierr)
-		call MPI_Ibcast(wave,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,request,ierr)
-		!call MPI_Bcast(wave,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,ierr)
-		!call MPI_Barrier(comm,ierr)
-	end subroutine InTheStormySea
+		select case (mode)
+		case(0)
+			if(rank/=0) allocate(inflow(ln,0:jn-1,kn))
+			call MPI_Barrier(comm,ierr)
+			call MPI_Ibcast(inflow,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,request,ierr)
+		case(1)
+			if(rank/=0) allocate(inflow(ln,0:jn-1,0:kn-1))
+			call MPI_Barrier(comm,ierr)
+			call MPI_Ibcast(inflow,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,request,ierr)
+		end select
+	end subroutine bcastinflow
 
 	subroutine read_mesh_3d(comm)
 		implicit none
@@ -163,7 +168,7 @@ module mod_petsc_loader ! 读入并分发数据
 		  	call DMDAVecRestoreArrayReadF90(meshDA, Flowfield_local, flow, ierr)
 	end subroutine load_flow_info
 
-	subroutine OhWeHaveThese(comm)
+	subroutine printinfo(comm)
 		implicit none 
 		PetscInt,intent(in) :: comm 
 		PetscErrorCode :: ierr  
@@ -184,10 +189,10 @@ module mod_petsc_loader ! 读入并分发数据
 			114 format (A,3(F10.5))
 			write(*,114) "   第二个坐标是：",xx(1,0,0),yy(1,0,0),zz(1,0,0)
 			write(*,114) "   第三个坐标是：",xx(2,0,0),yy(2,0,0),zz(2,0,0)
-			write(*,*) 
 		endif
+		call PetscPrintf(comm,"\n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 		call PetscPrintf(comm,"        流场和网格数据已录入。      \n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
-	end subroutine OhWeHaveThese
+	end subroutine printinfo
 end module mod_petsc_loader

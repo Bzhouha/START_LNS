@@ -16,37 +16,37 @@ module mod_solving
 		PetscInt,intent(in) :: comm
 		PetscErrorCode :: ierr 
 		call DMCreateGlobalVector(meshDA,turtle,ierr)
-		call Flatfish(comm)
-		call MPI_Barrier(comm,ierr)
-		call Tunas(comm)
-		call MPI_Barrier(comm,ierr)
-		!call DolphinComing(comm)
-		call WhaleComing(comm)
-		call MPI_Barrier(comm,ierr)
-		call solving(comm)
-		call DropTheWaste()
+		call metriccoefficient(comm)
+		! call Tunas(comm)
+		! call MPI_Barrier(comm,ierr)
+		! !call DolphinComing(comm)
+		! call WhaleComing(comm)
+		! call MPI_Barrier(comm,ierr)
+		! call solving(comm)
+		! call DropTheWaste()
 	end subroutine Working
 
 	subroutine solving(comm)
 		implicit none
-		PetscScalar,pointer :: tmp(:,:,:,:)
 		PetscInt,intent(in) :: comm
-		integer :: l,i,j,k
 
 		call WhaleReady(comm,0)
 		
-		! call DMDAVecGetArrayReadF90(meshDA,turtle,tmp,ierr)
-		! do l=0,4
-		! 	do k=ks,ke
-		! 		do j=js,je
-		! 			write(*,*) (real(tmp(l,i,j,k)),i=is,ie)
-		! 		enddo
-		! 		write(*,*) 
-		! 	enddo
-		! 	write(*,*) "---"
-		! enddo
-		! call DMDAVecRestoreArrayReadF90(meshDA,turtle,tmp,ierr)
-
+		block 
+		PetscScalar,pointer :: tmp(:,:,:,:)
+		integer :: l,i,j,k
+		call DMDAVecGetArrayReadF90(meshDA,turtle,tmp,ierr)
+		do l=0,4
+			do k=ks,ke
+				do j=js,je
+					write(*,*) (real(tmp(l,i,j,k)),i=is,ie)
+				enddo
+				write(*,*) 
+			enddo
+			write(*,*) "---"
+		enddo
+		call DMDAVecRestoreArrayReadF90(meshDA,turtle,tmp,ierr)
+		end block
 	end subroutine solving 
 
 	subroutine WhaleReady(comm,level)
@@ -102,20 +102,18 @@ module mod_solving
 		PetscScalar,pointer :: tmp(:,:,:,:)
 		PetscInt,intent(in) :: comm
 		integer :: j,k 
-		if(check)then
 		call VecDuplicate(turtle,rhs,ierr)
 		if(is==0)then
 		call DMDAVecGetArrayF90(meshDA,rhs,tmp,ierr)
 		do k=ks,ke 
 			do j=js,je 
-				tmp(:,0,j,k)=wave(:,j,k)
+				tmp(:,0,j,k)=inflow(:,j,k)
 			enddo
 		enddo
 		call DMDAVecRestoreArrayF90(meshDA,rhs,tmp,ierr)
 		endif 
 		call MPI_Barrier(comm,ierr)
-		deallocate(wave)
-		endif
+		deallocate(inflow)
 	end subroutine SetRightValues
 
 	subroutine DropTheWaste()

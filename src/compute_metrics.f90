@@ -6,7 +6,7 @@ module mod_metrics
 !
 !  这个模块计算度量系数。
 !
-!       call Flatfish(comm) 获得度量系数
+!       call metriccoefficient(comm) 获得度量系数
 !
 !           1).call allocate_memory() 分配内存
 !
@@ -16,7 +16,7 @@ module mod_metrics
 !
 !           4).call deallocate_memory() 释放不需要的内存
 !
-!           5).call FlatfishSayHi(comm) 输出本模块运行结束信息
+!           5).call printinfo(comm) 输出本模块运行结束信息
 !
 ! ----------------------------------------------------------------
     use global_parameters
@@ -28,26 +28,18 @@ module mod_metrics
     Vec :: XIX, XIY, XIZ, ETAX, ETAY, ETAZ, PHIX, PHIY, PHIZ 
     real(R_P), dimension(:, :, :), allocatable :: jacobi
     PetscErrorCode  :: ierr
-    public :: Flatfish
+    public :: metriccoefficient
 contains
-    subroutine Flatfish(comm)
+    subroutine metriccoefficient(comm)
         implicit none
         PetscInt,intent(in) :: comm
         call allocate_memory()
         call compute_contravariant_metrics()
         call compute_convariant_metrics()
         call deallocate_memory()
-        call FlatfishSayHi(comm)
-    end subroutine Flatfish
-
-    subroutine FlatfishSayHi(comm)
-        implicit none
-        PetscInt,intent(in) :: comm 
-        PetscErrorCode :: ierr 
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm,"  度量系数矩阵计算结束，进程已同步。    \n",ierr)
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-    end subroutine  FlatfishSayHi
+        call printinfo(comm)
+        call MPI_Barrier(comm,ierr)
+    end subroutine metriccoefficient
 
     subroutine allocate_memory()
         implicit none
@@ -116,58 +108,199 @@ contains
     subroutine compute_contravariant_metrics()
         use mod_difference
         implicit none
-        call fd1(x_xi,is,ie,js,je,ks,ke,xx,igs,ige,jgs,jge,kgs,kge,1,1)
-        call fd1(y_xi,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,1,1)
-        call fd1(z_xi,is,ie,js,je,ks,ke,zz,igs,ige,jgs,jge,kgs,kge,1,1)
-        call fd1(x_eta,is,ie,js,je,ks,ke,xx,igs,ige,jgs,jge,kgs,kge,2,1)
-        call fd1(y_eta,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,2,1)
-        call fd1(z_eta,is,ie,js,je,ks,ke,zz,igs,ige,jgs,jge,kgs,kge,2,1)
-        call fd1(x_phi,is,ie,js,je,ks,ke,xx,igs,ige,jgs,jge,kgs,kge,3,1)
-        call fd1(y_phi,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,3,1)
-        call fd1(z_phi,is,ie,js,je,ks,ke,zz,igs,ige,jgs,jge,kgs,kge,3,1)
+        select case (mode)
+        case(0)
+            call fd1(x_xi,is,ie,js,je,ks,ke,xx,igs,ige,jgs,jge,kgs,kge,1,1)
+            call fd1(y_xi,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,1,1)
+            call fd1(x_eta,is,ie,js,je,ks,ke,xx,igs,ige,jgs,jge,kgs,kge,2,1)
+            call fd1(y_eta,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,2,1)
+        case(1)
+            call fd1(x_xi,is,ie,js,je,ks,ke,xx,igs,ige,jgs,jge,kgs,kge,1,1)
+            call fd1(y_xi,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,1,1)
+            call fd1(z_xi,is,ie,js,je,ks,ke,zz,igs,ige,jgs,jge,kgs,kge,1,1)
+            call fd1(x_eta,is,ie,js,je,ks,ke,xx,igs,ige,jgs,jge,kgs,kge,2,1)
+            call fd1(y_eta,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,2,1)
+            call fd1(z_eta,is,ie,js,je,ks,ke,zz,igs,ige,jgs,jge,kgs,kge,2,1)
+            call fd1(x_phi,is,ie,js,je,ks,ke,xx,igs,ige,jgs,jge,kgs,kge,3,1)
+            call fd1(y_phi,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,3,1)
+            call fd1(z_phi,is,ie,js,je,ks,ke,zz,igs,ige,jgs,jge,kgs,kge,3,1)
+        end select
     end subroutine compute_contravariant_metrics
 
     subroutine compute_convariant_metrics()
+        select case (mode)
+        case(0)
+            call compute_convariant_metrics_2d()
+        case(1)
+            call compute_convariant_metrics_3d()
+        end select 
+    end subroutine compute_convariant_metrics
+
+    subroutine compute_convariant_metrics_2d()
         use mod_difference
         implicit none
         PetscScalar, pointer :: tmp(:, :, :)
         integer :: i, j, k
-        real(R_P), allocatable, dimension(:, :, :) :: xi_x_local
-        real(R_P), allocatable, dimension(:, :, :) :: xi_y_local
-        real(R_P), allocatable, dimension(:, :, :) :: xi_z_local
-        real(R_P), allocatable, dimension(:, :, :) :: eta_x_local
-        real(R_P), allocatable, dimension(:, :, :) :: eta_y_local
-        real(R_P), allocatable, dimension(:, :, :) :: eta_z_local
-        real(R_P), allocatable, dimension(:, :, :) :: phi_x_local
-        real(R_P), allocatable, dimension(:, :, :) :: phi_y_local
-        real(R_P), allocatable, dimension(:, :, :) :: phi_z_local
-        real(R_P), allocatable, dimension(:, :, :) :: xi_x_xi
-        real(R_P), allocatable, dimension(:, :, :) :: xi_x_eta
-        real(R_P), allocatable, dimension(:, :, :) :: xi_x_phi
-        real(R_P), allocatable, dimension(:, :, :) :: xi_y_xi
-        real(R_P), allocatable, dimension(:, :, :) :: xi_y_eta
-        real(R_P), allocatable, dimension(:, :, :) :: xi_y_phi
-        real(R_P), allocatable, dimension(:, :, :) :: xi_z_xi
-        real(R_P), allocatable, dimension(:, :, :) :: xi_z_eta
-        real(R_P), allocatable, dimension(:, :, :) :: xi_z_phi
-        real(R_P), allocatable, dimension(:, :, :) :: eta_x_xi
-        real(R_P), allocatable, dimension(:, :, :) :: eta_x_eta
-        real(R_P), allocatable, dimension(:, :, :) :: eta_x_phi
-        real(R_P), allocatable, dimension(:, :, :) :: eta_y_xi
-        real(R_P), allocatable, dimension(:, :, :) :: eta_y_eta
-        real(R_P), allocatable, dimension(:, :, :) :: eta_y_phi
-        real(R_P), allocatable, dimension(:, :, :) :: eta_z_xi
-        real(R_P), allocatable, dimension(:, :, :) :: eta_z_eta
-        real(R_P), allocatable, dimension(:, :, :) :: eta_z_phi
-        real(R_P), allocatable, dimension(:, :, :) :: phi_x_xi
-        real(R_P), allocatable, dimension(:, :, :) :: phi_x_eta
-        real(R_P), allocatable, dimension(:, :, :) :: phi_x_phi
-        real(R_P), allocatable, dimension(:, :, :) :: phi_y_xi
-        real(R_P), allocatable, dimension(:, :, :) :: phi_y_eta
-        real(R_P), allocatable, dimension(:, :, :) :: phi_y_phi
-        real(R_P), allocatable, dimension(:, :, :) :: phi_z_xi
-        real(R_P), allocatable, dimension(:, :, :) :: phi_z_eta
-        real(R_P), allocatable, dimension(:, :, :) :: phi_z_phi
+        real(R_P), allocatable, dimension(:,:,:) :: xi_x_local
+        real(R_P), allocatable, dimension(:,:,:) :: xi_y_local
+        real(R_P), allocatable, dimension(:,:,:) :: eta_x_local
+        real(R_P), allocatable, dimension(:,:,:) :: eta_y_local
+        real(R_P), allocatable, dimension(:,:,:) :: xi_x_xi
+        real(R_P), allocatable, dimension(:,:,:) :: xi_x_eta
+        real(R_P), allocatable, dimension(:,:,:) :: xi_y_xi
+        real(R_P), allocatable, dimension(:,:,:) :: xi_y_eta
+        real(R_P), allocatable, dimension(:,:,:) :: eta_x_xi
+        real(R_P), allocatable, dimension(:,:,:) :: eta_x_eta
+        real(R_P), allocatable, dimension(:,:,:) :: eta_y_xi
+        real(R_P), allocatable, dimension(:,:,:) :: eta_y_eta
+        do k=ks,ke 
+            do j=js,je 
+                do i=is,ie 
+                    jacobi(i,j,k)=1.0d0/(x_xi(i,j,k)*y_eta(i,j,k)-y_xi(i,j,k)*x_eta(i,j,k))
+                enddo
+            enddo
+        enddo
+        do k=ks,ke 
+            do j=js,je 
+                do i=is,ie 
+                    xi_x (i,j,k)= y_eta(i,j,k)*jacobi(i,j,k)
+                    xi_y (i,j,k)=-x_eta(i,j,k)*jacobi(i,j,k)
+                    eta_x(i,j,k)=-y_xi (i,j,k)*jacobi(i,j,k)
+                    eta_y(i,j,k)= x_xi (i,j,k)*jacobi(i,j,k)
+                enddo
+            enddo
+        enddo
+        call DMDAVecGetArrayF90(DA, XIX, tmp, ierr)
+        tmp(:,:,:)=xi_x(:,:,:)
+        call DMDAVecRestoreArrayF90(DA, XIX, tmp, ierr)
+        call DMGlobalToLocalBegin(DA, XIX, INSERT_VALUES, XIX_local, ierr)
+        call DMGlobalToLocalEnd(DA, XIX, INSERT_VALUES, XIX_local, ierr)
+
+        call DMDAVecGetArrayF90(DA, XIY, tmp, ierr)
+        tmp(:,:,:)=xi_y(:,:,:)
+        call DMDAVecRestoreArrayF90(DA, XIY, tmp, ierr)
+        call DMGlobalToLocalBegin(DA, XIY, INSERT_VALUES, XIY_local, ierr)
+        call DMGlobalToLocalEnd(DA, XIY, INSERT_VALUES, XIY_local, ierr)
+
+        call DMDAVecGetArrayF90(DA, ETAX, tmp, ierr)
+        tmp(:,:,:)=eta_x(:,:,:)
+        call DMDAVecRestoreArrayF90(DA, ETAX, tmp, ierr)
+        call DMGlobalToLocalBegin(DA, ETAX, INSERT_VALUES, ETAX_local, ierr)
+        call DMGlobalToLocalEnd(DA, ETAX, INSERT_VALUES, ETAX_local, ierr)
+
+        call DMDAVecGetArrayF90(DA, ETAY, tmp, ierr)
+        tmp(:,:,:)=eta_y(:,:,:)
+        call DMDAVecRestoreArrayF90(DA, ETAY, tmp, ierr)
+        call DMGlobalToLocalBegin(DA, ETAY, INSERT_VALUES, ETAY_local, ierr)
+        call DMGlobalToLocalEND(DA, ETAY, INSERT_VALUES, ETAY_local, ierr)
+
+        allocate(xi_x_local (igs:ige,jgs:jge,kgs:kge))
+        allocate(xi_y_local (igs:ige,jgs:jge,kgs:kge))
+        allocate(eta_x_local(igs:ige,jgs:jge,kgs:kge))
+        allocate(eta_y_local(igs:ige,jgs:jge,kgs:kge))
+
+        call DMDAVecGetArrayReadF90(DA, XIX_local, tmp, ierr)
+        xi_x_local=tmp
+        call DMDAVecRestoreArrayReadF90(DA, XIX_local, tmp, ierr)
+
+        call DMDAVecGetArrayReadF90(DA, XIY_local, tmp, ierr)
+        xi_y_local=tmp
+        call DMDAVecRestoreArrayReadF90(DA, XIY_local, tmp, ierr)
+
+        call DMDAVecGetArrayReadF90(DA, ETAX_local, tmp, ierr)
+        eta_x_local=tmp
+        call DMDAVecRestoreArrayReadF90(DA, ETAX_local, tmp, ierr)
+        call DMDAVecGetArrayReadF90(DA, ETAY_local, tmp, ierr)
+        eta_y_local=tmp
+        call DMDAVecRestoreArrayReadF90(DA, ETAY_local, tmp, ierr)
+
+        allocate(xi_x_xi  (is:ie,js:je,ks:ke))
+        allocate(xi_x_eta (is:ie,js:je,ks:ke))
+        allocate(xi_y_xi  (is:ie,js:je,ks:ke))
+        allocate(xi_y_eta (is:ie,js:je,ks:ke))
+        allocate(eta_x_xi (is:ie,js:je,ks:ke))
+        allocate(eta_x_eta(is:ie,js:je,ks:ke))
+        allocate(eta_y_xi (is:ie,js:je,ks:ke))
+        allocate(eta_y_eta(is:ie,js:je,ks:ke))
+
+        call fd1(xi_x_xi,is,ie,js,je,ks,ke,xi_x_local,igs,ige,jgs,jge,kgs,kge,1,1)
+        call fd1(xi_y_xi,is,ie,js,je,ks,ke,xi_y_local,igs,ige,jgs,jge,kgs,kge,1,1)
+        call fd1(eta_x_xi,is,ie,js,je,ks,ke,eta_x_local,igs,ige,jgs,jge,kgs,kge,1,1)
+        call fd1(eta_y_xi,is,ie,js,je,ks,ke,eta_y_local,igs,ige,jgs,jge,kgs,kge,1,1)
+
+        call fd1(xi_x_eta,is,ie,js,je,ks,ke,xi_x_local,igs,ige,jgs,jge,kgs,kge,2,1)
+        call fd1(xi_y_eta,is,ie,js,je,ks,ke,xi_y_local,igs,ige,jgs,jge,kgs,kge,2,1)
+        call fd1(eta_x_eta,is,ie,js,je,ks,ke,eta_x_local,igs,ige,jgs,jge,kgs,kge,2,1)
+        call fd1(eta_y_eta,is,ie,js,je,ks,ke,eta_y_local,igs,ige,jgs,jge,kgs,kge,2,1)
+
+        do k=ks,ke 
+            do j=js,je 
+                do i=is,ie 
+                    xi_xx(i,j,k)=xi_x(i,j,k)*xi_x_xi(i,j,k)+eta_x(i,j,k)*xi_x_eta(i,j,k)
+                    xi_yy(i,j,k)=xi_y(i,j,k)*xi_y_xi(i,j,k)+eta_y(i,j,k)*xi_y_eta(i,j,k)
+                    xi_xy(i,j,k)=xi_y(i,j,k)*xi_x_xi(i,j,k)+eta_y(i,j,k)*xi_x_eta(i,j,k)
+                    eta_xx(i,j,k)=xi_x(i,j,k)*eta_x_xi(i,j,k)+eta_x(i,j,k)*eta_x_eta(i,j,k)
+                    eta_yy(i,j,k)=xi_y(i,j,k)*eta_y_xi(i,j,k)+eta_y(i,j,k)*eta_y_eta(i,j,k)
+                    eta_xy(i,j,k)=xi_y(i,j,k)*eta_x_xi(i,j,k)+eta_y(i,j,k)*eta_x_eta(i,j,k)
+                enddo
+            enddo
+        enddo
+
+        deallocate(xi_x_xi  )
+        deallocate(xi_x_eta )
+        deallocate(xi_y_xi  )
+        deallocate(xi_y_eta )
+        deallocate(eta_x_xi )
+        deallocate(eta_x_eta)
+        deallocate(eta_y_xi )
+        deallocate(eta_y_eta)
+        deallocate(xi_x_local )
+        deallocate(xi_y_local )
+        deallocate(eta_x_local)
+        deallocate(eta_y_local)
+    end subroutine compute_convariant_metrics_2d
+
+    subroutine compute_convariant_metrics_3d()
+        use mod_difference
+        implicit none
+        PetscScalar, pointer :: tmp(:, :, :)
+        integer :: i, j, k
+        real(R_P), allocatable, dimension(:,:,:) :: xi_x_local
+        real(R_P), allocatable, dimension(:,:,:) :: xi_y_local
+        real(R_P), allocatable, dimension(:,:,:) :: xi_z_local
+        real(R_P), allocatable, dimension(:,:,:) :: eta_x_local
+        real(R_P), allocatable, dimension(:,:,:) :: eta_y_local
+        real(R_P), allocatable, dimension(:,:,:) :: eta_z_local
+        real(R_P), allocatable, dimension(:,:,:) :: phi_x_local
+        real(R_P), allocatable, dimension(:,:,:) :: phi_y_local
+        real(R_P), allocatable, dimension(:,:,:) :: phi_z_local
+        real(R_P), allocatable, dimension(:,:,:) :: xi_x_xi
+        real(R_P), allocatable, dimension(:,:,:) :: xi_x_eta
+        real(R_P), allocatable, dimension(:,:,:) :: xi_x_phi
+        real(R_P), allocatable, dimension(:,:,:) :: xi_y_xi
+        real(R_P), allocatable, dimension(:,:,:) :: xi_y_eta
+        real(R_P), allocatable, dimension(:,:,:) :: xi_y_phi
+        real(R_P), allocatable, dimension(:,:,:) :: xi_z_xi
+        real(R_P), allocatable, dimension(:,:,:) :: xi_z_eta
+        real(R_P), allocatable, dimension(:,:,:) :: xi_z_phi
+        real(R_P), allocatable, dimension(:,:,:) :: eta_x_xi
+        real(R_P), allocatable, dimension(:,:,:) :: eta_x_eta
+        real(R_P), allocatable, dimension(:,:,:) :: eta_x_phi
+        real(R_P), allocatable, dimension(:,:,:) :: eta_y_xi
+        real(R_P), allocatable, dimension(:,:,:) :: eta_y_eta
+        real(R_P), allocatable, dimension(:,:,:) :: eta_y_phi
+        real(R_P), allocatable, dimension(:,:,:) :: eta_z_xi
+        real(R_P), allocatable, dimension(:,:,:) :: eta_z_eta
+        real(R_P), allocatable, dimension(:,:,:) :: eta_z_phi
+        real(R_P), allocatable, dimension(:,:,:) :: phi_x_xi
+        real(R_P), allocatable, dimension(:,:,:) :: phi_x_eta
+        real(R_P), allocatable, dimension(:,:,:) :: phi_x_phi
+        real(R_P), allocatable, dimension(:,:,:) :: phi_y_xi
+        real(R_P), allocatable, dimension(:,:,:) :: phi_y_eta
+        real(R_P), allocatable, dimension(:,:,:) :: phi_y_phi
+        real(R_P), allocatable, dimension(:,:,:) :: phi_z_xi
+        real(R_P), allocatable, dimension(:,:,:) :: phi_z_eta
+        real(R_P), allocatable, dimension(:,:,:) :: phi_z_phi
         do k=ks,ke
             do j=js,je
                 do i=is,ie
@@ -405,7 +538,7 @@ contains
         deallocate(phi_x_local)
         deallocate(phi_y_local)
         deallocate(phi_z_local)
-    end subroutine compute_convariant_metrics
+    end subroutine compute_convariant_metrics_3d
 
     subroutine deallocate_memory()
         implicit none
@@ -441,4 +574,13 @@ contains
         call VecDestroy(PHIY_local, ierr)
         call VecDestroy(PHIZ_local, ierr)
     end subroutine deallocate_memory
+
+    subroutine printinfo(comm)
+        implicit none
+        PetscInt,intent(in) :: comm 
+        PetscErrorCode :: ierr 
+        call PetscPrintf(comm," -----------------------------------\n",ierr)
+        call PetscPrintf(comm,"  度量系数矩阵计算结束，进程已同步。    \n",ierr)
+        call PetscPrintf(comm," -----------------------------------\n",ierr)
+    end subroutine  printinfo
 end module mod_metrics

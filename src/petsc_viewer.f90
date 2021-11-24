@@ -23,19 +23,19 @@ contains
   subroutine petsc_viewer(comm)
     implicit none
     PetscInt, INTENT(in) :: comm
-    call Signal_Viewer()
+    call signal_viewer()
     call create_mesh_3d(comm)
     call mesh_output(comm)
     call deallocate_memory()
   end subroutine petsc_viewer
 
-  subroutine Signal_Viewer()
+  subroutine signal_viewer()
     implicit none 
     write(*,*) "-----------------------------------"
     write(*,*) "         转换数据并生成文件          "
     write(*,*) "-----------------------------------"
     write(*,*)
-  end subroutine Signal_Viewer
+  end subroutine signal_viewer
 
   subroutine create_mesh_3d(comm)
     implicit none
