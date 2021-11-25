@@ -135,8 +135,8 @@ module mod_cfgio_adapter
         else
           print*, "No Omega is input."
         endif
-        if(cfg%has_key("Turbulent", "Mode"))then
-          call cfg%get("Turbulent", "Mode", BC_type)
+        if(cfg%has_key("Turbulent", "mode"))then
+          call cfg%get("Turbulent", "mode", mode)
         endif
     end subroutine cfg_turbulent
 end module mod_cfgio_adapter

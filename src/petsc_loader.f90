@@ -23,10 +23,10 @@ module mod_petsc_loader ! 读入并分发数据
 		call bcastinflow(comm)
 		call read_mesh_3d(comm)
 		call get_layout()
-		call MPI_Wait(request,status,ierr)
 		call load_mesh_info()
 		call load_flow_info()
 		call printinfo(comm)
+		call MPI_Wait(request,status,ierr)
 		call MPI_Barrier(comm,ierr)
 	end subroutine loadingdata
 

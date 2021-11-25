@@ -5,9 +5,9 @@ module mod_difference
 ! 
 !       1.call Cal_dif(result, array, Delta, istart, iend, ighost_start, ighost_end, ln) 计算某一行数据的一阶导数，不使用了
 ! 
-!       2.call fd1(out_array,mo,no,po,qo,ro,so,in_array,mi,ni,pi,qi,ri,si,flg,tag) 计算一整块数据的一阶导数
+!       2.call fd1(out_array,mo,no,po,qo,ro,so,in_array,mi,ni,pi,qi,ri,si,flg,dof) 计算一整块数据的一阶导数
 ! 
-!       3.call fd2(out_array,mo,no,po,qo,ro,so,in_array,mi,ni,pi,qi,ri,si,flg,tag) 计算一整块数据的二阶导数
+!       3.call fd2(out_array,mo,no,po,qo,ro,so,in_array,mi,ni,pi,qi,ri,si,flg,dof) 计算一整块数据的二阶导数
 ! 
 ! ----------------------------------------------------
     use penf, only: R_P
@@ -40,12 +40,12 @@ module mod_difference
 
     subroutine fd1(out_array,mo,no,po,qo,ro,so,&
                     in_array,mi,ni,pi,qi,ri,si,&
-                    flg,tag)
+                    flg,dof)
         implicit none
         integer :: i,j,k
-        integer,intent(in) :: flg,mi,ni,pi,qi,ri,si,mo,no,po,qo,ro,so,tag
-        real(R_P), dimension(tag,mi:ni,pi:qi,ri:si), intent(in) :: in_array
-        real(R_P), dimension(tag,mo:no,po:qo,ro:so), intent(out) :: out_array
+        integer,intent(in) :: flg,mi,ni,pi,qi,ri,si,mo,no,po,qo,ro,so,dof
+        real(R_P), dimension(dof,mi:ni,pi:qi,ri:si), intent(in) :: in_array
+        real(R_P), dimension(dof,mo:no,po:qo,ro:so), intent(out) :: out_array
         select case (flg)
         case(1)
             do k=ro,so 
@@ -115,12 +115,12 @@ module mod_difference
 
     subroutine fd2(out_array,mo,no,po,qo,ro,so,&
                     in_array,mi,ni,pi,qi,ri,si,&
-                    flg,tag)
+                    flg,dof)
         implicit none
         integer :: i,j,k
-        integer,intent(in) :: flg,mi,ni,pi,qi,ri,si,mo,no,po,qo,ro,so,tag
-        real(R_P), dimension(tag,mi:ni,pi:qi,ri:si), intent(in) :: in_array
-        real(R_P), dimension(tag,mo:no,po:qo,ro:so), intent(out) :: out_array
+        integer,intent(in) :: flg,mi,ni,pi,qi,ri,si,mo,no,po,qo,ro,so,dof
+        real(R_P), dimension(dof,mi:ni,pi:qi,ri:si), intent(in) :: in_array
+        real(R_P), dimension(dof,mo:no,po:qo,ro:so), intent(out) :: out_array
         select case (flg)
         case(1)
             do k=ro,so 

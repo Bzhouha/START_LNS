@@ -14,7 +14,7 @@ module mod_metrics
 !
 !           3).call compute_convariant_metrics() 计算度量系数的函数
 !
-!           4).call deallocate_memory() 释放不需要的内存
+!           4).call deallocate_memory() 释放内存
 !
 !           5).call printinfo(comm) 输出本模块运行结束信息
 !
@@ -114,6 +114,7 @@ contains
             call fd1(y_xi,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,1,1)
             call fd1(x_eta,is,ie,js,je,ks,ke,xx,igs,ige,jgs,jge,kgs,kge,2,1)
             call fd1(y_eta,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,2,1)
+            x_phi=0.0d0;y_phi=0.0d0;z_xi=0.0d0;z_eta=0.0d0;z_phi=0.0d0
         case(1)
             call fd1(x_xi,is,ie,js,je,ks,ke,xx,igs,ige,jgs,jge,kgs,kge,1,1)
             call fd1(y_xi,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,1,1)
@@ -174,23 +175,26 @@ contains
         tmp(:,:,:)=xi_x(:,:,:)
         call DMDAVecRestoreArrayF90(DA, XIX, tmp, ierr)
         call DMGlobalToLocalBegin(DA, XIX, INSERT_VALUES, XIX_local, ierr)
-        call DMGlobalToLocalEnd(DA, XIX, INSERT_VALUES, XIX_local, ierr)
+
 
         call DMDAVecGetArrayF90(DA, XIY, tmp, ierr)
         tmp(:,:,:)=xi_y(:,:,:)
         call DMDAVecRestoreArrayF90(DA, XIY, tmp, ierr)
+        call DMGlobalToLocalEnd(DA, XIX, INSERT_VALUES, XIX_local, ierr)
         call DMGlobalToLocalBegin(DA, XIY, INSERT_VALUES, XIY_local, ierr)
-        call DMGlobalToLocalEnd(DA, XIY, INSERT_VALUES, XIY_local, ierr)
+
 
         call DMDAVecGetArrayF90(DA, ETAX, tmp, ierr)
         tmp(:,:,:)=eta_x(:,:,:)
         call DMDAVecRestoreArrayF90(DA, ETAX, tmp, ierr)
+        call DMGlobalToLocalEnd(DA, XIY, INSERT_VALUES, XIY_local, ierr)
         call DMGlobalToLocalBegin(DA, ETAX, INSERT_VALUES, ETAX_local, ierr)
-        call DMGlobalToLocalEnd(DA, ETAX, INSERT_VALUES, ETAX_local, ierr)
+
 
         call DMDAVecGetArrayF90(DA, ETAY, tmp, ierr)
         tmp(:,:,:)=eta_y(:,:,:)
         call DMDAVecRestoreArrayF90(DA, ETAY, tmp, ierr)
+        call DMGlobalToLocalEnd(DA, ETAX, INSERT_VALUES, ETAX_local, ierr)
         call DMGlobalToLocalBegin(DA, ETAY, INSERT_VALUES, ETAY_local, ierr)
         call DMGlobalToLocalEND(DA, ETAY, INSERT_VALUES, ETAY_local, ierr)
 
@@ -245,6 +249,9 @@ contains
                 enddo
             enddo
         enddo
+
+        xi_zz=0.0d0;xi_xz=0.0d0;xi_yz=0.0d0;eta_zz=0.0d0;eta_xz=0.0d0;eta_yz=0.0d0 
+        phi_xx=0.0d0;phi_yy=0.0d0;phi_zz=0.0d0;phi_xy=0.0d0;phi_xz=0.0d0;phi_yz=0.0d0
 
         deallocate(xi_x_xi  )
         deallocate(xi_x_eta )
@@ -329,53 +336,53 @@ contains
         tmp(:,:,:) = xi_x(:,:,:)
         call DMDAVecRestoreArrayF90(DA, XIX, tmp, ierr)
         call DMGlobalToLocalBegin(DA, XIX, INSERT_VALUES, XIX_local, ierr)
-        call DMGlobalToLocalEnd(DA, XIX, INSERT_VALUES, XIX_local, ierr)
 
         call DMDAVecGetArrayF90(DA, XIY, tmp, ierr)
         tmp(:,:,:) = xi_y(:,:,:)
         call DMDAVecRestoreArrayF90(DA, XIY, tmp, ierr)
+        call DMGlobalToLocalEnd(DA, XIX, INSERT_VALUES, XIX_local, ierr)
         call DMGlobalToLocalBegin(DA, XIY, INSERT_VALUES, XIY_local, ierr)
-        call DMGlobalToLocalEnd(DA, XIY, INSERT_VALUES, XIY_local, ierr)
 
         call DMDAVecGetArrayF90(DA, XIZ, tmp, ierr)
         tmp(:,:,:) = xi_z(:,:,:)
         call DMDAVecRestoreArrayF90(DA, XIZ, tmp, ierr)
+        call DMGlobalToLocalEnd(DA, XIY, INSERT_VALUES, XIY_local, ierr)
         call DMGlobalToLocalBegin(DA, XIZ, INSERT_VALUES, XIZ_local, ierr)
-        call DMGlobalToLocalEnd(DA, XIZ, INSERT_VALUES, XIZ_local, ierr)
 
         call DMDAVecGetArrayF90(DA, ETAX, tmp, ierr)
         tmp(:,:,:) = eta_x(:,:,:)
         call DMDAVecRestoreArrayF90(DA, ETAX, tmp, ierr)
+        call DMGlobalToLocalEnd(DA, XIZ, INSERT_VALUES, XIZ_local, ierr)
         call DMGlobalToLocalBegin(DA, ETAX, INSERT_VALUES, ETAX_local, ierr)
-        call DMGlobalToLocalEnd(DA, ETAX, INSERT_VALUES, ETAX_local, ierr)
 
         call DMDAVecGetArrayF90(DA, ETAY, tmp, ierr)
         tmp(:,:,:) = eta_y(:,:,:)
         call DMDAVecRestoreArrayF90(DA, ETAY, tmp, ierr)
+        call DMGlobalToLocalEnd(DA, ETAX, INSERT_VALUES, ETAX_local, ierr)
         call DMGlobalToLocalBegin(DA, ETAY, INSERT_VALUES, ETAY_local, ierr)
-        call DMGlobalToLocalEnd(DA, ETAY, INSERT_VALUES, ETAY_local, ierr)
 
         call DMDAVecGetArrayF90(DA, ETAZ, tmp, ierr)
         tmp(:,:,:) = eta_z(:,:,:)
         call DMDAVecRestoreArrayF90(DA, ETAZ, tmp, ierr)
+        call DMGlobalToLocalEnd(DA, ETAY, INSERT_VALUES, ETAY_local, ierr)
         call DMGlobalToLocalBegin(DA, ETAZ, INSERT_VALUES, ETAZ_local, ierr)
-        call DMGlobalToLocalEnd(DA, ETAZ, INSERT_VALUES, ETAZ_local, ierr)
 
         call DMDAVecGetArrayF90(DA, PHIX, tmp, ierr)
         tmp(:,:,:) = phi_x(:,:,:)
         call DMDAVecRestoreArrayF90(DA, PHIX, tmp, ierr)
+        call DMGlobalToLocalEnd(DA, ETAZ, INSERT_VALUES, ETAZ_local, ierr)
         call DMGlobalToLocalBegin(DA, PHIX, INSERT_VALUES, PHIX_local, ierr)
-        call DMGlobalToLocalEnd(DA, PHIX, INSERT_VALUES, PHIX_local, ierr)
 
         call DMDAVecGetArrayF90(DA, PHIY, tmp, ierr)
         tmp(:,:,:) = phi_y(:,:,:)
         call DMDAVecRestoreArrayF90(DA, PHIY, tmp, ierr)
+        call DMGlobalToLocalEnd(DA, PHIX, INSERT_VALUES, PHIX_local, ierr)
         call DMGlobalToLocalBegin(DA, PHIY, INSERT_VALUES, PHIY_local, ierr)
-        call DMGlobalToLocalEnd(DA, PHIY, INSERT_VALUES, PHIY_local, ierr)
 
         call DMDAVecGetArrayF90(DA, PHIZ, tmp, ierr)
         tmp(:,:,:) = phi_z(:,:,:)
         call DMDAVecRestoreArrayF90(DA, PHIZ, tmp, ierr)
+        call DMGlobalToLocalEnd(DA, PHIY, INSERT_VALUES, PHIY_local, ierr)
         call DMGlobalToLocalBegin(DA, PHIZ, INSERT_VALUES, PHIZ_local, ierr)
         call DMGlobalToLocalEnd(DA, PHIZ, INSERT_VALUES, PHIZ_local, ierr)
 
@@ -582,5 +589,6 @@ contains
         call PetscPrintf(comm," -----------------------------------\n",ierr)
         call PetscPrintf(comm,"  度量系数矩阵计算结束，进程已同步。    \n",ierr)
         call PetscPrintf(comm," -----------------------------------\n",ierr)
-    end subroutine  printinfo
+    end subroutine printinfo
+
 end module mod_metrics

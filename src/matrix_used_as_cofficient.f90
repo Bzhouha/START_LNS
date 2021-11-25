@@ -17,7 +17,9 @@ module matrix_used_as_cofficient
 !
 ! 				1).call SkyBlueCubes(i,j,k) 天空蓝色的小块儿，3D-HLNS对应的系数小矩阵
 !
-! 				2).call MintCubes(i,j,k) 薄荷色的小块儿，2D-HLNS对应的系数小矩阵
+! 				2).call TealCubes(i,j,k) 薄荷色的小块儿，2D-HLNS对应的系数小矩阵
+!
+! 				3).call MintCubes(i,j,k) 水鸭色的小块儿，2D-HLNS对应的系数小矩阵
 !
 ! -----------------------------------------------------------
 	use penf, only: R_P
@@ -444,9 +446,9 @@ module matrix_used_as_cofficient
 		integer,intent(in) :: i,j,k
 		select case (mode)
 		case(0)
-			call this%SkyBlueCubes(i,j,k)
-		case(1)
 			call this%MintCubes(i,j,k)
+		case(1)
+			call this%SkyBlueCubes(i,j,k)
 		case(2)
 			call this%TealCubes(i,j,k)
 		end select
@@ -470,6 +472,26 @@ module matrix_used_as_cofficient
 		this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
 	end subroutine SkyBlueCubes
 
+	subroutine TealCubes(this,i,j,k)
+		use global_parameters,only:Beta,Omega 
+		implicit none
+		class(lns_OP_point_type),intent(inout) :: this
+		type(lns_OP_point_type) :: Jor
+		integer,intent(in) :: i,j,k
+		call Jor%GetAdornedCubes(i,j,k)
+		this%G=Jor%G
+		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
+		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
+		this%A_p=Jor%A_p; this%A_m=Jor%A_m
+		this%A_v=Jor%A_v+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vxz
+		this%B_p=Jor%B_p; this%B_m=Jor%B_m
+		this%B_v=Jor%B_v+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vyz 
+		this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
+		this%D=Jor%D-cmplx(0.0d0,1.0d0,R_P)*Omega*Jor%G+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%C-Beta*Beta*Jor%Vzz
+		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
+		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
+	end subroutine TealCubes
+
 	subroutine MintCubes(this,i,j,k)
 		use global_parameters,only:Alpha,Beta,Omega 
 		implicit none 
@@ -490,26 +512,6 @@ module matrix_used_as_cofficient
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
 		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
 	end subroutine MintCubes
-
-	subroutine TealCubes(this,i,j,k)
-		use global_parameters,only:Beta,Omega 
-		implicit none
-		class(lns_OP_point_type),intent(inout) :: this
-		type(lns_OP_point_type) :: Jor
-		integer,intent(in) :: i,j,k
-		call Jor%GetAdornedCubes(i,j,k)
-		this%G=Jor%G
-		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
-		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
-		this%A_p=Jor%A_p; this%A_m=Jor%A_m
-		this%A_v=Jor%A_v+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vxz
-		this%B_p=Jor%B_p; this%B_m=Jor%B_m
-		this%B_v=Jor%B_v+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vyz 
-		this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
-		this%D=Jor%D-cmplx(0.0d0,1.0d0,R_P)*Omega*Jor%G+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%C-Beta*Beta*Jor%Vzz
-		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
-		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
-	end subroutine TealCubes
 
 	subroutine split(A,G,Aplus,Aminus)
 		implicit none

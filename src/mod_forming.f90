@@ -296,7 +296,12 @@ module mod_forming
 			ljb=-2; lje=2
 			jc_index=0
 		endif
-		lkb=-2; lke=2; kc_index=0 !!周期边界条件
+		select case (mode)
+		case(0)
+			lkb=0; lke=0; kc_index=0
+		case(1)
+			lkb=-2; lke=2; kc_index=0 !!周期边界条件
+		end select
 		idxm=0; 
 		idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
 		associate( &

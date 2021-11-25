@@ -17,13 +17,11 @@ module mod_solving
 		PetscErrorCode :: ierr 
 		call DMCreateGlobalVector(meshDA,turtle,ierr)
 		call metriccoefficient(comm)
-		! call Tunas(comm)
-		! call MPI_Barrier(comm,ierr)
-		! !call DolphinComing(comm)
-		! call WhaleComing(comm)
-		! call MPI_Barrier(comm,ierr)
-		! call solving(comm)
-		! call DropTheWaste()
+		call partial_derivatives(comm)
+		!call DolphinComing(comm)
+		!call WhaleComing(comm)
+		!call solving(comm)
+		call DropTheWaste()
 	end subroutine Working
 
 	subroutine solving(comm)
@@ -32,8 +30,12 @@ module mod_solving
 
 		call WhaleReady(comm,0)
 		
-		block 
+	end subroutine solving 
+
+	subroutine PrintResult()
+		implicit none
 		PetscScalar,pointer :: tmp(:,:,:,:)
+		PetscErrorCode :: ierr
 		integer :: l,i,j,k
 		call DMDAVecGetArrayReadF90(meshDA,turtle,tmp,ierr)
 		do l=0,4
@@ -46,8 +48,7 @@ module mod_solving
 			write(*,*) "---"
 		enddo
 		call DMDAVecRestoreArrayReadF90(meshDA,turtle,tmp,ierr)
-		end block
-	end subroutine solving 
+	end subroutine PrintResult
 
 	subroutine WhaleReady(comm,level)
 		implicit none
