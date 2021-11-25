@@ -79,256 +79,256 @@ module matrix_used_as_cofficient
 		g1 = (1.0d0-GAMMA)/GAMMA
 		g2 = (GAMMA-1.0d0)*Ma*Ma
 		associate ( &
-		rho  => bf(i,j,k)%BF%rho, &
-		U    => bf(i,j,k)%BF%x, &
-		V    => bf(i,j,k)%BF%y, &
-		W    => bf(i,j,k)%BF%z, &
-		T    => bf(i,j,k)%BF%T, &
-	
-		rhox => bf(i,j,k)%BFDx%rho, &
-		Ux   => bf(i,j,k)%BFDx%x, &
-		Vx   => bf(i,j,k)%BFDx%y, &
-		Wx   => bf(i,j,k)%BFDx%z, &
-		Tx   => bf(i,j,k)%BFDx%T, &
-	
-		rhoy => bf(i,j,k)%BFDy%rho, &
-		Uy   => bf(i,j,k)%BFDy%x, &
-		Vy   => bf(i,j,k)%BFDy%y, &
-		Wy   => bf(i,j,k)%BFDy%z, &
-		Ty   => bf(i,j,k)%BFDy%T, &
-	
-		rhoz => bf(i,j,k)%BFDz%rho, &
-		Uz   => bf(i,j,k)%BFDz%x, &
-		Vz   => bf(i,j,k)%BFDz%y, &
-		Wz   => bf(i,j,k)%BFDz%z, &
-		Tz   => bf(i,j,k)%BFDz%T, &
-	
-		Uxx  => bf(i,j,k)%BFDxx%x, &
-		nVxx => bf(i,j,k)%BFDxx%y, & ! 加前缀n与系数矩阵区分
-		Wxx  => bf(i,j,k)%BFDxx%z, &
-		Txx  => bf(i,j,k)%BFDxx%T, &
-	
-		Uyy  => bf(i,j,k)%BFDyy%x, &
-		nVyy => bf(i,j,k)%BFDyy%y, & 
-		Wyy  => bf(i,j,k)%BFDyy%z, &
-		Tyy  => bf(i,j,k)%BFDyy%T, &
-	
-		Uzz  => bf(i,j,k)%BFDzz%x, &
-		nVzz => bf(i,j,k)%BFDzz%y, & 
-		Wzz  => bf(i,j,k)%BFDzz%z, &
-		Tzz  => bf(i,j,k)%BFDzz%T, &
-	
-		Uxy  => bf(i,j,k)%BFDxy%x, &
-		nVxy => bf(i,j,k)%BFDxy%y, & 
-		Wxy  => bf(i,j,k)%BFDxy%z, &
-	
-		Uxz  => bf(i,j,k)%BFDxz%x, &
-		nVxz => bf(i,j,k)%BFDxz%y, & 
-		Wxz  => bf(i,j,k)%BFDxz%z, &
-	
-		Uyz  => bf(i,j,k)%BFDyz%x, &
-		nVyz => bf(i,j,k)%BFDyz%y, & 
-		Wyz  => bf(i,j,k)%BFDyz%z  )
-		! Surthland公式相关
-		n_Miu = miu(T)
-		n_MiuT = miuT(T)
-		n_MiuTT = miuTT(T)
-		n_Miux = n_MiuT*Tx
-		n_Miuy = n_MiuT*Ty
-		n_Miuz = n_MiuT*Tz
-		! 下面开始制造矩阵
-		G(1, 1) = 1.0d0
-		G(2, 2) = rho
-		G(3, 3) = rho
-		G(4, 4) = rho
-		G(5, 1) = g1*T 
-		G(5, 5) = rho/GAMMA
-
-		A(1, 1) = U
-		A(1, 2) = rho
-		A(2, 1) = Pe*T 
-		A(2, 2) = rho*U - d4d3*n_Miux/Re
-		A(2, 3) = -1.0d0/Re*n_Miuy
-		A(2, 4) = -1.0d0/Re*n_Miuz
-		A(2, 5) = Pe*rho - n_MiuT/Re*(d4d3*Ux-d2d3*Vy-d2d3*Wz)
-		A(3, 2) = d2d3/Re*n_Miuy
-		A(3, 3) = rho*U - n_Miux/Re
-		A(3, 5) = -1.0d0/Re*n_MiuT*(Uy+Vx)
-		A(4, 2) = d2d3*n_Miuz/Re
-		A(4, 4) = rho*U - n_Miux/Re
-		A(4, 5) = -1.0d0*n_MiuT*(Wx+Uz)/Re
-		A(5, 1) = g1*T*U
-		A(5, 2) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Ux-Vy-Wz)/Re 
-		A(5, 3) = -2.0d0*g2*n_Miu*(Vx+Uy)/Re
-		A(5, 4) = -2.0d0*g2*n_Miu*(Wx+Uz)/Re
-		A(5, 5) = gf*rho*U - 2.0d0*n_Miux/Re/Pr
-
-		A_c(1, 1) = U
-		A_c(1, 2) = rho
-		A_c(2, 1) = Pe*T 
-		A_c(2, 2) = rho*U
-		A_c(2, 5) = Pe*rho
-		A_c(3, 3) = rho*U
-		A_c(4, 4) = rho*U
-		A_c(5, 1) = g1*T*U
-		A_c(5, 5) = gf*rho*U
-
-		A_v(2, 2) = -1.0d0*d4d3*n_Miux/Re
-		A_v(2, 3) = -1.0d0/Re*n_Miuy
-		A_v(2, 4) = -1.0d0/Re*n_Miuz
-		A_v(2, 5) = -1.0d0*n_MiuT/Re*(d4d3*Ux-d2d3*Vy-d2d3*Wz)
-		A_v(3, 2) = d2d3/Re*n_Miuy
-		A_v(3, 3) = -1.0d0*n_Miux/Re
-		A_v(3, 5) = -1.0d0/Re*n_MiuT*(Uy+Vx)
-		A_v(4, 2) = d2d3*n_Miuz/Re
-		A_v(4, 4) = -1.0d0*n_Miux/Re
-		A_v(4, 5) = -1.0d0*n_MiuT*(Wx+Uz)/Re
-		A_v(5, 2) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Ux-Vy-Wz)/Re 
-		A_v(5, 3) = -2.0d0*g2*n_Miu*(Vx+Uy)/Re
-		A_v(5, 4) = -2.0d0*g2*n_Miu*(Wx+Uz)/Re
-		A_v(5, 5) = -2.0d0*n_Miux/Re/Pr
+			rho  => bf(i,j,k)%BF%rho, &
+			U    => bf(i,j,k)%BF%x, &
+			V    => bf(i,j,k)%BF%y, &
+			W    => bf(i,j,k)%BF%z, &
+			T    => bf(i,j,k)%BF%T, &
 		
-		B(1, 1) = V
-		B(1, 3) = rho
-		B(2, 2) = rho*V - n_Miuy/Re
-		B(2, 3) = d2d3*n_Miux/Re
-		B(2, 5) = -1.0d0*n_MiuT*(Uy+Vx)/Re
-		B(3, 1) = Pe*T
-		B(3, 2) = -1.0d0*n_Miux/Re
-		B(3, 3) = rho*V - d4d3*n_Miuy/Re
-		B(3, 4) = -1.0d0*n_Miuz/Re
-		B(3, 5) = Pe*rho - d2d3*n_MiuT*(-1.0d0*Ux+2.0d0*Vy-Wz)/Re
-		B(4, 3) = d2d3*n_Miuz/Re
-		B(4, 4) = rho*V - n_Miuy/Re
-		B(4, 5) = -1.0d0*n_MiuT*(Vz+Wy)/Re
-		B(5, 1) = g1*T*V
-		B(5, 2) = -2.0d0*g2*n_Miu*(Uy+Vx)/Re
-		B(5, 3) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Vy-Ux-Wz)/Re
-		B(5, 4) = -2.0d0*g2*n_Miu*(Wy+Vz)/Re
-		B(5, 5) = gf*rho*V - 2.0d0*n_Miuy/Re/Pr 
+			rhox => bf(i,j,k)%BFDx%rho, &
+			Ux   => bf(i,j,k)%BFDx%x, &
+			Vx   => bf(i,j,k)%BFDx%y, &
+			Wx   => bf(i,j,k)%BFDx%z, &
+			Tx   => bf(i,j,k)%BFDx%T, &
+		
+			rhoy => bf(i,j,k)%BFDy%rho, &
+			Uy   => bf(i,j,k)%BFDy%x, &
+			Vy   => bf(i,j,k)%BFDy%y, &
+			Wy   => bf(i,j,k)%BFDy%z, &
+			Ty   => bf(i,j,k)%BFDy%T, &
+		
+			rhoz => bf(i,j,k)%BFDz%rho, &
+			Uz   => bf(i,j,k)%BFDz%x, &
+			Vz   => bf(i,j,k)%BFDz%y, &
+			Wz   => bf(i,j,k)%BFDz%z, &
+			Tz   => bf(i,j,k)%BFDz%T, &
+		
+			Uxx  => bf(i,j,k)%BFDxx%x, &
+			nVxx => bf(i,j,k)%BFDxx%y, & ! 加前缀n与系数矩阵区分
+			Wxx  => bf(i,j,k)%BFDxx%z, &
+			Txx  => bf(i,j,k)%BFDxx%T, &
+		
+			Uyy  => bf(i,j,k)%BFDyy%x, &
+			nVyy => bf(i,j,k)%BFDyy%y, & 
+			Wyy  => bf(i,j,k)%BFDyy%z, &
+			Tyy  => bf(i,j,k)%BFDyy%T, &
+		
+			Uzz  => bf(i,j,k)%BFDzz%x, &
+			nVzz => bf(i,j,k)%BFDzz%y, & 
+			Wzz  => bf(i,j,k)%BFDzz%z, &
+			Tzz  => bf(i,j,k)%BFDzz%T, &
+		
+			Uxy  => bf(i,j,k)%BFDxy%x, &
+			nVxy => bf(i,j,k)%BFDxy%y, & 
+			Wxy  => bf(i,j,k)%BFDxy%z, &
+		
+			Uxz  => bf(i,j,k)%BFDxz%x, &
+			nVxz => bf(i,j,k)%BFDxz%y, & 
+			Wxz  => bf(i,j,k)%BFDxz%z, &
+		
+			Uyz  => bf(i,j,k)%BFDyz%x, &
+			nVyz => bf(i,j,k)%BFDyz%y, & 
+			Wyz  => bf(i,j,k)%BFDyz%z  )
+			! Surthland公式相关
+			n_Miu = miu(T)
+			n_MiuT = miuT(T)
+			n_MiuTT = miuTT(T)
+			n_Miux = n_MiuT*Tx
+			n_Miuy = n_MiuT*Ty
+			n_Miuz = n_MiuT*Tz
+			! 下面开始制造矩阵
+			G(1, 1) = 1.0d0
+			G(2, 2) = rho
+			G(3, 3) = rho
+			G(4, 4) = rho
+			G(5, 1) = g1*T 
+			G(5, 5) = rho/GAMMA
 
-		B_c(1, 1) = V
-		B_c(1, 3) = rho
-		B_c(2, 2) = rho*V
-		B_c(3, 1) = Pe*T
-		B_c(3, 3) = rho*V
-		B_c(3, 5) = Pe*rho
-		B_c(4, 4) = rho*V
-		B_c(5, 1) = g1*T*V
-		B_c(5, 5) = gf*rho*V 
+			A(1, 1) = U
+			A(1, 2) = rho
+			A(2, 1) = Pe*T 
+			A(2, 2) = rho*U - d4d3*n_Miux/Re
+			A(2, 3) = -1.0d0/Re*n_Miuy
+			A(2, 4) = -1.0d0/Re*n_Miuz
+			A(2, 5) = Pe*rho - n_MiuT/Re*(d4d3*Ux-d2d3*Vy-d2d3*Wz)
+			A(3, 2) = d2d3/Re*n_Miuy
+			A(3, 3) = rho*U - n_Miux/Re
+			A(3, 5) = -1.0d0/Re*n_MiuT*(Uy+Vx)
+			A(4, 2) = d2d3*n_Miuz/Re
+			A(4, 4) = rho*U - n_Miux/Re
+			A(4, 5) = -1.0d0*n_MiuT*(Wx+Uz)/Re
+			A(5, 1) = g1*T*U
+			A(5, 2) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Ux-Vy-Wz)/Re 
+			A(5, 3) = -2.0d0*g2*n_Miu*(Vx+Uy)/Re
+			A(5, 4) = -2.0d0*g2*n_Miu*(Wx+Uz)/Re
+			A(5, 5) = gf*rho*U - 2.0d0*n_Miux/Re/Pr
 
-		B_v(2, 2) = -1.0d0*n_Miuy/Re
-		B_v(2, 3) = d2d3*n_Miux/Re
-		B_v(2, 5) = -1.0d0*n_MiuT*(Uy+Vx)/Re
-		B_v(3, 2) = -1.0d0*n_Miux/Re
-		B_v(3, 3) = -1.0d0*d4d3*n_Miuy/Re
-		B_v(3, 4) = -1.0d0*n_Miuz/Re
-		B_v(3, 5) = -1.0d0*d2d3*n_MiuT*(-1.0d0*Ux+2.0d0*Vy-Wz)/Re
-		B_v(4, 3) = d2d3*n_Miuz/Re
-		B_v(4, 4) = -1.0d0*n_Miuy/Re
-		B_v(4, 5) = -1.0d0*n_MiuT*(Vz+Wy)/Re
-		B_v(5, 2) = -2.0d0*g2*n_Miu*(Uy+Vx)/Re
-		B_v(5, 3) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Vy-Ux-Wz)/Re
-		B_v(5, 4) = -2.0d0*g2*n_Miu*(Wy+Vz)/Re
-		B_v(5, 5) = -2.0d0*n_Miuy/Re/Pr 
-		
-		C(1, 1) = W
-		C(1, 4) = rho
-		C(2, 2) = rho*W - n_Miuz/Re
-		C(2, 4) = d2d3*n_Miux/Re
-		C(2, 5) = -1.0d0*n_MiuT*(Wx+Uz)/Re
-		C(3, 3) = rho*W - n_Miuz/Re
-		C(3, 4) = d2d3*n_Miuy/Re
-		C(3, 5) = -1.0d0*n_MiuT*(Vz+Wy)/Re
-		C(4, 1) = Pe*T
-		C(4, 2) = -1.0d0*n_Miux/Re
-		C(4, 3) = -1.0d0*n_Miuy/Re
-		C(4, 4) = rho*W - d4d3*n_Miuz/Re
-		C(4, 5) = Pe*rho - n_MiuT*d2d3*(-1.0d0*Ux-Vy+2.0d0*Wz)/Re
-		C(5, 1) = g1*T*W
-		C(5, 2) = -2.0d0*g2*n_Miu*(Uz+Wx)/Re
-		C(5, 3) = -2.0d0*g2*n_Miu*(Vz+Wy)/Re
-		C(5, 4) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Wz-Ux-Vy)/Re
-		C(5, 5) = gf*rho*W - 2.0d0*n_Miuz/Re/Pr
+			A_c(1, 1) = U
+			A_c(1, 2) = rho
+			A_c(2, 1) = Pe*T 
+			A_c(2, 2) = rho*U
+			A_c(2, 5) = Pe*rho
+			A_c(3, 3) = rho*U
+			A_c(4, 4) = rho*U
+			A_c(5, 1) = g1*T*U
+			A_c(5, 5) = gf*rho*U
 
-		C_c(1, 1) = W
-		C_c(1, 4) = rho
-		C_c(2, 2) = rho*W
-		C_c(3, 3) = rho*W
-		C_c(4, 1) = Pe*T
-		C_c(4, 4) = rho*W
-		C_c(4, 5) = Pe*rho
-		C_c(5, 1) = g1*T*W
-		C_c(5, 5) = gf*rho*W
+			A_v(2, 2) = -1.0d0*d4d3*n_Miux/Re
+			A_v(2, 3) = -1.0d0/Re*n_Miuy
+			A_v(2, 4) = -1.0d0/Re*n_Miuz
+			A_v(2, 5) = -1.0d0*n_MiuT/Re*(d4d3*Ux-d2d3*Vy-d2d3*Wz)
+			A_v(3, 2) = d2d3/Re*n_Miuy
+			A_v(3, 3) = -1.0d0*n_Miux/Re
+			A_v(3, 5) = -1.0d0/Re*n_MiuT*(Uy+Vx)
+			A_v(4, 2) = d2d3*n_Miuz/Re
+			A_v(4, 4) = -1.0d0*n_Miux/Re
+			A_v(4, 5) = -1.0d0*n_MiuT*(Wx+Uz)/Re
+			A_v(5, 2) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Ux-Vy-Wz)/Re 
+			A_v(5, 3) = -2.0d0*g2*n_Miu*(Vx+Uy)/Re
+			A_v(5, 4) = -2.0d0*g2*n_Miu*(Wx+Uz)/Re
+			A_v(5, 5) = -2.0d0*n_Miux/Re/Pr
+			
+			B(1, 1) = V
+			B(1, 3) = rho
+			B(2, 2) = rho*V - n_Miuy/Re
+			B(2, 3) = d2d3*n_Miux/Re
+			B(2, 5) = -1.0d0*n_MiuT*(Uy+Vx)/Re
+			B(3, 1) = Pe*T
+			B(3, 2) = -1.0d0*n_Miux/Re
+			B(3, 3) = rho*V - d4d3*n_Miuy/Re
+			B(3, 4) = -1.0d0*n_Miuz/Re
+			B(3, 5) = Pe*rho - d2d3*n_MiuT*(-1.0d0*Ux+2.0d0*Vy-Wz)/Re
+			B(4, 3) = d2d3*n_Miuz/Re
+			B(4, 4) = rho*V - n_Miuy/Re
+			B(4, 5) = -1.0d0*n_MiuT*(Vz+Wy)/Re
+			B(5, 1) = g1*T*V
+			B(5, 2) = -2.0d0*g2*n_Miu*(Uy+Vx)/Re
+			B(5, 3) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Vy-Ux-Wz)/Re
+			B(5, 4) = -2.0d0*g2*n_Miu*(Wy+Vz)/Re
+			B(5, 5) = gf*rho*V - 2.0d0*n_Miuy/Re/Pr 
 
-		C_v(2, 2) = -1.0d0*n_Miuz/Re
-		C_v(2, 4) = d2d3*n_Miux/Re
-		C_v(2, 5) = -1.0d0*n_MiuT*(Wx+Uz)/Re
-		C_v(3, 3) = -1.0d0*n_Miuz/Re
-		C_v(3, 4) = d2d3*n_Miuy/Re
-		C_v(3, 5) = -1.0d0*n_MiuT*(Vz+Wy)/Re
-		C_v(4, 2) = -1.0d0*n_Miux/Re
-		C_v(4, 3) = -1.0d0*n_Miuy/Re
-		C_v(4, 4) = -1.0d0*d4d3*n_Miuz/Re
-		C_v(4, 5) = -1.0d0*n_MiuT*d2d3*(-1.0d0*Ux-Vy+2.0d0*Wz)/Re
-		C_v(5, 2) = -2.0d0*g2*n_Miu*(Uz+Wx)/Re
-		C_v(5, 3) = -2.0d0*g2*n_Miu*(Vz+Wy)/Re
-		C_v(5, 4) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Wz-Ux-Vy)/Re
-		C_v(5, 5) = -2.0d0*n_Miuz/Re/Pr
+			B_c(1, 1) = V
+			B_c(1, 3) = rho
+			B_c(2, 2) = rho*V
+			B_c(3, 1) = Pe*T
+			B_c(3, 3) = rho*V
+			B_c(3, 5) = Pe*rho
+			B_c(4, 4) = rho*V
+			B_c(5, 1) = g1*T*V
+			B_c(5, 5) = gf*rho*V 
+
+			B_v(2, 2) = -1.0d0*n_Miuy/Re
+			B_v(2, 3) = d2d3*n_Miux/Re
+			B_v(2, 5) = -1.0d0*n_MiuT*(Uy+Vx)/Re
+			B_v(3, 2) = -1.0d0*n_Miux/Re
+			B_v(3, 3) = -1.0d0*d4d3*n_Miuy/Re
+			B_v(3, 4) = -1.0d0*n_Miuz/Re
+			B_v(3, 5) = -1.0d0*d2d3*n_MiuT*(-1.0d0*Ux+2.0d0*Vy-Wz)/Re
+			B_v(4, 3) = d2d3*n_Miuz/Re
+			B_v(4, 4) = -1.0d0*n_Miuy/Re
+			B_v(4, 5) = -1.0d0*n_MiuT*(Vz+Wy)/Re
+			B_v(5, 2) = -2.0d0*g2*n_Miu*(Uy+Vx)/Re
+			B_v(5, 3) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Vy-Ux-Wz)/Re
+			B_v(5, 4) = -2.0d0*g2*n_Miu*(Wy+Vz)/Re
+			B_v(5, 5) = -2.0d0*n_Miuy/Re/Pr 
+			
+			C(1, 1) = W
+			C(1, 4) = rho
+			C(2, 2) = rho*W - n_Miuz/Re
+			C(2, 4) = d2d3*n_Miux/Re
+			C(2, 5) = -1.0d0*n_MiuT*(Wx+Uz)/Re
+			C(3, 3) = rho*W - n_Miuz/Re
+			C(3, 4) = d2d3*n_Miuy/Re
+			C(3, 5) = -1.0d0*n_MiuT*(Vz+Wy)/Re
+			C(4, 1) = Pe*T
+			C(4, 2) = -1.0d0*n_Miux/Re
+			C(4, 3) = -1.0d0*n_Miuy/Re
+			C(4, 4) = rho*W - d4d3*n_Miuz/Re
+			C(4, 5) = Pe*rho - n_MiuT*d2d3*(-1.0d0*Ux-Vy+2.0d0*Wz)/Re
+			C(5, 1) = g1*T*W
+			C(5, 2) = -2.0d0*g2*n_Miu*(Uz+Wx)/Re
+			C(5, 3) = -2.0d0*g2*n_Miu*(Vz+Wy)/Re
+			C(5, 4) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Wz-Ux-Vy)/Re
+			C(5, 5) = gf*rho*W - 2.0d0*n_Miuz/Re/Pr
+
+			C_c(1, 1) = W
+			C_c(1, 4) = rho
+			C_c(2, 2) = rho*W
+			C_c(3, 3) = rho*W
+			C_c(4, 1) = Pe*T
+			C_c(4, 4) = rho*W
+			C_c(4, 5) = Pe*rho
+			C_c(5, 1) = g1*T*W
+			C_c(5, 5) = gf*rho*W
+
+			C_v(2, 2) = -1.0d0*n_Miuz/Re
+			C_v(2, 4) = d2d3*n_Miux/Re
+			C_v(2, 5) = -1.0d0*n_MiuT*(Wx+Uz)/Re
+			C_v(3, 3) = -1.0d0*n_Miuz/Re
+			C_v(3, 4) = d2d3*n_Miuy/Re
+			C_v(3, 5) = -1.0d0*n_MiuT*(Vz+Wy)/Re
+			C_v(4, 2) = -1.0d0*n_Miux/Re
+			C_v(4, 3) = -1.0d0*n_Miuy/Re
+			C_v(4, 4) = -1.0d0*d4d3*n_Miuz/Re
+			C_v(4, 5) = -1.0d0*n_MiuT*d2d3*(-1.0d0*Ux-Vy+2.0d0*Wz)/Re
+			C_v(5, 2) = -2.0d0*g2*n_Miu*(Uz+Wx)/Re
+			C_v(5, 3) = -2.0d0*g2*n_Miu*(Vz+Wy)/Re
+			C_v(5, 4) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Wz-Ux-Vy)/Re
+			C_v(5, 5) = -2.0d0*n_Miuz/Re/Pr
+			
+			D(1, 1) = Ux+Vy+Wz
+			D(1, 2) = rhox
+			D(1, 3) = rhoy 
+			D(1, 4) = rhoz
+			D(2, 1) = U*Ux+V*Uy+W*Uz+Pe*Tx
+			D(2, 2) = rho*Ux
+			D(2, 3) = rho*Uy
+			D(2, 4) = rho*Uz
+			D(2, 5) = Pe*rhox - ( n_MiuTT*Tx*d2d3*(2.0d0*Ux-Vy-Wz) + n_MiuTT*Ty*(Uy+Vx) &
+			+ n_MiuTT*Tz*(Wx+Uz) + n_MiuT*(d4d3*Uxx+Uyy+Uzz+d1d3*nVxy+d1d3*Wxz) )/Re
+			D(3, 1) = U*Vx+V*Vy+W*Vz+Pe*Ty
+			D(3, 2) = rho*Vx
+			D(3, 3) = rho*Vy
+			D(3, 4) = rho*Vz
+			D(3, 5) = Pe*rhoy - ( n_MiuTT*Tx*(Uy+Vx) + n_MiuTT*Ty*d2d3*(-1.0d0*Ux+2.0d0*Vy-Wz) &
+			+ n_MiuTT*Tz*(Vz+Wy) + n_MiuT*(nVxx+d4d3*nVyy+nVzz+d1d3*Uxy+d1d3*Wyz) )/Re
+			D(4, 1) = U*Wx+V*Wy+W*Wz+Pe*Tz
+			D(4, 2) = rho*Wx
+			D(4, 3) = rho*Wy
+			D(4, 4) = rho*Wz
+			D(4, 5) = Pe*rhoz - ( n_MiuTT*Tx*(Wx+Uz) + n_MiuTT*Ty*(Vz+Wy) + &
+			n_MiuTT*Tz*d2d3*(-1.0d0*Ux-Vy+2.0d0*Wz) + n_MiuT*(Wxx+Wyy+d4d3*Wzz+d1d3*Uxz+d1d3*nVyz) )/Re
+			D(5, 1) = gf*U*Tx+gf*V*Ty+gf*W*Tz
+			D(5, 2) = gf*rho*Tx+g1*T*rhox
+			D(5, 3) = gf*rho*Ty+g1*T*rhoy
+			D(5, 4) = gf*rho*Tz+g1*T*rhoz
+			D(5, 5) = g1*U*rhox+g1*V*rhoy+g1*W*rhoz - ( n_MiuTT*(Tx*Tx+Ty*Ty+Tz*Tz) &
+			+ n_MiuT*(Txx+Tyy+Tzz) )/Re/Pr - g2*( d4d3*n_MiuT*(Ux*Ux+Vy*Vy+Wz*Wz-Ux*Vy-Ux*Wz-Vy*Wz) &
+			+ n_MiuT*(Uy*Uy+Vx*Vx+2.0d0*Uy*Vx+Uz*Uz+Wx*Wx+2.0d0*Uz*Wx+Vz*Vz+Wy*Wy+2.0d0*Vz*Wy) )/Re
+			
+			Vxx(2, 2) = -1.0d0*d4d3*n_Miu/Re
+			Vxx(3, 3) = -1.0d0*n_Miu/Re
+			Vxx(4, 4) = -1.0d0*n_Miu/Re
+			Vxx(5, 5) = -1.0d0*n_Miu/Re/Pr
+			
+			Vyy(2, 2) = -1.0d0*n_Miu/Re
+			Vyy(3, 3) = -1.0d0*d4d3*n_Miu/Re
+			Vyy(4, 4) = -1.0d0*n_Miu/Re
+			Vyy(5, 5) = -1.0d0*n_Miu/Re/Pr 
+			
+			Vzz(2, 2) = -1.0d0*n_Miu/Re
+			Vzz(3, 3) = -1.0d0*n_Miu/Re
+			Vzz(4, 4) = -1.0d0*d4d3*n_Miu/Re
+			Vzz(5, 5) = -1.0d0*n_Miu/Re/Pr
+			
+			Vxy(2, 3) = -1.0d0*d1d3*n_Miu/Re
+			Vxy(3, 2) = -1.0d0*d1d3*n_Miu/Re
 		
-		D(1, 1) = Ux+Vy+Wz
-		D(1, 2) = rhox
-		D(1, 3) = rhoy 
-		D(1, 4) = rhoz
-		D(2, 1) = U*Ux+V*Uy+W*Uz+Pe*Tx
-		D(2, 2) = rho*Ux
-		D(2, 3) = rho*Uy
-		D(2, 4) = rho*Uz
-		D(2, 5) = Pe*rhox - ( n_MiuTT*Tx*d2d3*(2.0d0*Ux-Vy-Wz) + n_MiuTT*Ty*(Uy+Vx) &
-		+ n_MiuTT*Tz*(Wx+Uz) + n_MiuT*(d4d3*Uxx+Uyy+Uzz+d1d3*nVxy+d1d3*Wxz) )/Re
-		D(3, 1) = U*Vx+V*Vy+W*Vz+Pe*Ty
-		D(3, 2) = rho*Vx
-		D(3, 3) = rho*Vy
-		D(3, 4) = rho*Vz
-		D(3, 5) = Pe*rhoy - ( n_MiuTT*Tx*(Uy+Vx) + n_MiuTT*Ty*d2d3*(-1.0d0*Ux+2.0d0*Vy-Wz) &
-		+ n_MiuTT*Tz*(Vz+Wy) + n_MiuT*(nVxx+d4d3*nVyy+nVzz+d1d3*Uxy+d1d3*Wyz) )/Re
-		D(4, 1) = U*Wx+V*Wy+W*Wz+Pe*Tz
-		D(4, 2) = rho*Wx
-		D(4, 3) = rho*Wy
-		D(4, 4) = rho*Wz
-		D(4, 5) = Pe*rhoz - ( n_MiuTT*Tx*(Wx+Uz) + n_MiuTT*Ty*(Vz+Wy) + &
-		n_MiuTT*Tz*d2d3*(-1.0d0*Ux-Vy+2.0d0*Wz) + n_MiuT*(Wxx+Wyy+d4d3*Wzz+d1d3*Uxz+d1d3*nVyz) )/Re
-		D(5, 1) = gf*U*Tx+gf*V*Ty+gf*W*Tz
-		D(5, 2) = gf*rho*Tx+g1*T*rhox
-		D(5, 3) = gf*rho*Ty+g1*T*rhoy
-		D(5, 4) = gf*rho*Tz+g1*T*rhoz
-		D(5, 5) = g1*U*rhox+g1*V*rhoy+g1*W*rhoz - ( n_MiuTT*(Tx*Tx+Ty*Ty+Tz*Tz) &
-		+ n_MiuT*(Txx+Tyy+Tzz) )/Re/Pr - g2*( d4d3*n_MiuT*(Ux*Ux+Vy*Vy+Wz*Wz-Ux*Vy-Ux*Wz-Vy*Wz) &
-		+ n_MiuT*(Uy*Uy+Vx*Vx+2.0d0*Uy*Vx+Uz*Uz+Wx*Wx+2.0d0*Uz*Wx+Vz*Vz+Wy*Wy+2.0d0*Vz*Wy) )/Re
+			Vxz(2, 4) = -1.0d0*d1d3*n_Miu/Re
+			Vxz(4, 2) = -1.0d0*d1d3*n_Miu/Re
 		
-		Vxx(2, 2) = -1.0d0*d4d3*n_Miu/Re
-		Vxx(3, 3) = -1.0d0*n_Miu/Re
-		Vxx(4, 4) = -1.0d0*n_Miu/Re
-		Vxx(5, 5) = -1.0d0*n_Miu/Re/Pr
-		
-		Vyy(2, 2) = -1.0d0*n_Miu/Re
-		Vyy(3, 3) = -1.0d0*d4d3*n_Miu/Re
-		Vyy(4, 4) = -1.0d0*n_Miu/Re
-		Vyy(5, 5) = -1.0d0*n_Miu/Re/Pr 
-		
-		Vzz(2, 2) = -1.0d0*n_Miu/Re
-		Vzz(3, 3) = -1.0d0*n_Miu/Re
-		Vzz(4, 4) = -1.0d0*d4d3*n_Miu/Re
-		Vzz(5, 5) = -1.0d0*n_Miu/Re/Pr
-		
-		Vxy(2, 3) = -1.0d0*d1d3*n_Miu/Re
-		Vxy(3, 2) = -1.0d0*d1d3*n_Miu/Re
-	
-		Vxz(2, 4) = -1.0d0*d1d3*n_Miu/Re
-		Vxz(4, 2) = -1.0d0*d1d3*n_Miu/Re
-	
-		Vyz(3, 4) = -1.0d0*d1d3*n_Miu/Re
-		Vyz(4, 3) = -1.0d0*d1d3*n_Miu/Re
+			Vyz(3, 4) = -1.0d0*d1d3*n_Miu/Re
+			Vyz(4, 3) = -1.0d0*d1d3*n_Miu/Re
 		end associate
 
 		call split(A_c,G,A_p,A_m)
@@ -428,15 +428,15 @@ module matrix_used_as_cofficient
 			Vyz = 2.0d0*eta_x*phi_x*Jor%Vxx+2.0d0*eta_y*phi_y*Jor%Vyy+2.0d0*eta_z*phi_z*Jor%Vzz &
 			+(eta_x*phi_y+phi_x*eta_y)*Jor%Vxy+(eta_x*phi_z+phi_x*eta_z)*Jor%Vxz &
 			+(eta_y*phi_z+phi_y*eta_z)*Jor%Vyz
-			end associate
+		end associate
 
-			this%G=G;	  this%D=D
-			this%A=A;     this%B=B;     this%C=C
-			this%A_p=A_p; this%A_m=A_m; this%A_v=A_v
-			this%B_p=B_p; this%B_m=B_m; this%B_v=B_v
-			this%C_p=C_p; this%C_m=C_m; this%C_v=C_v
-			this%Vxx=Vxx; this%Vyy=Vyy; this%Vzz=Vzz 
-			this%Vxy=Vxy; this%Vxz=Vxz; this%Vyz=Vyz
+		this%G=G;	  this%D=D
+		this%A=A;     this%B=B;     this%C=C
+		this%A_p=A_p; this%A_m=A_m; this%A_v=A_v
+		this%B_p=B_p; this%B_m=B_m; this%B_v=B_v
+		this%C_p=C_p; this%C_m=C_m; this%C_v=C_v
+		this%Vxx=Vxx; this%Vyy=Vyy; this%Vzz=Vzz 
+		this%Vxy=Vxy; this%Vxz=Vxz; this%Vyz=Vyz
 	end subroutine GetAdornedCubes
 
 	subroutine ColoredCubes(this,i,j,k)

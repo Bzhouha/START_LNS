@@ -84,9 +84,9 @@ module mod_petsc_loader ! 读入并分发数据
 			call MPI_Barrier(comm,ierr)
 			call MPI_Ibcast(inflow,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,request,ierr)
 		case(1)
-			if(rank/=0) allocate(inflow(ln,0:jn-1,0:kn-1))
-			call MPI_Barrier(comm,ierr)
-			call MPI_Ibcast(inflow,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,request,ierr)
+			! if(rank/=0) allocate(inflow(ln,0:jn-1,0:kn-1))
+			! call MPI_Barrier(comm,ierr)
+			! call MPI_Ibcast(inflow,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,request,ierr)
 		end select
 	end subroutine bcastinflow
 
@@ -179,8 +179,9 @@ module mod_petsc_loader ! 读入并分发数据
 			write(*,*)
 			write(*,*) "输出部分信息："
 			write(*,*) 
-			write(*,9) in,jn,kn
-			9 format ('   流向的网格数in=',I5,/,'   法向的网格数jn=',I5,/,'   展向的网格数kn=',I5)
+			write(*,9) in,jn,kn,ln
+			9 format ('   流向的网格数in=',I5,/,'   法向的网格数jn=',I5,/,&
+				'   展向的网格数kn=',I5/,'   自由度ln=',I5)
 			write(*,113) "   第一个数据是：",qq(1,0,0,0),qq(2,0,0,0),qq(3,0,0,0),qq(4,0,0,0),qq(5,0,0,0)
 			113 format (A,5(F10.5))
 			write(*,113) "   第二个数据是：",qq(1,1,0,0),qq(2,1,0,0),qq(3,1,0,0),qq(4,1,0,0),qq(5,1,0,0)

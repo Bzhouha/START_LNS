@@ -9,9 +9,7 @@ program read_write_data
 
     write(*,*) "输入流场大小:"
     read(*,*) in,jn,kn
-    !in=20
-    !jn=20
-    !kn=20
+
     ln=5
 
     call random_seed()
@@ -22,8 +20,6 @@ program read_write_data
     do k=1,kn 
         do j=1,jn 
             do i=1,in 
-                !call random_number(tmp)
-                !qq(:,i,j,k)=10*tmp
                 call random_number(qq(:,i,j,k))
             enddo
         enddo
@@ -38,30 +34,31 @@ program read_write_data
             enddo
         enddo
     enddo
-
-    open(21,file="..//files//in//grid.dat",action='write',status='replace',form='unformatted')
-    write(21) "           xx           |           yy           |           zz           "
-    write(21) in,jn,kn
-    do k=1,kn
-        do j=1,jn 
-            do i=1,in
-                write(21) xx(i,j,k),yy(i,j,k),zz(i,j,k)
-            enddo
-        enddo
-    enddo
-    close(21)
-    ln=5
-    open(22,file="..//files//in//flow.dat",action='write',status='replace',form='unformatted')
-    write(22) "            rho            |            u            |           &
-    & v            |            w            |            T            "
-    write(22) in,jn,kn,ln
-    do k=1,kn
-        do j=1,jn 
-            do i=1,in 
-                write(22) qq(:,i,j,k)
-            enddo
-        enddo
-    enddo
-    close(22)
+    select case (kn)
+    case(1)
+        open(23,file="..//files//in//grid.dat",action='write',status='replace',form='unformatted')
+        write(23) "x,y"
+        write(23) in,jn
+        write(23) xx,yy
+        close(23)
+        ln=5
+        open(23,file="..//files//in//flow.dat",action='write',status='replace',form='unformatted')
+        write(23) "rho,u,v,w,T"
+        write(23) in,jn,ln
+        write(23) qq
+        close(23)
+    case default
+        open(21,file="..//files//in//grid.dat",action='write',status='replace',form='unformatted')
+        write(21) "x,y,z"
+        write(21) in,jn,kn
+        write(21) xx,yy,zz
+        close(21)
+        ln=5
+        open(22,file="..//files//in//flow.dat",action='write',status='replace',form='unformatted')
+        write(22) "rho,u,v,w,T"
+        write(22) in,jn,kn,ln
+        write(22) qq
+        close(22)
+    end select
 
 end program read_write_data

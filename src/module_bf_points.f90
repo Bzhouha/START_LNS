@@ -191,14 +191,14 @@ module bf_points
 			qqii(l,:,:,:),qqjj(l,:,:,:),qqkk(l,:,:,:),&
 			qqij(l,:,:,:),qqik(l,:,:,:),qqjk(l,:,:,:),&
 			xi_xy,eta_xy,phi_xy,xi_x,xi_y,eta_x,eta_y,phi_x,phi_y)
-			call turnIJtoXY(qqyz(l,:,:,:),qqi(l,:,:,:),qqj(l,:,:,:),qqk(l,:,:,:),&
-			qqii(l,:,:,:),qqjj(l,:,:,:),qqkk(l,:,:,:),&
-			qqij(l,:,:,:),qqik(l,:,:,:),qqjk(l,:,:,:),&
-			xi_yz,eta_yz,phi_yz,xi_y,xi_z,eta_y,eta_z,phi_y,phi_z)
 			call turnIJtoXY(qqxz(l,:,:,:),qqi(l,:,:,:),qqj(l,:,:,:),qqk(l,:,:,:),&
 			qqii(l,:,:,:),qqjj(l,:,:,:),qqkk(l,:,:,:),&
 			qqij(l,:,:,:),qqik(l,:,:,:),qqjk(l,:,:,:),&
 			xi_xz,eta_xz,phi_xz,xi_x,xi_z,eta_x,eta_z,phi_x,phi_z)
+			call turnIJtoXY(qqyz(l,:,:,:),qqi(l,:,:,:),qqj(l,:,:,:),qqk(l,:,:,:),&
+			qqii(l,:,:,:),qqjj(l,:,:,:),qqkk(l,:,:,:),&
+			qqij(l,:,:,:),qqik(l,:,:,:),qqjk(l,:,:,:),&
+			xi_yz,eta_yz,phi_yz,xi_y,xi_z,eta_y,eta_z,phi_y,phi_z)
 		enddo
 		select case (mode)
 		case(0)
@@ -259,32 +259,32 @@ module bf_points
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 	end subroutine printinfo
 
-	elemental subroutine turnItoX(px,pi,pj,pk,ix,jx,kx)
+	elemental subroutine turnItoX(fx,fi,fj,fk,ix,jx,kx)
 		implicit none
-		real(R_P),intent(out) :: px
-		real(R_P),intent(in) :: pi,pj,pk
+		real(R_P),intent(out) :: fx
+		real(R_P),intent(in) :: fi,fj,fk
 		real(R_P),intent(in) :: ix,jx,kx
-		px = ix*pi+jx*pj+kx*pk 
+		fx = ix*fi+jx*fj+kx*fk 
 	end subroutine turnItoX
 
-	elemental subroutine turnIItoXX(pxx,pi,pj,pk,pii,pjj,pkk,pij,pik,pjk,&
-		iixx,jjxx,kkxx,ix,jx,kx)
+	elemental subroutine turnIItoXX(fxx,fi,fj,fk,fii,fjj,fkk,fij,fik,fjk,&
+		ixx,jxx,kxx,ix,jx,kx)
 		implicit none
-		real(R_P),intent(out) :: pxx 
-		real(R_P),intent(in) :: pi,pj,pk,pii,pjj,pkk,pij,pik,pjk
-		real(R_P),intent(in) :: iixx,jjxx,kkxx,ix,jx,kx 
-		pxx = iixx*pi+jjxx*pj+kkxx*pk+ix*ix*pii+jx*jx*pjj+kx*kx*pkk+&
-		2.0d0*ix*jx*pij+2.0d0*ix*kx*pik+2.0d0*jx*kx*pjk
+		real(R_P),intent(out) :: fxx 
+		real(R_P),intent(in) :: fi,fj,fk,fii,fjj,fkk,fij,fik,fjk
+		real(R_P),intent(in) :: ixx,jxx,kxx,ix,jx,kx 
+		fxx = ixx*fi+jxx*fj+kxx*fk+ix*ix*fii+jx*jx*fjj+kx*kx*fkk+&
+		2.0d0*ix*jx*fij+2.0d0*ix*kx*fik+2.0d0*jx*kx*fjk
 	end subroutine turnIItoXX
 
-	elemental subroutine turnIJtoXY(pxy,pi,pj,pk,pii,pjj,pkk,pij,pik,pjk,&
-		iixy,jjxy,kkxy,ix,iy,jx,jy,kx,ky)
+	elemental subroutine turnIJtoXY(fxy,fi,fj,fk,fii,fjj,fkk,fij,fik,fjk,&
+		ixy,jxy,kxy,ix,iy,jx,jy,kx,ky)
 		implicit none
-		real(R_P),intent(out) :: pxy  
-		real(R_P),intent(in) :: pi,pj,pk,pii,pjj,pkk,pij,pik,pjk
-		real(R_P),intent(in) :: iixy,jjxy,kkxy,ix,iy,jx,jy,kx,ky 
-		pxy = iixy*pi+jjxy*pj+kkxy*pk+ix*iy*pii+jx*jy*pjj+kx*ky*pkk+&
-		(ix*jy+iy*jx)*pij+(ix*ky+iy*kx)*pik+(jx*ky+jy*kx)*pjk
+		real(R_P),intent(out) :: fxy  
+		real(R_P),intent(in) :: fi,fj,fk,fii,fjj,fkk,fij,fik,fjk
+		real(R_P),intent(in) :: ixy,jxy,kxy,ix,iy,jx,jy,kx,ky 
+		fxy = ixy*fi+jxy*fj+kxy*fk+ix*iy*fii+jx*jy*fjj+kx*ky*fkk+&
+		(ix*jy+iy*jx)*fij+(ix*ky+iy*kx)*fik+(jx*ky+jy*kx)*fjk
 	end subroutine turnIJtoXY
 	
 end module bf_points

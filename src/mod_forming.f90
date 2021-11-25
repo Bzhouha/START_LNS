@@ -180,6 +180,15 @@ module mod_forming
 		call WhaleGrowingUp()
 		call WhaleSayHi(comm)
 	end subroutine WhaleComing
+
+	subroutine WeHearASound(comm)
+		implicit none
+		PetscInt,intent(in) :: comm
+		PetscErrorCode :: ierr
+		call PetscPrintf(comm," -----------------------------------\n",ierr)
+		call PetscPrintf(comm,"           开始生成矩阵...             \n",ierr)
+		call PetscPrintf(comm," -----------------------------------\n",ierr)
+	end subroutine WeHearASound
  
 	subroutine WhaleGrowingUp()
 		implicit none
@@ -213,12 +222,11 @@ module mod_forming
 			coef_c1f=>FDM_1nd_4ORD_Forward, &
 			coef_c1b=>FDM_1nd_4ORD_Backward)
 		if(i==0 .or. j==(jn-1))then
-			box=0.0d0;trans=0.0d0
+			box=0.0d0
 			box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
 			idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
 			idxn(MatStencil_i, 1)=i; idxn(MatStencil_j, 1)=j; idxn(MatStencil_k, 1)=k
-			trans=transpose(box)
-			call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+			call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
 		elseif(j==0 .and. i/=0)then
 			ljb=0;lje=1
 			jc_index=1
@@ -244,11 +252,10 @@ module mod_forming
 				idxn(MatStencil_i, 1)=i+li
 				idxn(MatStencil_j, 1)=j
 				idxn(MatStencil_k, 1)=k
-				box=0.0d0;trans=0.0d0
+				box=0.0d0
 				box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
 				box=coef_c1b(li,ic_index)*box
-				trans=transpose(box)
-				call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+				call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
 			enddo
 		endif
 		end associate
@@ -297,10 +304,10 @@ module mod_forming
 			jc_index=0
 		endif
 		select case (mode)
-		case(0)
-			lkb=0; lke=0; kc_index=0
-		case(1)
-			lkb=-2; lke=2; kc_index=0 !!周期边界条件
+			case(0)
+				lkb=0; lke=0; kc_index=0
+			case(1)
+				lkb=-2; lke=2; kc_index=0 !!周期边界条件
 		end select
 		idxm=0; 
 		idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
@@ -347,15 +354,6 @@ module mod_forming
 		end do
 		end associate
 	end subroutine WhaleCatchFish
-
-	subroutine WeHearASound(comm)
-		implicit none
-		PetscInt,intent(in) :: comm
-		PetscErrorCode :: ierr
-		call PetscPrintf(comm," -----------------------------------\n",ierr)
-		call PetscPrintf(comm,"           开始生成矩阵...             \n",ierr)
-		call PetscPrintf(comm," -----------------------------------\n",ierr)
-	end subroutine WeHearASound
 
 	subroutine WhaleSayHi(comm)
 		implicit none

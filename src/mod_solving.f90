@@ -19,8 +19,8 @@ module mod_solving
 		call metriccoefficient(comm)
 		call partial_derivatives(comm)
 		!call DolphinComing(comm)
-		!call WhaleComing(comm)
-		!call solving(comm)
+		call WhaleComing(comm)
+		call solving(comm)
 		call DropTheWaste()
 	end subroutine Working
 
@@ -29,26 +29,9 @@ module mod_solving
 		PetscInt,intent(in) :: comm
 
 		call WhaleReady(comm,0)
+		!call PrintResult()
 		
 	end subroutine solving 
-
-	subroutine PrintResult()
-		implicit none
-		PetscScalar,pointer :: tmp(:,:,:,:)
-		PetscErrorCode :: ierr
-		integer :: l,i,j,k
-		call DMDAVecGetArrayReadF90(meshDA,turtle,tmp,ierr)
-		do l=0,4
-			do k=ks,ke
-				do j=js,je
-					write(*,*) (real(tmp(l,i,j,k)),i=is,ie)
-				enddo
-				write(*,*) 
-			enddo
-			write(*,*) "---"
-		enddo
-		call DMDAVecRestoreArrayReadF90(meshDA,turtle,tmp,ierr)
-	end subroutine PrintResult
 
 	subroutine WhaleReady(comm,level)
 		implicit none
@@ -69,10 +52,11 @@ module mod_solving
 			call KSPSetType(ksp,KSPFGMRES,ierr)
 			call KSPSetFromOptions(ksp,ierr)
 			call KSPSetUp(ksp,ierr)
+			call SetRightValues(comm)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
 			call PetscPrintf(comm, "               计算中...      \n", ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
-			call KSPSolve(ksp,u,turtle,ierr)
+			call KSPSolve(ksp,rhs,turtle,ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
 			call PetscPrintf(comm, "              计算完毕。      \n", ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
@@ -104,7 +88,6 @@ module mod_solving
 		PetscInt,intent(in) :: comm
 		integer :: j,k 
 		call VecDuplicate(turtle,rhs,ierr)
-		if(is==0)then
 		call DMDAVecGetArrayF90(meshDA,rhs,tmp,ierr)
 		do k=ks,ke 
 			do j=js,je 
@@ -112,7 +95,6 @@ module mod_solving
 			enddo
 		enddo
 		call DMDAVecRestoreArrayF90(meshDA,rhs,tmp,ierr)
-		endif 
 		call MPI_Barrier(comm,ierr)
 		deallocate(inflow)
 	end subroutine SetRightValues
@@ -121,4 +103,22 @@ module mod_solving
 		implicit none
 		deallocate(bf)
 	end subroutine DropTheWaste
+
+	subroutine PrintResult()
+		implicit none
+		PetscScalar,pointer :: tmp(:,:,:,:)
+		PetscErrorCode :: ierr
+		integer :: l,i,j,k
+		call DMDAVecGetArrayReadF90(meshDA,turtle,tmp,ierr)
+		do l=0,4
+			do k=ks,ke
+				do j=js,je
+					write(*,*) (real(tmp(l,i,j,k)),i=is,ie)
+				enddo
+				write(*,*) 
+			enddo
+			write(*,*) "---"
+		enddo
+		call DMDAVecRestoreArrayReadF90(meshDA,turtle,tmp,ierr)
+	end subroutine PrintResult
 end module mod_solving

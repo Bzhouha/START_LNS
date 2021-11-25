@@ -161,12 +161,13 @@ contains
                 enddo
             enddo
         enddo
+
         do k=ks,ke 
             do j=js,je 
                 do i=is,ie 
                     xi_x (i,j,k)= y_eta(i,j,k)*jacobi(i,j,k)
-                    xi_y (i,j,k)=-x_eta(i,j,k)*jacobi(i,j,k)
-                    eta_x(i,j,k)=-y_xi (i,j,k)*jacobi(i,j,k)
+                    xi_y (i,j,k)=-1.0d0*x_eta(i,j,k)*jacobi(i,j,k)
+                    eta_x(i,j,k)=-1.0d0*y_xi (i,j,k)*jacobi(i,j,k)
                     eta_y(i,j,k)= x_xi (i,j,k)*jacobi(i,j,k)
                 enddo
             enddo
@@ -176,20 +177,17 @@ contains
         call DMDAVecRestoreArrayF90(DA, XIX, tmp, ierr)
         call DMGlobalToLocalBegin(DA, XIX, INSERT_VALUES, XIX_local, ierr)
 
-
         call DMDAVecGetArrayF90(DA, XIY, tmp, ierr)
         tmp(:,:,:)=xi_y(:,:,:)
         call DMDAVecRestoreArrayF90(DA, XIY, tmp, ierr)
         call DMGlobalToLocalEnd(DA, XIX, INSERT_VALUES, XIX_local, ierr)
         call DMGlobalToLocalBegin(DA, XIY, INSERT_VALUES, XIY_local, ierr)
 
-
         call DMDAVecGetArrayF90(DA, ETAX, tmp, ierr)
         tmp(:,:,:)=eta_x(:,:,:)
         call DMDAVecRestoreArrayF90(DA, ETAX, tmp, ierr)
         call DMGlobalToLocalEnd(DA, XIY, INSERT_VALUES, XIY_local, ierr)
         call DMGlobalToLocalBegin(DA, ETAX, INSERT_VALUES, ETAX_local, ierr)
-
 
         call DMDAVecGetArrayF90(DA, ETAY, tmp, ierr)
         tmp(:,:,:)=eta_y(:,:,:)
@@ -587,7 +585,7 @@ contains
         PetscInt,intent(in) :: comm 
         PetscErrorCode :: ierr 
         call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm,"  度量系数矩阵计算结束，进程已同步。    \n",ierr)
+        call PetscPrintf(comm,"        度量系数矩阵计算结束。    \n",ierr)
         call PetscPrintf(comm," -----------------------------------\n",ierr)
     end subroutine printinfo
 

@@ -43,8 +43,8 @@ program main
 	call Working(PETSC_COMM_WORLD)
 
 	!               输出文件              
-	! call Signal_Ending(PETSC_COMM_WORLD)
-	! call ResultToFile(PETSC_COMM_WORLD)
+	call Signal_Ending(PETSC_COMM_WORLD)
+	call ResultToFile(PETSC_COMM_WORLD)
 
 	!        终止PetsC       
 	call PetscFinalize(ierr)
