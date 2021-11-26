@@ -56,7 +56,7 @@ module mod_solving
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
 			call PetscPrintf(comm, "               计算中...      \n", ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
-			call KSPSolve(ksp,rhs,turtle,ierr)
+			call KSPSolve(ksp,u,turtle,ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
 			call PetscPrintf(comm, "              计算完毕。      \n", ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
@@ -88,6 +88,7 @@ module mod_solving
 		PetscInt,intent(in) :: comm
 		integer :: j,k 
 		call VecDuplicate(turtle,rhs,ierr)
+		call VecZeroEntries(rhs,ierr)
 		call DMDAVecGetArrayF90(meshDA,rhs,tmp,ierr)
 		do k=ks,ke 
 			do j=js,je 

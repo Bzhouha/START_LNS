@@ -80,7 +80,7 @@ module mod_petsc_loader ! 读入并分发数据
 		PetscInt,intent(in) :: comm
 		select case (mode)
 		case(0)
-			if(rank/=0) allocate(inflow(ln,0:jn-1,kn))
+			if(rank/=0) allocate(inflow(ln,0:jn-1,0:kn-1))
 			call MPI_Barrier(comm,ierr)
 			call MPI_Ibcast(inflow,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,request,ierr)
 		case(1)

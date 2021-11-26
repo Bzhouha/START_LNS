@@ -65,9 +65,9 @@ contains
       write(*,*) "开始读取来流扰动..."
       open(13, file="..//files//in//Disturbance.dat",action='read')
       read(13,*)
-      allocate(inflow(ln,0:jn-1,kn))
+      allocate(inflow(ln,0:jn-1,0:kn-1))
       do j=0,jn-1 
-            read(13,*) inflow(:,j,1)
+            read(13,*) inflow(:,j,0)
       enddo
       close(13)
       write(*,*) "  来流扰动读取结束。"

@@ -31,11 +31,12 @@ module mod_petsc_output
         implicit none
         PetscInt,INTENT(in) :: comm
         PetscErrorCode :: ierr
-        call PetscPrintf(comm, "                                                   ooo    ooo\n", ierr)
-        call PetscPrintf(comm, " 输出解向量...                                    o   o  o   o\n", ierr)
-        call PetscPrintf(comm, "   输出结束。                               ooo   o   o  o   o   ooo\n", ierr)
-        call PetscPrintf(comm, "                                           o   o   ooo    ooo   o   o\n", ierr)
-        call PetscPrintf(comm, " ========================================  o   o                o   o  =====\n", ierr)
+        call PetscPrintf(comm," \n", ierr)
+        call PetscPrintf(comm," 输出解向量...                                     ooo    ooo\n", ierr)
+        call PetscPrintf(comm,"   输出结束。                                     o   o  o   o\n", ierr)
+        call PetscPrintf(comm,"                                            ooo   o   o  o   o   ooo\n", ierr)
+        call PetscPrintf(comm," ========================================  o   o   ooo    ooo   o   o  =====\n", ierr)
+        call PetscPrintf(comm,"                                           o   o                o   o \n",ierr)
         call PetscPrintf(comm,"                                            ooo     oooooooo     ooo\n",ierr)
         call PetscPrintf(comm,"               ooo    ooo                        o            o\n",ierr)
         call PetscPrintf(comm,"              o   o  o   o                      o              o\n",ierr)
