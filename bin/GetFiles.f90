@@ -4,7 +4,8 @@ program read_write_data
     integer :: i,j,k,l
     integer :: in,jn,kn,ln
     real(REAL64), dimension(:, :, :), allocatable :: xx, yy, zz
-    real(REAL64), dimension(:, :, :, :), allocatable :: qq
+    real(REAL64), dimension(:, :, :), allocatable :: qq_2d
+    real(REAL64), dimension(:, :, :, :), allocatable :: qq_3d
     real(REAL64), dimension(5) :: tmp
 
     write(*,*) "输入流场大小:"
@@ -15,12 +16,15 @@ program read_write_data
     call random_seed()
 
     allocate(xx(in,jn,kn),yy(in,jn,kn),zz(in,jn,kn))
-    allocate(qq(5,in,jn,kn))
+    allocate(qq_3d(in,jn,kn,5))
+    allocate(qq_2d(in,jn,5))
     
     do k=1,kn 
         do j=1,jn 
             do i=1,in 
-                call random_number(qq(:,i,j,k))
+                !call random_number(qq_3d(i,j,k,:))
+                qq_3d(i,j,k,:)=i+j+k
+                call random_number(qq_2d(i,j,:))
             enddo
         enddo
     enddo
@@ -45,7 +49,7 @@ program read_write_data
         open(23,file="..//files//in//flow.dat",action='write',status='replace',form='unformatted')
         write(23) "rho,u,v,w,T"
         write(23) in,jn,ln
-        write(23) qq
+        write(23)((((qq_2d(i, j, l), i=1, in), j=1, jn), k=1, kn), l=1, 5)
         close(23)
     case default
         open(21,file="..//files//in//grid.dat",action='write',status='replace',form='unformatted')
@@ -57,7 +61,7 @@ program read_write_data
         open(22,file="..//files//in//flow.dat",action='write',status='replace',form='unformatted')
         write(22) "rho,u,v,w,T"
         write(22) in,jn,kn,ln
-        write(22) qq
+        write(22)((((qq_3d(i, j, k, l), i=1, in), j=1, jn), k=1, kn), l=1, 5)
         close(22)
     end select
 

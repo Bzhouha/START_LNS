@@ -24,8 +24,8 @@ module global_parameters
     complex(R_P) :: Alpha
     complex(R_P) :: Omega
     complex(R_P) :: Beta
+    integer :: lns_mode
     integer :: BC_type 
-    integer :: mode
     integer :: rank   
     integer :: size 
     Vec :: turtle

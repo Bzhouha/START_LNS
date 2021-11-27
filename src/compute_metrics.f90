@@ -6,7 +6,7 @@ module mod_metrics
 !
 !  这个模块计算度量系数。
 !
-!       call metriccoefficient(comm) 获得度量系数
+!       call metric_coefficient(comm) 获得度量系数
 !
 !           1).call allocate_memory() 分配内存
 !
@@ -16,7 +16,7 @@ module mod_metrics
 !
 !           4).call deallocate_memory() 释放内存
 !
-!           5).call printinfo(comm) 输出本模块运行结束信息
+!           5).call print_info(comm) 输出本模块运行结束信息
 !
 ! ----------------------------------------------------------------
     use global_parameters
@@ -27,19 +27,19 @@ module mod_metrics
     real(R_P), dimension(:, :, :), allocatable :: x_xi,x_eta,x_phi,y_xi,y_eta,y_phi,z_xi,z_eta,z_phi
     Vec :: XIX, XIY, XIZ, ETAX, ETAY, ETAZ, PHIX, PHIY, PHIZ 
     real(R_P), dimension(:, :, :), allocatable :: jacobi
+    public :: metric_coefficient
     PetscErrorCode  :: ierr
-    public :: metriccoefficient
 contains
-    subroutine metriccoefficient(comm)
+    subroutine metric_coefficient(comm)
         implicit none
         PetscInt,intent(in) :: comm
         call allocate_memory()
         call compute_contravariant_metrics()
         call compute_convariant_metrics()
         call deallocate_memory()
-        call printinfo(comm)
+        call print_info(comm)
         call MPI_Barrier(comm,ierr)
-    end subroutine metriccoefficient
+    end subroutine metric_coefficient
 
     subroutine allocate_memory()
         implicit none
@@ -108,7 +108,7 @@ contains
     subroutine compute_contravariant_metrics()
         use mod_difference
         implicit none
-        select case (mode)
+        select case (lns_mode)
         case(0)
             call fd1(x_xi,is,ie,js,je,ks,ke,xx,igs,ige,jgs,jge,kgs,kge,1,1)
             call fd1(y_xi,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,1,1)
@@ -129,7 +129,7 @@ contains
     end subroutine compute_contravariant_metrics
 
     subroutine compute_convariant_metrics()
-        select case (mode)
+        select case (lns_mode)
         case(0)
             call compute_convariant_metrics_2d()
         case(1)
@@ -165,10 +165,10 @@ contains
         do k=ks,ke 
             do j=js,je 
                 do i=is,ie 
-                    xi_x (i,j,k)= y_eta(i,j,k)*jacobi(i,j,k)
-                    xi_y (i,j,k)=-1.0d0*x_eta(i,j,k)*jacobi(i,j,k)
-                    eta_x(i,j,k)=-1.0d0*y_xi (i,j,k)*jacobi(i,j,k)
-                    eta_y(i,j,k)= x_xi (i,j,k)*jacobi(i,j,k)
+                    xi_x(i,j,k) =y_eta(i,j,k)*jacobi(i,j,k)
+                    xi_y(i,j,k) =-1.0d0*x_eta(i,j,k)*jacobi(i,j,k)
+                    eta_x(i,j,k)=-1.0d0*y_xi(i,j,k)*jacobi(i,j,k)
+                    eta_y(i,j,k)=x_xi(i,j,k)*jacobi(i,j,k)
                 enddo
             enddo
         enddo
@@ -196,8 +196,8 @@ contains
         call DMGlobalToLocalBegin(DA, ETAY, INSERT_VALUES, ETAY_local, ierr)
         call DMGlobalToLocalEND(DA, ETAY, INSERT_VALUES, ETAY_local, ierr)
 
-        allocate(xi_x_local (igs:ige,jgs:jge,kgs:kge))
-        allocate(xi_y_local (igs:ige,jgs:jge,kgs:kge))
+        allocate(xi_x_local(igs:ige,jgs:jge,kgs:kge))
+        allocate(xi_y_local(igs:ige,jgs:jge,kgs:kge))
         allocate(eta_x_local(igs:ige,jgs:jge,kgs:kge))
         allocate(eta_y_local(igs:ige,jgs:jge,kgs:kge))
 
@@ -216,13 +216,13 @@ contains
         eta_y_local=tmp
         call DMDAVecRestoreArrayReadF90(DA, ETAY_local, tmp, ierr)
 
-        allocate(xi_x_xi  (is:ie,js:je,ks:ke))
-        allocate(xi_x_eta (is:ie,js:je,ks:ke))
-        allocate(xi_y_xi  (is:ie,js:je,ks:ke))
-        allocate(xi_y_eta (is:ie,js:je,ks:ke))
-        allocate(eta_x_xi (is:ie,js:je,ks:ke))
+        allocate(xi_x_xi(is:ie,js:je,ks:ke))
+        allocate(xi_x_eta(is:ie,js:je,ks:ke))
+        allocate(xi_y_xi(is:ie,js:je,ks:ke))
+        allocate(xi_y_eta(is:ie,js:je,ks:ke))
+        allocate(eta_x_xi(is:ie,js:je,ks:ke))
         allocate(eta_x_eta(is:ie,js:je,ks:ke))
-        allocate(eta_y_xi (is:ie,js:je,ks:ke))
+        allocate(eta_y_xi(is:ie,js:je,ks:ke))
         allocate(eta_y_eta(is:ie,js:je,ks:ke))
 
         call fd1(xi_x_xi,is,ie,js,je,ks,ke,xi_x_local,igs,ige,jgs,jge,kgs,kge,1,1)
@@ -251,16 +251,16 @@ contains
         xi_zz=0.0d0;xi_xz=0.0d0;xi_yz=0.0d0;eta_zz=0.0d0;eta_xz=0.0d0;eta_yz=0.0d0 
         phi_xx=0.0d0;phi_yy=0.0d0;phi_zz=0.0d0;phi_xy=0.0d0;phi_xz=0.0d0;phi_yz=0.0d0
 
-        deallocate(xi_x_xi  )
-        deallocate(xi_x_eta )
-        deallocate(xi_y_xi  )
-        deallocate(xi_y_eta )
-        deallocate(eta_x_xi )
+        deallocate(xi_x_xi)
+        deallocate(xi_x_eta)
+        deallocate(xi_y_xi)
+        deallocate(xi_y_eta)
+        deallocate(eta_x_xi)
         deallocate(eta_x_eta)
-        deallocate(eta_y_xi )
+        deallocate(eta_y_xi)
         deallocate(eta_y_eta)
-        deallocate(xi_x_local )
-        deallocate(xi_y_local )
+        deallocate(xi_x_local)
+        deallocate(xi_y_local)
         deallocate(eta_x_local)
         deallocate(eta_y_local)
     end subroutine compute_convariant_metrics_2d
@@ -394,6 +394,34 @@ contains
         allocate(phi_y_local(igs:ige, jgs:jge, kgs:kge))
         allocate(phi_z_local(igs:ige, jgs:jge, kgs:kge))
 
+        allocate(xi_x_xi(is:ie, js:je, ks:ke))
+        allocate(xi_x_eta(is:ie, js:je, ks:ke))
+        allocate(xi_x_phi(is:ie, js:je, ks:ke))
+        allocate(xi_y_xi(is:ie, js:je, ks:ke))
+        allocate(xi_y_eta(is:ie, js:je, ks:ke))
+        allocate(xi_y_phi(is:ie, js:je, ks:ke))
+        allocate(xi_z_xi(is:ie, js:je, ks:ke))
+        allocate(xi_z_eta(is:ie, js:je, ks:ke))
+        allocate(xi_z_phi(is:ie, js:je, ks:ke))
+        allocate(eta_x_xi(is:ie, js:je, ks:ke))
+        allocate(eta_x_eta(is:ie, js:je, ks:ke))
+        allocate(eta_x_phi(is:ie, js:je, ks:ke))
+        allocate(eta_y_xi(is:ie, js:je, ks:ke))
+        allocate(eta_y_eta(is:ie, js:je, ks:ke))
+        allocate(eta_y_phi(is:ie, js:je, ks:ke))
+        allocate(eta_z_xi(is:ie, js:je, ks:ke))
+        allocate(eta_z_eta(is:ie, js:je, ks:ke))
+        allocate(eta_z_phi(is:ie, js:je, ks:ke))
+        allocate(phi_x_xi(is:ie, js:je, ks:ke))
+        allocate(phi_x_eta(is:ie, js:je, ks:ke))
+        allocate(phi_x_phi(is:ie, js:je, ks:ke))
+        allocate(phi_y_xi(is:ie, js:je, ks:ke))
+        allocate(phi_y_eta(is:ie, js:je, ks:ke))
+        allocate(phi_y_phi(is:ie, js:je, ks:ke))
+        allocate(phi_z_xi(is:ie, js:je, ks:ke))
+        allocate(phi_z_eta(is:ie, js:je, ks:ke))
+        allocate(phi_z_phi(is:ie, js:je, ks:ke))
+
         call DMDAVecGetArrayReadF90(DA, XIX_local, tmp, ierr)
         xi_x_local=real(tmp)
         call DMDAVecRestoreArrayReadF90(DA, XIX_local, tmp, ierr)
@@ -423,34 +451,6 @@ contains
         call DMDAVecGetArrayReadF90(DA, PHIZ_local, tmp, ierr)
         phi_z_local=real(tmp)
         call DMDAVecRestoreArrayReadF90(DA, PHIZ_local, tmp, ierr)
-
-        allocate(xi_x_xi(is:ie, js:je, ks:ke))
-        allocate(xi_x_eta(is:ie, js:je, ks:ke))
-        allocate(xi_x_phi(is:ie, js:je, ks:ke))
-        allocate(xi_y_xi(is:ie, js:je, ks:ke))
-        allocate(xi_y_eta(is:ie, js:je, ks:ke))
-        allocate(xi_y_phi(is:ie, js:je, ks:ke))
-        allocate(xi_z_xi(is:ie, js:je, ks:ke))
-        allocate(xi_z_eta(is:ie, js:je, ks:ke))
-        allocate(xi_z_phi(is:ie, js:je, ks:ke))
-        allocate(eta_x_xi(is:ie, js:je, ks:ke))
-        allocate(eta_x_eta(is:ie, js:je, ks:ke))
-        allocate(eta_x_phi(is:ie, js:je, ks:ke))
-        allocate(eta_y_xi(is:ie, js:je, ks:ke))
-        allocate(eta_y_eta(is:ie, js:je, ks:ke))
-        allocate(eta_y_phi(is:ie, js:je, ks:ke))
-        allocate(eta_z_xi(is:ie, js:je, ks:ke))
-        allocate(eta_z_eta(is:ie, js:je, ks:ke))
-        allocate(eta_z_phi(is:ie, js:je, ks:ke))
-        allocate(phi_x_xi(is:ie, js:je, ks:ke))
-        allocate(phi_x_eta(is:ie, js:je, ks:ke))
-        allocate(phi_x_phi(is:ie, js:je, ks:ke))
-        allocate(phi_y_xi(is:ie, js:je, ks:ke))
-        allocate(phi_y_eta(is:ie, js:je, ks:ke))
-        allocate(phi_y_phi(is:ie, js:je, ks:ke))
-        allocate(phi_z_xi(is:ie, js:je, ks:ke))
-        allocate(phi_z_eta(is:ie, js:je, ks:ke))
-        allocate(phi_z_phi(is:ie, js:je, ks:ke))
 
         call fd1(xi_x_xi,is,ie,js,je,ks,ke,xi_x_local,igs,ige,jgs,jge,kgs,kge,1,1)
         call fd1(xi_y_xi,is,ie,js,je,ks,ke,xi_y_local,igs,ige,jgs,jge,kgs,kge,1,1)
@@ -580,13 +580,13 @@ contains
         call VecDestroy(PHIZ_local, ierr)
     end subroutine deallocate_memory
 
-    subroutine printinfo(comm)
+    subroutine print_info(comm)
         implicit none
         PetscInt,intent(in) :: comm 
         PetscErrorCode :: ierr 
         call PetscPrintf(comm," -----------------------------------\n",ierr)
         call PetscPrintf(comm,"        度量系数矩阵计算结束。    \n",ierr)
         call PetscPrintf(comm," -----------------------------------\n",ierr)
-    end subroutine printinfo
+    end subroutine print_info
 
 end module mod_metrics

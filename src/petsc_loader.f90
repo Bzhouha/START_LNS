@@ -3,7 +3,10 @@
 
 module mod_petsc_loader ! 读入并分发数据
 	use petsc
+	use mod_loaders
+	use mod_petsc_viewer
 	use global_parameters
+	use mod_cfgio_adapter
 	implicit none
 	private
 	PetscScalar, pointer :: grid(:,:,:,:)
@@ -12,25 +15,72 @@ module mod_petsc_loader ! 读入并分发数据
 	PetscErrorCode  :: ierr
 	Vec :: Coord, Flowfield
 	PetscViewer :: Viewer
-	public :: loadingdata
+	public :: loading_data
 	integer :: request
 	contains
-	subroutine loadingdata(comm)
+	subroutine loading_data(comm)
 		implicit none
 		integer :: status(MPI_STATUS_SIZE)
 		PetscInt, intent(in) :: comm
-		call bcastparameters(comm)
-		call bcastinflow(comm)
+		call read_from_file(comm)
+		call bcast_parameters(comm)
+		call bcast_inflow(comm)
 		call read_mesh_3d(comm)
 		call get_layout()
 		call load_mesh_info()
 		call load_flow_info()
-		call printinfo(comm)
+		call print_info(comm)
 		call MPI_Wait(request,status,ierr)
 		call MPI_Barrier(comm,ierr)
-	end subroutine loadingdata
+	end subroutine loading_data
 
-	subroutine bcastparameters(comm)
+	subroutine read_from_file(comm)
+		use mod_loaders
+		use mod_petsc_viewer
+		use mod_cfgio_adapter
+		implicit none
+		PetscInt,intent(in) :: comm
+		character(len=256) :: cfg_file
+		PetscBool :: set
+		call signal_loading(comm)
+		call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-f',cfg_file,set,ierr)
+		if(.not. set) then
+			write(*,*) 'should use -f option to determin the config file.'
+			stop
+		endif
+		call cfg_loader(trim(cfg_file))
+		if(rank==0)then
+			call plot3d_load()
+			call petsc_viewer(PETSC_COMM_SELF)
+			call cfg_writer(trim(cfg_file))
+		endif
+		call MPI_Barrier(comm,ierr)
+		call signal_starting(comm)
+	end subroutine read_from_file
+
+	subroutine signal_loading(comm)
+		implicit none
+		PetscInt,intent(in) :: comm
+		PetscErrorCode :: ierr 
+		call PetscPrintf(comm, "\n", ierr)
+		call PetscPrintf(comm, " ===========================================================================\n", ierr)
+		call PetscPrintf(comm, " =                                 读    取                                = \n", ierr)
+		call PetscPrintf(comm, " ===========================================================================\n", ierr)
+		call PetscPrintf(comm, " 「 单 进 程 」\n",ierr)
+	end subroutine signal_loading
+
+	subroutine signal_starting(comm)
+		implicit none
+		PetscInt,intent(in) :: comm 
+		PetscErrorCode :: ierr 
+		call PetscPrintf(comm, "\n", ierr)
+		call PetscPrintf(comm, " ===========================================================================\n", ierr)
+		call PetscPrintf(comm, " =                                 计    算                                = \n", ierr)
+		call PetscPrintf(comm, " ===========================================================================\n", ierr)
+		call PetscPrintf(comm, " 「 多 进 程 」\n",ierr)
+	end subroutine signal_starting
+
+	subroutine bcast_parameters(comm)
 		use global_parameters
 		implicit none 
 		integer(KIND=MPI_ADDRESS_KIND) :: address_in,address_jn,address_kn,address_ln
@@ -46,7 +96,7 @@ module mod_petsc_loader ! 读入并分发数据
 		call MPI_Get_address(jn,address_jn,ierr)
 		call MPI_Get_address(kn,address_kn,ierr)
 		call MPI_Get_address(ln,address_ln,ierr)
-		call MPI_Get_address(mode,address_mode,ierr)
+		call MPI_Get_address(lns_mode,address_mode,ierr)
 		call MPI_Get_address(Ma,address_Ma,ierr)
 		call MPI_Get_address(Re,address_Re,ierr)
 		call MPI_Get_address(Te,address_Te,ierr)
@@ -73,14 +123,14 @@ module mod_petsc_loader ! 读入并分发数据
 		call MPI_Bcast(in,1,pack_type,0,comm,ierr)
 		call MPI_Barrier(comm,ierr)
 		call MPI_Type_free(pack_type,ierr)
-	end subroutine bcastparameters
+	end subroutine bcast_parameters
 
-	subroutine bcastinflow(comm)
+	subroutine bcast_inflow(comm)
 		implicit none
 		PetscInt,intent(in) :: comm
-		select case (mode)
+		select case (lns_mode)
 		case(0)
-			if(rank/=0) allocate(inflow(ln,0:jn-1,0:kn-1))
+			if(rank/=0) allocate(inflow(5,0:jn-1,0:kn-1))
 			call MPI_Barrier(comm,ierr)
 			call MPI_Ibcast(inflow,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,request,ierr)
 		case(1)
@@ -88,7 +138,7 @@ module mod_petsc_loader ! 读入并分发数据
 			! call MPI_Barrier(comm,ierr)
 			! call MPI_Ibcast(inflow,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,request,ierr)
 		end select
-	end subroutine bcastinflow
+	end subroutine bcast_inflow
 
 	subroutine read_mesh_3d(comm)
 		implicit none
@@ -168,7 +218,7 @@ module mod_petsc_loader ! 读入并分发数据
 		  	call DMDAVecRestoreArrayReadF90(meshDA, Flowfield_local, flow, ierr)
 	end subroutine load_flow_info
 
-	subroutine printinfo(comm)
+	subroutine print_info(comm)
 		implicit none 
 		PetscInt,intent(in) :: comm 
 		PetscErrorCode :: ierr  
@@ -195,5 +245,5 @@ module mod_petsc_loader ! 读入并分发数据
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 		call PetscPrintf(comm,"        流场和网格数据已录入。      \n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
-	end subroutine printinfo
+	end subroutine print_info
 end module mod_petsc_loader

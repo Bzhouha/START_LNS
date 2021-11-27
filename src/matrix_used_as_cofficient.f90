@@ -7,19 +7,19 @@ module matrix_used_as_cofficient
 !
 !       Type :: lns_OP_point_type 该点的系数小矩阵类
 !
-!           1.call GetUnadornedCubes(i,j,k) 获得原本的系数小矩阵
+!           1.call get_unadorned_cubes(i,j,k) 获得原本的系数小矩阵
 !
 !               call split(A,G,Aplus,Aminus) 矢通量分裂函数
 !
-!           2.call GetAdornedCubes(i,j,k) 获得坐标变换后的系数小矩阵
+!           2.call get_adorned_cubes(i,j,k) 获得坐标变换后的系数小矩阵
 !
-! 			3.call ColoredCubes(i,j,k) 获得对应方程的系数小矩阵
+! 			3.call colored_cubes(i,j,k) 获得对应方程的系数小矩阵
 !
-! 				1).call SkyBlueCubes(i,j,k) 天空蓝色的小块儿，3D-HLNS对应的系数小矩阵
+! 				1).call skyblue_cubes(i,j,k) 天空蓝色的小块儿，3D-HLNS对应的系数小矩阵
 !
-! 				2).call TealCubes(i,j,k) 薄荷色的小块儿，2D-HLNS对应的系数小矩阵
+! 				2).call teal_cubes(i,j,k) 薄荷色的小块儿，2D-HLNS对应的系数小矩阵
 !
-! 				3).call MintCubes(i,j,k) 水鸭色的小块儿，2D-HLNS对应的系数小矩阵
+! 				3).call mint_cubes(i,j,k) 水鸭色的小块儿，2D-HLNS对应的系数小矩阵
 !
 ! -----------------------------------------------------------
 	use penf, only: R_P
@@ -47,11 +47,11 @@ module matrix_used_as_cofficient
 		complex(R_P), dimension(5, 5) :: Vxz=0.0d0 
 		complex(R_P), dimension(5, 5) :: Vyz=0.0d0 
 		Contains
-		  procedure::GetUnadornedCubes,GetAdornedCubes
-		  procedure::ColoredCubes,SkyBlueCubes,MintCubes,TealCubes
+		  procedure::get_unadorned_cubes,get_adorned_cubes
+		  procedure::colored_cubes,skyblue_cubes,mint_cubes,teal_cubes
 	end type lns_OP_point_type
 	contains
-	subroutine GetUnadornedCubes(this,i,j,k)
+	subroutine get_unadorned_cubes(this,i,j,k)
 		use bf_point_org
 		use global_parameters
 		use mod_gas
@@ -342,9 +342,9 @@ module matrix_used_as_cofficient
 		this%C_p=C_p; this%C_m=C_m; this%C_v=C_v
 		this%Vxx=Vxx; this%Vyy=Vyy; this%Vzz=Vzz
 		this%Vxy=Vxy; this%Vxz=Vxz; this%Vyz=Vyz
-	end subroutine GetUnadornedCubes
+	end subroutine get_unadorned_cubes
 
-	subroutine GetAdornedCubes(this,i,j,k)
+	subroutine get_adorned_cubes(this,i,j,k)
 		use global_parameters
 		implicit none
 		class(lns_OP_point_type),intent(inout) :: this
@@ -364,7 +364,7 @@ module matrix_used_as_cofficient
 		C_p=0.0d0;C_m=0.0d0;C_v=0.0d0
 		Vxx=0.0d0;Vyy=0.0d0;Vzz=0.0d0
 		Vxy=0.0d0;Vxz=0.0d0;Vyz=0.0d0
-		call Jor%GetUnadornedCubes(i,j,k)
+		call Jor%get_unadorned_cubes(i,j,k)
 		associate( &
 			xi_x => xi_x(i,j,k), &
 			xi_y => xi_y(i,j,k), &
@@ -437,30 +437,30 @@ module matrix_used_as_cofficient
 		this%C_p=C_p; this%C_m=C_m; this%C_v=C_v
 		this%Vxx=Vxx; this%Vyy=Vyy; this%Vzz=Vzz 
 		this%Vxy=Vxy; this%Vxz=Vxz; this%Vyz=Vyz
-	end subroutine GetAdornedCubes
+	end subroutine get_adorned_cubes
 
-	subroutine ColoredCubes(this,i,j,k)
-		use global_parameters,only:mode
+	subroutine colored_cubes(this,i,j,k)
+		use global_parameters,only:lns_mode
 		implicit none
 		class(lns_OP_point_type),intent(inout) :: this
 		integer,intent(in) :: i,j,k
-		select case (mode)
+		select case (lns_mode)
 			case(0)
-				call this%MintCubes(i,j,k)
+				call this%mint_cubes(i,j,k)
 			case(1)
-				call this%SkyBlueCubes(i,j,k)
+				call this%skyblue_cubes(i,j,k)
 			case(2)
-				call this%TealCubes(i,j,k)
+				call this%teal_cubes(i,j,k)
 		end select
-	end subroutine ColoredCubes
+	end subroutine colored_cubes
 
-	subroutine MintCubes(this,i,j,k)
+	subroutine mint_cubes(this,i,j,k)
 		use global_parameters,only:Alpha,Beta,Omega 
 		implicit none 
 		class(lns_OP_point_type),intent(inout) :: this
 		type(lns_OP_point_type) :: Jor
 		integer,intent(in) :: i,j,k
-		call Jor%GetAdornedCubes(i,j,k)
+		call Jor%get_adorned_cubes(i,j,k)
 		this%G=Jor%G
 		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
 		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
@@ -473,15 +473,15 @@ module matrix_used_as_cofficient
 		cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%C-Alpha*Alpha*Jor%Vxx-Beta*Beta*Jor%Vzz-Alpha*Beta*Jor%Vxz
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
 		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
-	end subroutine MintCubes
+	end subroutine mint_cubes
 
-	subroutine SkyBlueCubes(this,i,j,k)
+	subroutine skyblue_cubes(this,i,j,k)
 		use global_parameters,only:Omega
 		implicit none 
 		class(lns_OP_point_type),intent(inout) :: this
 		type(lns_OP_point_type) :: Jor
 		integer,intent(in) :: i,j,k
-		call Jor%GetAdornedCubes(i,j,k)
+		call Jor%get_adorned_cubes(i,j,k)
 		this%G=Jor%G 
 		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
 		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
@@ -491,15 +491,15 @@ module matrix_used_as_cofficient
 		this%D=Jor%D-cmplx(0.0d0,1.0d0,R_P)*Omega*Jor%G
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
 		this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
-	end subroutine SkyBlueCubes
+	end subroutine skyblue_cubes
 
-	subroutine TealCubes(this,i,j,k)
+	subroutine teal_cubes(this,i,j,k)
 		use global_parameters,only:Beta,Omega 
 		implicit none
 		class(lns_OP_point_type),intent(inout) :: this
 		type(lns_OP_point_type) :: Jor
 		integer,intent(in) :: i,j,k
-		call Jor%GetAdornedCubes(i,j,k)
+		call Jor%get_adorned_cubes(i,j,k)
 		this%G=Jor%G
 		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
 		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
@@ -511,7 +511,7 @@ module matrix_used_as_cofficient
 		this%D=Jor%D-cmplx(0.0d0,1.0d0,R_P)*Omega*Jor%G+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%C-Beta*Beta*Jor%Vzz
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
 		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
-	end subroutine TealCubes
+	end subroutine teal_cubes
 
 	subroutine split(A,G,Aplus,Aminus)
 		implicit none

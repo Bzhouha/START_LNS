@@ -9,31 +9,45 @@ module mod_solving
 	use global_parameters
 	private
 	PetscErrorCode :: ierr
-	public :: Working
-	Vec :: rhs
+	public :: working
+	Vec :: RHS
 	contains
-	subroutine Working(comm)
+	subroutine working(comm)
 		PetscInt,intent(in) :: comm
 		PetscErrorCode :: ierr 
-		call DMCreateGlobalVector(meshDA,turtle,ierr)
-		call metriccoefficient(comm)
+		call allocate_memory()
+		call metric_coefficient(comm)
 		call partial_derivatives(comm)
-		!call DolphinComing(comm)
-		call WhaleComing(comm)
-		call solving(comm)
-		call DropTheWaste()
-	end subroutine Working
+		call linear_equations(comm)
+		call deallocate_memory()
+	end subroutine working
 
-	subroutine solving(comm)
+	subroutine allocate_memory()
+		implicit none 
+		call DMCreateGlobalVector(meshDA,Turtle,ierr)
+		call VecDuplicate(Turtle,RHS,ierr)
+		call VecZeroEntries(Turtle,ierr)
+		call VecZeroEntries(RHS,ierr)
+	end subroutine allocate_memory
+
+	subroutine linear_equations(comm)
 		implicit none
-		PetscInt,intent(in) :: comm
+		integer,intent(in) :: comm
+		logical :: Matrix_Free
+		Matrix_Free=.False.
+		!call set_right_hand_side(comm)
+		select case (Matrix_Free)
+			case (.True.)
+				call dolphin_coming(comm)
+				!call DolphinReady(comm,0)
+			case (.False.)
+				call whale_coming(comm)
+				call whale_ready(comm,0)
+				!call print_result()
+		end select
+	end subroutine linear_equations
 
-		call WhaleReady(comm,0)
-		!call PrintResult()
-		
-	end subroutine solving 
-
-	subroutine WhaleReady(comm,level)
+	subroutine whale_ready(comm,level)
 		implicit none
 		integer,intent(in) :: level
 		PetscInt,intent(in) :: comm
@@ -52,16 +66,15 @@ module mod_solving
 			call KSPSetType(ksp,KSPFGMRES,ierr)
 			call KSPSetFromOptions(ksp,ierr)
 			call KSPSetUp(ksp,ierr)
-			call SetRightValues(comm)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
-			call PetscPrintf(comm, "               计算中...      \n", ierr)
+			call PetscPrintf(comm, "               计算中...             \n", ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
 			call KSPSolve(ksp,u,turtle,ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
-			call PetscPrintf(comm, "              计算完毕。      \n", ierr)
+			call PetscPrintf(comm, "              计算完毕。              \n", ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
-			call PetscPrintf(comm, "             K S P 信 息           \n", ierr)
+			call PetscPrintf(comm, "             K S P 信 息             \n", ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
 			call KSPView(ksp,PETSC_VIEWER_STDOUT_WORLD,ierr)
 		elseif(level>0)then
@@ -80,32 +93,34 @@ module mod_solving
 			! #####设置光滑子 
 			! #####设置每层迭代矩阵
 		endif
-	end subroutine WhaleReady
+		call KSPDestroy(ksp,ierr)
+		call VecDestroy(b,ierr)
+		call VecDestroy(u,ierr)
+	end subroutine whale_ready
 
-	subroutine SetRightValues(comm)
+	subroutine set_right_hand_side(comm)
 		implicit none 
 		PetscScalar,pointer :: tmp(:,:,:,:)
 		PetscInt,intent(in) :: comm
 		integer :: j,k 
-		call VecDuplicate(turtle,rhs,ierr)
-		call VecZeroEntries(rhs,ierr)
-		call DMDAVecGetArrayF90(meshDA,rhs,tmp,ierr)
+		call DMDAVecGetArrayF90(meshDA,RHS,tmp,ierr)
 		do k=ks,ke 
 			do j=js,je 
 				tmp(:,0,j,k)=inflow(:,j,k)
 			enddo
 		enddo
-		call DMDAVecRestoreArrayF90(meshDA,rhs,tmp,ierr)
+		call DMDAVecRestoreArrayF90(meshDA,RHS,tmp,ierr)
 		call MPI_Barrier(comm,ierr)
 		deallocate(inflow)
-	end subroutine SetRightValues
+	end subroutine set_right_hand_side
 
-	subroutine DropTheWaste()
+	subroutine deallocate_memory()
 		implicit none
 		deallocate(bf)
-	end subroutine DropTheWaste
+		call VecDestroy(RHS,ierr)
+	end subroutine deallocate_memory
 
-	subroutine PrintResult()
+	subroutine print_result()
 		implicit none
 		PetscScalar,pointer :: tmp(:,:,:,:)
 		PetscErrorCode :: ierr
@@ -121,5 +136,5 @@ module mod_solving
 			write(*,*) "---"
 		enddo
 		call DMDAVecRestoreArrayReadF90(meshDA,turtle,tmp,ierr)
-	end subroutine PrintResult
+	end subroutine print_result
 end module mod_solving

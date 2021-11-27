@@ -6,28 +6,34 @@ module mod_petsc_output
     use global_parameters
     implicit none
     private
-    public :: ResultToFile
+    public :: result_to_file
     contains
-    subroutine ResultToFile(comm)
+    subroutine result_to_file(comm)
         implicit none
         PetscInt, INTENT(in) :: comm
         PetscViewer :: Viewer
         PetscErrorCode  :: ierr
-        call LightTurningOff(comm)
+        call signal_ending(comm)
         call PetscViewerBinaryOpen(comm, trim(FileLocation)//"out//"//"Turtle.petsc", FILE_MODE_WRITE, Viewer, ierr)
         call VecView(turtle, Viewer, ierr)
         call PetscViewerDestroy(Viewer, ierr)
-        call CurtainCall(comm)
-    end subroutine ResultToFile
-    subroutine LightTurningOff(comm)
-        implicit none
-        PetscInt, INTENT(in) :: comm
-        PetscErrorCode  :: ierr
+        call print_info(comm)
+    end subroutine result_to_file
+    
+    subroutine signal_ending(comm)
+        implicit none 
+        PetscInt,intent(in) :: comm 
+        PetscErrorCode :: ierr 
+        call PetscPrintf(comm, "\n", ierr)
+        call PetscPrintf(comm, " ===========================================================================\n", ierr)
+        call PetscPrintf(comm, " =                                 输    出                                = \n", ierr)
+        call PetscPrintf(comm, " ===========================================================================\n", ierr)
         call PetscPrintf(comm, " ----------------------------------\n", ierr)
         call PetscPrintf(comm, "              输出结果               \n", ierr)
         call PetscPrintf(comm, " ----------------------------------\n", ierr)
-        end subroutine LightTurningOff
-    subroutine CurtainCall(comm)
+    end subroutine signal_ending
+
+    subroutine print_info(comm)
         implicit none
         PetscInt,INTENT(in) :: comm
         PetscErrorCode :: ierr
@@ -48,5 +54,5 @@ module mod_petsc_output
         call PetscPrintf(comm,"            o              o\n",ierr)
         call PetscPrintf(comm,"             o            o\n",ierr)
         call PetscPrintf(comm,"                oooooooo\n",ierr)
-    end subroutine CurtainCall
+    end subroutine print_info
 end module mod_petsc_output  

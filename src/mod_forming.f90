@@ -6,17 +6,17 @@ module mod_forming
 !
 !  这个模块生成最终的大矩阵。
 !
-!       1.call DolphinComing(comm) 免矩阵形式的矩阵生成函数
+!       1.call dolphin_coming(comm) 免矩阵形式的矩阵生成函数
 !       
 !           call Mymult(A, X, F, ierr) 免矩阵需要的矩阵向量乘法函数
 !
-!       2.call WhaleComing(comm) 矩阵形式的矩阵生成函数
+!       2.call whale_coming(comm) 矩阵形式的矩阵生成函数
 !
-!           call WhaleGrowingUp() 填充数据函数
+!           call whale_growing_up() 填充数据函数
 !
-!               1).call WhaleCatchShrimps(i,j,k) 边界部分的填充数据函数
+!               1).call whale_catch_shrimps(i,j,k) 边界部分的填充数据函数
 !
-!               2).call WhaleCatchFish(i,j,k) 内部部分的填充数据函数
+!               2).call whale_catch_fish(i,j,k) 内部部分的填充数据函数
 !
 ! ------------------------------------------------------------------
 	use petsc
@@ -26,7 +26,7 @@ module mod_forming
 	use global_parameters
 	implicit none
 	private
-	public :: DolphinComing, WhaleComing
+	public :: dolphin_coming, whale_coming
 	type(lns_OP_point_type) :: Jor
 	! 注：这里是列优先，存储在内存中的样子是下面形式的转置，所以实际使用时需要将行列调换，如C1(li,c_index)。
 	real(R_P), parameter, dimension(-2:2,-2:2) :: FDM_1nd_4ORD_CENTER=reshape( [&
@@ -61,18 +61,18 @@ module mod_forming
 	real(R_P), parameter :: delta_j(-2:2)=[0.0d0, 0.0d0, 1.0d0, 0.0d0, 0.0d0]
 	real(R_P), parameter :: delta_k(-2:2)=[0.0d0, 0.0d0, 1.0d0, 0.0d0, 0.0d0]
 	contains
-	subroutine DolphinComing(comm)
+	subroutine dolphin_coming(comm)
 		implicit none
 		PetscInt,intent(in) :: comm
 		PetscErrorCode :: ierr
 		PetscInt :: ls
 		call VecGetLocalSize(turtle,ls,ierr)
 		call MatCreateShell(comm,ls,ls,PETSC_DETERMINE,PETSC_DETERMINE,PETSC_NULL_INTEGER,Dolphin,ierr)
-		call MatShellSetOperation(Dolphin,MATOP_MULT,MyMult,ierr)
+		call MatShellSetOperation(Dolphin,MATOP_MULT,Mymult,ierr)
 		call MatAssemblyBegin(Dolphin,MAT_FINAL_ASSEMBLY,ierr)
 		call MatAssemblyEnd(Dolphin,MAT_FINAL_ASSEMBLY,ierr)
-		call DolphinSayHi(comm)
-	end subroutine DolphinComing
+		call dolphin_say_hi(comm)
+	end subroutine dolphin_coming
 
 	subroutine Mymult(A, X, F, ierr)
 		use mod_mf_tools
@@ -114,7 +114,7 @@ module mod_forming
 						F(:,i,j,k)=matmul(M2,x(:,i,j,k))+matmul(M1,x(:,i,j+1,k))-matmul(M1,x(:,i,j,k))
 					elseif(i>1 .and. j>1 .and. i<(in-2) .and. j<(jn-2))then
 						crab=0.0d0
-						call Jor%ColoredCubes(i,j,k)
+						call Jor%colored_cubes(i,j,k)
 						call f3d1r(crab(:,1),x(:,i-2:i,j,k)) ! A1p
 						call f3d1f(crab(:,2),x(:,i:i+2,j,k)) ! A1m
 						call f5d1(crab(:,3),x(:,i-2:i+2,j,k)) ! A2
@@ -138,7 +138,7 @@ module mod_forming
 									-matmul(Vxy,crab(:,13))-matmul(Vxz,crab(:,14))-matmul(Vyz,crab(:,15))
 					else 
 						crab=0.0d0
-						call Jor%ColoredCubes(i,j,k)
+						call Jor%colored_cubes(i,j,k)
 						call f4_index(i1,i2,j1,j2,i,j)
 						call f2d1r(crab(:,1),x(:,i-1:i,j,k)) ! A1p
 						call f2d1f(crab(:,2),x(:,i:i+1,j,k)) ! A1m
@@ -170,27 +170,27 @@ module mod_forming
 		call DMDAVecRestoreArrayF90(meshDA,F,F_r,ierr)
 	end subroutine Mymult
 
-	subroutine WhaleComing(comm)
+	subroutine whale_coming(comm)
 		implicit none
 		PetscInt,intent(in) :: comm
 		PetscErrorCode :: ierr 
-		call WeHearASound(comm)
+		call we_hear_a_sound(comm)
 		call DMCreateMatrix(meshDA, Whale, ierr)
 		call MatZeroEntries(Whale,ierr)
-		call WhaleGrowingUp()
-		call WhaleSayHi(comm)
-	end subroutine WhaleComing
+		call whale_growing_up()
+		call whale_say_hi(comm)
+	end subroutine whale_coming
 
-	subroutine WeHearASound(comm)
+	subroutine we_hear_a_sound(comm)
 		implicit none
 		PetscInt,intent(in) :: comm
 		PetscErrorCode :: ierr
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 		call PetscPrintf(comm,"           开始生成矩阵...             \n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
-	end subroutine WeHearASound
+	end subroutine we_hear_a_sound
  
-	subroutine WhaleGrowingUp()
+	subroutine whale_growing_up()
 		implicit none
 		PetscErrorCode :: ierr
 		integer :: i,j,k
@@ -198,18 +198,18 @@ module mod_forming
 			do j=js,je
 				do i=is,ie
 					if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
-						call WhaleCatchShrimps(i,j,k)
+						call whale_catch_shrimps(i,j,k)
 					else
-						call WhaleCatchFish(i,j,k)
+						call whale_catch_fish(i,j,k)
 					endif
 				enddo
 			enddo
 		enddo 
 		call MatAssemblyBegin(Whale,MAT_FINAL_ASSEMBLY,ierr)
 		call MatAssemblyEnd(Whale,MAT_FINAL_ASSEMBLY,ierr)
-	end subroutine WhaleGrowingUp
+	end subroutine whale_growing_up
 
-	subroutine WhaleCatchShrimps(i,j,k)
+	subroutine whale_catch_shrimps(i,j,k)
 		implicit none
 		PetscScalar :: box(5,5),trans(5,5),B(5,5),D(5,5)
 		MatStencil :: idxm(4,1),idxn(4,1)
@@ -259,9 +259,9 @@ module mod_forming
 			enddo
 		endif
 		end associate
-	end subroutine WhaleCatchShrimps
+	end subroutine whale_catch_shrimps
 
-	subroutine WhaleCatchFish(i,j,k)
+	subroutine whale_catch_fish(i,j,k)
 		implicit none
 		integer :: ic_index, jc_index, kc_index
 		integer :: lib, lie, ljb, lje, lkb, lke
@@ -270,7 +270,7 @@ module mod_forming
 		integer,intent(in) :: i,j,k 
 		PetscErrorCode :: ierr
 		integer :: li, lj, lk
-		call Jor%ColoredCubes(i,j,k)
+		call Jor%colored_cubes(i,j,k)
 		if(i==0)then
 			lib=0; lie=2
 			ic_index=-2
@@ -303,7 +303,7 @@ module mod_forming
 			ljb=-2; lje=2
 			jc_index=0
 		endif
-		select case (mode)
+		select case (lns_mode)
 			case(0)
 				lkb=0; lke=0; kc_index=0
 			case(1)
@@ -353,23 +353,23 @@ module mod_forming
 			end do
 		end do
 		end associate
-	end subroutine WhaleCatchFish
+	end subroutine whale_catch_fish
 
-	subroutine WhaleSayHi(comm)
+	subroutine whale_say_hi(comm)
 		implicit none
 		PetscInt,intent(in) :: comm
 		PetscErrorCode :: ierr
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 		call PetscPrintf(comm,"            矩阵生成结束。             \n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
-	end subroutine WhaleSayHi
+	end subroutine whale_say_hi
 
-	subroutine DolphinSayHi(comm)
+	subroutine dolphin_say_hi(comm)
 		implicit none
 		PetscInt,intent(in) :: comm
 		PetscErrorCode :: ierr
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 		call PetscPrintf(comm,"           免矩阵生效中...             \n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
-	end subroutine DolphinSayHi
+	end subroutine dolphin_say_hi
 end module mod_forming
