@@ -17,9 +17,9 @@ module matrix_used_as_cofficient
 !
 ! 				1).call skyblue_cubes(i,j,k) 天空蓝色的小块儿，3D-HLNS对应的系数小矩阵
 !
-! 				2).call teal_cubes(i,j,k) 薄荷色的小块儿，2D-HLNS对应的系数小矩阵
+! 				2).call teal_cubes(i,j,k) 水鸭色的小块儿，2D-HLNS对应的系数小矩阵
 !
-! 				3).call mint_cubes(i,j,k) 水鸭色的小块儿，2D-HLNS对应的系数小矩阵
+! 				3).call mint_cubes(i,j,k) 薄荷色的小块儿，2D-HLNS对应的系数小矩阵
 !
 ! -----------------------------------------------------------
 	use penf, only: R_P
@@ -54,11 +54,10 @@ module matrix_used_as_cofficient
 	subroutine get_unadorned_cubes(this,i,j,k)
 		use bf_point_org
 		use global_parameters
-		use mod_gas
 		implicit none
 		class(lns_OP_point_type),intent(inout) :: this 
 		integer,intent(in) :: i,j,k
-		real(R_P) :: Pe, gf, g1, g2
+		real(R_P) :: Pe, gf, g1, g2, cm
 		real(R_P) :: n_Miu, n_MiuT, n_MiuTT, n_Miux, n_Miuy, n_Miuz
 		real(R_P) :: d1d3=1.0d0/3.0d0, d2d3=2.0d0/3.0d0, d4d3=4.0d0/3.0d0
 		real(R_P) :: G(5, 5), A(5, 5), B(5, 5), C(5, 5), D(5, 5)
@@ -66,6 +65,7 @@ module matrix_used_as_cofficient
 		real(R_P) :: B_p(5, 5), B_m(5, 5), B_c(5, 5), B_v(5, 5)
 		real(R_P) :: C_p(5, 5), C_m(5, 5), C_c(5, 5), C_v(5, 5)
 		real(R_P) :: Vxx(5, 5), Vyy(5, 5), Vzz(5, 5), Vxy(5, 5), Vxz(5, 5), Vyz(5, 5)
+		real(R_P),parameter :: C1=110.4D0
 		! 初始化矩阵
 		G=0.0d0;A=0.0d0;B=0.0d0;C=0.0d0;D=0.0d0
 		A_p=0.0d0;A_m=0.0d0;A_c=0.0d0;A_v=0.0d0
@@ -77,7 +77,7 @@ module matrix_used_as_cofficient
 		Pe = 1.0d0/(GAMMA*Ma*Ma)
 		gf = 1.0d0/GAMMA 
 		g1 = (1.0d0-GAMMA)/GAMMA
-		g2 = (GAMMA-1.0d0)*Ma*Ma
+		g2 = 1.0d0/((GAMMA-1.0d0)*Ma*Ma)
 		associate ( &
 			rho  => bf(i,j,k)%BF%rho, &
 			U    => bf(i,j,k)%BF%x, &
@@ -130,9 +130,10 @@ module matrix_used_as_cofficient
 			nVyz => bf(i,j,k)%BFDyz%y, & 
 			Wyz  => bf(i,j,k)%BFDyz%z  )
 			! Surthland公式相关
-			n_Miu = miu(T)
-			n_MiuT = miuT(T)
-			n_MiuTT = miuTT(T)
+			cm=C1/Te
+			n_Miu = T*sqrt(T)*(1.0d0+cm)/(T+cm)
+			n_MiuT = n_Miu*(1.5d0/T-1.0d0/(T+cm))
+			n_MiuTT = n_MiuT*(1.5d0/T-1.0d0/(T+cm))-n_Miu*(1.5d0/T**2-1.0d0/(T+cm)**2)
 			n_Miux = n_MiuT*Tx
 			n_Miuy = n_MiuT*Ty
 			n_Miuz = n_MiuT*Tz
@@ -141,27 +142,34 @@ module matrix_used_as_cofficient
 			G(2, 2) = rho
 			G(3, 3) = rho
 			G(4, 4) = rho
-			G(5, 1) = g1*T 
-			G(5, 5) = rho/GAMMA
+			G(5, 1) = -1.0d0*Pe*T
+			G(5, 5) = rho*g2-Pe*rho
+			! G(5, 1) = g1*T 
+			! G(5, 5) = rho/GAMMA
 
 			A(1, 1) = U
 			A(1, 2) = rho
 			A(2, 1) = Pe*T 
 			A(2, 2) = rho*U - d4d3*n_Miux/Re
-			A(2, 3) = -1.0d0/Re*n_Miuy
-			A(2, 4) = -1.0d0/Re*n_Miuz
+			A(2, 3) = -1.0d0*n_Miuy/Re
+			A(2, 4) = -1.0d0*n_Miuz/Re
 			A(2, 5) = Pe*rho - n_MiuT/Re*(d4d3*Ux-d2d3*Vy-d2d3*Wz)
-			A(3, 2) = d2d3/Re*n_Miuy
+			A(3, 2) = d2d3*n_Miuy/Re
 			A(3, 3) = rho*U - n_Miux/Re
-			A(3, 5) = -1.0d0/Re*n_MiuT*(Uy+Vx)
+			A(3, 5) = -1.0d0*n_MiuT*(Uy+Vx)/Re
 			A(4, 2) = d2d3*n_Miuz/Re
 			A(4, 4) = rho*U - n_Miux/Re
 			A(4, 5) = -1.0d0*n_MiuT*(Wx+Uz)/Re
-			A(5, 1) = g1*T*U
-			A(5, 2) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Ux-Vy-Wz)/Re 
-			A(5, 3) = -2.0d0*g2*n_Miu*(Vx+Uy)/Re
-			A(5, 4) = -2.0d0*g2*n_Miu*(Wx+Uz)/Re
-			A(5, 5) = gf*rho*U - 2.0d0*n_Miux/Re/Pr
+			A(5, 1) = -1.0d0*Pe*U*T
+			A(5, 2) = -2.0d0*n_Miu*(d4d3*Ux-d2d3*Vy-d2d3*Wz)/Re
+			A(5, 3) = -2.0d0*n_Miu*(Uy+Vx)/Re
+			A(5, 4) = -2.0d0*n_Miu*(Wx+Uz)/Re
+			A(5, 5) = rho*U*g2-rho*U*Pe-2.0d0*Tx*n_MiuT/Re/Pr*g2
+			! A(5, 1) = g1*T*U
+			! A(5, 2) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Ux-Vy-Wz)/Re 
+			! A(5, 3) = -2.0d0*g2*n_Miu*(Vx+Uy)/Re
+			! A(5, 4) = -2.0d0*g2*n_Miu*(Wx+Uz)/Re
+			! A(5, 5) = gf*rho*U - 2.0d0*n_Miux/Re/Pr
 
 			A_c(1, 1) = U
 			A_c(1, 2) = rho
@@ -170,23 +178,23 @@ module matrix_used_as_cofficient
 			A_c(2, 5) = Pe*rho
 			A_c(3, 3) = rho*U
 			A_c(4, 4) = rho*U
-			A_c(5, 1) = g1*T*U
-			A_c(5, 5) = gf*rho*U
+			A_c(5, 1) = -1.0d0*Pe*U*T
+			A_c(5, 5) = rho*U*g2-rho*U*Pe
 
 			A_v(2, 2) = -1.0d0*d4d3*n_Miux/Re
-			A_v(2, 3) = -1.0d0/Re*n_Miuy
-			A_v(2, 4) = -1.0d0/Re*n_Miuz
+			A_v(2, 3) = -1.0d0*n_Miuy/Re
+			A_v(2, 4) = -1.0d0*n_Miuz/Re
 			A_v(2, 5) = -1.0d0*n_MiuT/Re*(d4d3*Ux-d2d3*Vy-d2d3*Wz)
-			A_v(3, 2) = d2d3/Re*n_Miuy
+			A_v(3, 2) = d2d3*n_Miuy/Re
 			A_v(3, 3) = -1.0d0*n_Miux/Re
-			A_v(3, 5) = -1.0d0/Re*n_MiuT*(Uy+Vx)
+			A_v(3, 5) = -1.0d0*n_MiuT*(Uy+Vx)/Re
 			A_v(4, 2) = d2d3*n_Miuz/Re
 			A_v(4, 4) = -1.0d0*n_Miux/Re
 			A_v(4, 5) = -1.0d0*n_MiuT*(Wx+Uz)/Re
-			A_v(5, 2) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Ux-Vy-Wz)/Re 
-			A_v(5, 3) = -2.0d0*g2*n_Miu*(Vx+Uy)/Re
-			A_v(5, 4) = -2.0d0*g2*n_Miu*(Wx+Uz)/Re
-			A_v(5, 5) = -2.0d0*n_Miux/Re/Pr
+			A_v(5, 2) = -2.0d0*n_Miu*(d4d3*Ux-d2d3*Vy-d2d3*Wz)/Re
+			A_v(5, 3) = -2.0d0*n_Miu*(Uy+Vx)/Re
+			A_v(5, 4) = -2.0d0*n_Miu*(Wx+Uz)/Re
+			A_v(5, 5) = -2.0d0*Tx*n_MiuT/Re/Pr*g2
 			
 			B(1, 1) = V
 			B(1, 3) = rho
@@ -197,15 +205,20 @@ module matrix_used_as_cofficient
 			B(3, 2) = -1.0d0*n_Miux/Re
 			B(3, 3) = rho*V - d4d3*n_Miuy/Re
 			B(3, 4) = -1.0d0*n_Miuz/Re
-			B(3, 5) = Pe*rho - d2d3*n_MiuT*(-1.0d0*Ux+2.0d0*Vy-Wz)/Re
+			B(3, 5) = Pe*rho - n_MiuT*(-d2d3*Ux+d4d3*Vy-d2d3*Wz)/Re
 			B(4, 3) = d2d3*n_Miuz/Re
 			B(4, 4) = rho*V - n_Miuy/Re
 			B(4, 5) = -1.0d0*n_MiuT*(Vz+Wy)/Re
-			B(5, 1) = g1*T*V
-			B(5, 2) = -2.0d0*g2*n_Miu*(Uy+Vx)/Re
-			B(5, 3) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Vy-Ux-Wz)/Re
-			B(5, 4) = -2.0d0*g2*n_Miu*(Wy+Vz)/Re
-			B(5, 5) = gf*rho*V - 2.0d0*n_Miuy/Re/Pr 
+			B(5, 1) = -1.0d0*Pe*V*T
+			B(5, 2) = -2.0d0*n_Miu*(Uy+Vx)/Re
+			B(5, 3) = -2.0d0*n_Miu*(-d2d3*Ux+d4d3*Vy-d2d3*Wz)/Re
+			B(5, 4) = -2.0d0*n_Miu*(Vz+Wy)/Re
+			B(5, 5) = rho*V*g2-rho*V*Pe-2.0d0*Ty*n_MiuT*g2/Re/Pr
+			! B(5, 1) = g1*T*V
+			! B(5, 2) = -2.0d0*g2*n_Miu*(Uy+Vx)/Re
+			! B(5, 3) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Vy-Ux-Wz)/Re
+			! B(5, 4) = -2.0d0*g2*n_Miu*(Wy+Vz)/Re
+			! B(5, 5) = gf*rho*V - 2.0d0*n_Miuy/Re/Pr 
 
 			B_c(1, 1) = V
 			B_c(1, 3) = rho
@@ -214,8 +227,8 @@ module matrix_used_as_cofficient
 			B_c(3, 3) = rho*V
 			B_c(3, 5) = Pe*rho
 			B_c(4, 4) = rho*V
-			B_c(5, 1) = g1*T*V
-			B_c(5, 5) = gf*rho*V 
+			B_c(5, 1) = -1.0d0*Pe*V*T
+			B_c(5, 5) = rho*V*g2-rho*V*Pe
 
 			B_v(2, 2) = -1.0d0*n_Miuy/Re
 			B_v(2, 3) = d2d3*n_Miux/Re
@@ -223,14 +236,14 @@ module matrix_used_as_cofficient
 			B_v(3, 2) = -1.0d0*n_Miux/Re
 			B_v(3, 3) = -1.0d0*d4d3*n_Miuy/Re
 			B_v(3, 4) = -1.0d0*n_Miuz/Re
-			B_v(3, 5) = -1.0d0*d2d3*n_MiuT*(-1.0d0*Ux+2.0d0*Vy-Wz)/Re
+			B_v(3, 5) = -1.0d0*n_MiuT*(-d2d3*Ux+d4d3*Vy-d2d3*Wz)/Re
 			B_v(4, 3) = d2d3*n_Miuz/Re
 			B_v(4, 4) = -1.0d0*n_Miuy/Re
 			B_v(4, 5) = -1.0d0*n_MiuT*(Vz+Wy)/Re
-			B_v(5, 2) = -2.0d0*g2*n_Miu*(Uy+Vx)/Re
-			B_v(5, 3) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Vy-Ux-Wz)/Re
-			B_v(5, 4) = -2.0d0*g2*n_Miu*(Wy+Vz)/Re
-			B_v(5, 5) = -2.0d0*n_Miuy/Re/Pr 
+			B_v(5, 2) = -2.0d0*n_Miu*(Uy+Vx)/Re
+			B_v(5, 3) = -2.0d0*n_Miu*(-d2d3*Ux+d4d3*Vy-d2d3*Wz)/Re
+			B_v(5, 4) = -2.0d0*n_Miu*(Vz+Wy)/Re
+			B_v(5, 5) = -2.0d0*Ty*n_MiuT*g2/Re/Pr 
 			
 			C(1, 1) = W
 			C(1, 4) = rho
@@ -244,12 +257,17 @@ module matrix_used_as_cofficient
 			C(4, 2) = -1.0d0*n_Miux/Re
 			C(4, 3) = -1.0d0*n_Miuy/Re
 			C(4, 4) = rho*W - d4d3*n_Miuz/Re
-			C(4, 5) = Pe*rho - n_MiuT*d2d3*(-1.0d0*Ux-Vy+2.0d0*Wz)/Re
-			C(5, 1) = g1*T*W
-			C(5, 2) = -2.0d0*g2*n_Miu*(Uz+Wx)/Re
-			C(5, 3) = -2.0d0*g2*n_Miu*(Vz+Wy)/Re
-			C(5, 4) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Wz-Ux-Vy)/Re
-			C(5, 5) = gf*rho*W - 2.0d0*n_Miuz/Re/Pr
+			C(4, 5) = Pe*rho - n_MiuT*(-d2d3*Ux-d2d3*Vy+d4d3*Wz)/Re
+			C(5, 1) = -1.0d0*Pe*W*T
+			C(5, 2) = -2.0d0*n_Miu*(Wx+Uz)/Re
+			C(5, 3) = -2.0d0*n_Miu*(Vz+Wy)/Re
+			C(5, 4) = -2.0d0*n_Miu*(-d2d3*Ux-d2d3*Vy+d4d3*Wz)/Re
+			C(5, 5) = rho*W*g2-rho*W*Pe-2.0d0*Tz*n_MiuT*g2/Re/Pr
+			! C(5, 1) = g1*T*W
+			! C(5, 2) = -2.0d0*g2*n_Miu*(Uz+Wx)/Re
+			! C(5, 3) = -2.0d0*g2*n_Miu*(Vz+Wy)/Re
+			! C(5, 4) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Wz-Ux-Vy)/Re
+			! C(5, 5) = gf*rho*W - 2.0d0*n_Miuz/Re/Pr
 
 			C_c(1, 1) = W
 			C_c(1, 4) = rho
@@ -258,8 +276,8 @@ module matrix_used_as_cofficient
 			C_c(4, 1) = Pe*T
 			C_c(4, 4) = rho*W
 			C_c(4, 5) = Pe*rho
-			C_c(5, 1) = g1*T*W
-			C_c(5, 5) = gf*rho*W
+			C_c(5, 1) = -1.0d0*Pe*W*T
+			C_c(5, 5) = rho*W*g2-rho*W*Pe
 
 			C_v(2, 2) = -1.0d0*n_Miuz/Re
 			C_v(2, 4) = d2d3*n_Miux/Re
@@ -270,11 +288,11 @@ module matrix_used_as_cofficient
 			C_v(4, 2) = -1.0d0*n_Miux/Re
 			C_v(4, 3) = -1.0d0*n_Miuy/Re
 			C_v(4, 4) = -1.0d0*d4d3*n_Miuz/Re
-			C_v(4, 5) = -1.0d0*n_MiuT*d2d3*(-1.0d0*Ux-Vy+2.0d0*Wz)/Re
-			C_v(5, 2) = -2.0d0*g2*n_Miu*(Uz+Wx)/Re
-			C_v(5, 3) = -2.0d0*g2*n_Miu*(Vz+Wy)/Re
-			C_v(5, 4) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Wz-Ux-Vy)/Re
-			C_v(5, 5) = -2.0d0*n_Miuz/Re/Pr
+			C_v(4, 5) = -1.0d0*n_MiuT*(-d2d3*Ux-d2d3*Vy+d4d3*Wz)/Re
+			C_v(5, 2) = -2.0d0*n_Miu*(Wx+Uz)/Re
+			C_v(5, 3) = -2.0d0*n_Miu*(Vz+Wy)/Re
+			C_v(5, 4) = -2.0d0*n_Miu*(-d2d3*Ux-d2d3*Vy+d4d3*Wz)/Re
+			C_v(5, 5) = -2.0d0*Tz*n_MiuT*g2/Re/Pr
 			
 			D(1, 1) = Ux+Vy+Wz
 			D(1, 2) = rhox
@@ -298,37 +316,48 @@ module matrix_used_as_cofficient
 			D(4, 4) = rho*Wz
 			D(4, 5) = Pe*rhoz - ( n_MiuTT*Tx*(Wx+Uz) + n_MiuTT*Ty*(Vz+Wy) + &
 			n_MiuTT*Tz*d2d3*(-1.0d0*Ux-Vy+2.0d0*Wz) + n_MiuT*(Wxx+Wyy+d4d3*Wzz+d1d3*Uxz+d1d3*nVyz) )/Re
-			D(5, 1) = gf*U*Tx+gf*V*Ty+gf*W*Tz
-			D(5, 2) = gf*rho*Tx+g1*T*rhox
-			D(5, 3) = gf*rho*Ty+g1*T*rhoy
-			D(5, 4) = gf*rho*Tz+g1*T*rhoz
-			D(5, 5) = g1*U*rhox+g1*V*rhoy+g1*W*rhoz - ( n_MiuTT*(Tx*Tx+Ty*Ty+Tz*Tz) &
-			+ n_MiuT*(Txx+Tyy+Tzz) )/Re/Pr - g2*( d4d3*n_MiuT*(Ux*Ux+Vy*Vy+Wz*Wz-Ux*Vy-Ux*Wz-Vy*Wz) &
-			+ n_MiuT*(Uy*Uy+Vx*Vx+2.0d0*Uy*Vx+Uz*Uz+Wx*Wx+2.0d0*Uz*Wx+Vz*Vz+Wy*Wy+2.0d0*Vz*Wy) )/Re
+			D(5, 1) = (1.0d0*g2-Pe)*(U*Tx+V*Ty+W*Tz)
+			D(5, 2) = rho*Tx*g2-Pe*(rho*Tx+T*rhox)
+			D(5, 3) = rho*Ty*g2-Pe*(rho*Ty+T*rhoy)
+			D(5, 4) = rho*Tz*g2-Pe*(rho*Tz+T*rhoz)
+			D(5, 5) = -1.0d0*Pe*(U*rhox+V*rhoy+W*rhoz)-(Txx+Tyy+Tzz)*n_MiuT*g2/Re/Pr&
+			-(Tx*Tx+Ty*Ty+Tz*Tz)*n_MiuTT*g2/Re/Pr&
+			-n_MiuT*(Uy*Uy+Vx*Vx+2.0d0*Uy*Vx+Uz*Uz+Wx*Wx+2.0d0*Uz*Wx+Vz*Vz+Wy*Wy+2.0d0*Vz*Wy)/Re&
+			-n_MiuT*d4d3*(Ux*Ux+Vy*Vy+Wz*Wz-Ux*Wz-Ux*Vy-Vy*Wz)/Re
+			! D(5, 1) = gf*U*Tx+gf*V*Ty+gf*W*Tz
+			! D(5, 2) = gf*rho*Tx+g1*T*rhox
+			! D(5, 3) = gf*rho*Ty+g1*T*rhoy
+			! D(5, 4) = gf*rho*Tz+g1*T*rhoz
+			! D(5, 5) = g1*U*rhox+g1*V*rhoy+g1*W*rhoz - ( n_MiuTT*(Tx*Tx+Ty*Ty+Tz*Tz) &
+			! + n_MiuT*(Txx+Tyy+Tzz) )/Re/Pr - g2*( d4d3*n_MiuT*(Ux*Ux+Vy*Vy+Wz*Wz-Ux*Vy-Ux*Wz-Vy*Wz) &
+			! + n_MiuT*(Uy*Uy+Vx*Vx+2.0d0*Uy*Vx+Uz*Uz+Wx*Wx+2.0d0*Uz*Wx+Vz*Vz+Wy*Wy+2.0d0*Vz*Wy) )/Re
 			
-			Vxx(2, 2) = -1.0d0*d4d3*n_Miu/Re
-			Vxx(3, 3) = -1.0d0*n_Miu/Re
-			Vxx(4, 4) = -1.0d0*n_Miu/Re
-			Vxx(5, 5) = -1.0d0*n_Miu/Re/Pr
+			Vxx(2, 2) = d4d3*n_Miu/Re
+			Vxx(3, 3) = n_Miu/Re
+			Vxx(4, 4) = n_Miu/Re
+			Vxx(5, 5) = n_Miu*g2/Re/Pr
+			! Vxx(5, 5) = n_Miu/Re/Pr
 			
-			Vyy(2, 2) = -1.0d0*n_Miu/Re
-			Vyy(3, 3) = -1.0d0*d4d3*n_Miu/Re
-			Vyy(4, 4) = -1.0d0*n_Miu/Re
-			Vyy(5, 5) = -1.0d0*n_Miu/Re/Pr 
+			Vyy(2, 2) = n_Miu/Re
+			Vyy(3, 3) = d4d3*n_Miu/Re
+			Vyy(4, 4) = n_Miu/Re
+			Vyy(5, 5) = n_Miu*g2/Re/Pr
+			! Vyy(5, 5) = n_Miu/Re/Pr 
 			
-			Vzz(2, 2) = -1.0d0*n_Miu/Re
-			Vzz(3, 3) = -1.0d0*n_Miu/Re
-			Vzz(4, 4) = -1.0d0*d4d3*n_Miu/Re
-			Vzz(5, 5) = -1.0d0*n_Miu/Re/Pr
+			Vzz(2, 2) = n_Miu/Re
+			Vzz(3, 3) = n_Miu/Re
+			Vzz(4, 4) = d4d3*n_Miu/Re
+			Vzz(5, 5) = n_Miu*g2/Re/Pr
+			! Vzz(5, 5) = n_Miu/Re/Pr
 			
-			Vxy(2, 3) = -1.0d0*d1d3*n_Miu/Re
-			Vxy(3, 2) = -1.0d0*d1d3*n_Miu/Re
+			Vxy(2, 3) = d1d3*n_Miu/Re
+			Vxy(3, 2) = d1d3*n_Miu/Re
 		
-			Vxz(2, 4) = -1.0d0*d1d3*n_Miu/Re
-			Vxz(4, 2) = -1.0d0*d1d3*n_Miu/Re
+			Vxz(2, 4) = d1d3*n_Miu/Re
+			Vxz(4, 2) = d1d3*n_Miu/Re
 		
-			Vyz(3, 4) = -1.0d0*d1d3*n_Miu/Re
-			Vyz(4, 3) = -1.0d0*d1d3*n_Miu/Re
+			Vyz(3, 4) = d1d3*n_Miu/Re
+			Vyz(4, 3) = d1d3*n_Miu/Re
 		end associate
 
 		call split(A_c,G,A_p,A_m)

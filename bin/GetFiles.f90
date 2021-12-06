@@ -40,7 +40,7 @@ program read_write_data
     enddo
     select case (kn)
     case(1)
-        open(23,file="..//files//in//grid.dat",action='write',status='replace',form='unformatted')
+        open(23,file="..//files//in//grid.grd",action='write',status='replace',form='unformatted')
         write(23) "x,y"
         write(23) in,jn
         write(23) xx,yy
@@ -52,7 +52,7 @@ program read_write_data
         write(23)((((qq_2d(i, j, l), i=1, in), j=1, jn), k=1, kn), l=1, 5)
         close(23)
     case default
-        open(21,file="..//files//in//grid.dat",action='write',status='replace',form='unformatted')
+        open(21,file="..//files//in//grid.grd",action='write',status='replace',form='unformatted')
         write(21) "x,y,z"
         write(21) in,jn,kn
         write(21) xx,yy,zz

@@ -88,11 +88,11 @@ contains
     implicit none
     PetscInt, intent(in) :: comm
     write(*,*) "开始生成文件..."
-    call PetscViewerBinaryOpen(comm, trim(FileLocation)//"in//"//"grid.petsc",FILE_MODE_WRITE, Viewer, ierr)
+    call PetscViewerBinaryOpen(comm, "in/grid.petsc",FILE_MODE_WRITE, Viewer, ierr)
     call VecView(Coord, Viewer, ierr)
     call PetscViewerDestroy(Viewer, ierr)
     write(*,*) '  网格文件已生成。'
-    call PetscViewerBinaryOpen(comm, trim(FileLocation)//"in//"//"flow.petsc",FILE_MODE_WRITE, Viewer, ierr)
+    call PetscViewerBinaryOpen(comm, "in/flow.petsc",FILE_MODE_WRITE, Viewer, ierr)
     call VecView(Flowfield, Viewer, ierr)
     call PetscViewerDestroy(Viewer, ierr)
     write(*,*) '  流场文件已生成。'

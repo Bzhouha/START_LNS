@@ -16,21 +16,19 @@ module mod_petsc_loader ! 读入并分发数据
 	Vec :: Coord, Flowfield
 	PetscViewer :: Viewer
 	public :: loading_data
-	integer :: request
 	contains
 	subroutine loading_data(comm)
 		implicit none
-		integer :: status(MPI_STATUS_SIZE)
 		PetscInt, intent(in) :: comm
 		call read_from_file(comm)
 		call bcast_parameters(comm)
-		call bcast_inflow(comm)
+		!call pack_parameters(comm)
 		call read_mesh_3d(comm)
+		call disturbance(comm)
 		call get_layout()
 		call load_mesh_info()
 		call load_flow_info()
 		call print_info(comm)
-		call MPI_Wait(request,status,ierr)
 		call MPI_Barrier(comm,ierr)
 	end subroutine loading_data
 
@@ -41,6 +39,7 @@ module mod_petsc_loader ! 读入并分发数据
 		implicit none
 		PetscInt,intent(in) :: comm
 		character(len=256) :: cfg_file
+		character(len=10) :: hlns
 		PetscBool :: set
 		call signal_loading(comm)
 		call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-f',cfg_file,set,ierr)
@@ -49,6 +48,13 @@ module mod_petsc_loader ! 读入并分发数据
 			stop
 		endif
 		call cfg_loader(trim(cfg_file))
+		call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-d',hlns,set,ierr)
+		select case (hlns)
+			case('2')
+				lns_mode=0
+			case('3')
+				lns_mode=1
+		end select 
 		if(rank==0)then
 			call plot3d_load()
 			call petsc_viewer(PETSC_COMM_SELF)
@@ -61,7 +67,6 @@ module mod_petsc_loader ! 读入并分发数据
 	subroutine signal_loading(comm)
 		implicit none
 		PetscInt,intent(in) :: comm
-		PetscErrorCode :: ierr 
 		call PetscPrintf(comm, "\n", ierr)
 		call PetscPrintf(comm, " ===========================================================================\n", ierr)
 		call PetscPrintf(comm, " =                                 读    取                                = \n", ierr)
@@ -72,7 +77,6 @@ module mod_petsc_loader ! 读入并分发数据
 	subroutine signal_starting(comm)
 		implicit none
 		PetscInt,intent(in) :: comm 
-		PetscErrorCode :: ierr 
 		call PetscPrintf(comm, "\n", ierr)
 		call PetscPrintf(comm, " ===========================================================================\n", ierr)
 		call PetscPrintf(comm, " =                                 计    算                                = \n", ierr)
@@ -89,7 +93,6 @@ module mod_petsc_loader ! 读入并分发数据
 		integer(KIND=MPI_ADDRESS_KIND) :: displacement(11)
 		PetscInt,intent(in) :: comm
 		integer :: block_lengths(11)
-		PetscErrorCode :: ierr
 		integer :: pack_type
 		integer :: types(11)
 		call MPI_Get_address(in,address_in,ierr)
@@ -125,49 +128,70 @@ module mod_petsc_loader ! 读入并分发数据
 		call MPI_Type_free(pack_type,ierr)
 	end subroutine bcast_parameters
 
-	subroutine bcast_inflow(comm)
-		implicit none
-		PetscInt,intent(in) :: comm
-		select case (lns_mode)
-		case(0)
-			if(rank/=0) allocate(inflow(5,0:jn-1,0:kn-1))
-			call MPI_Barrier(comm,ierr)
-			call MPI_Ibcast(inflow,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,request,ierr)
-		case(1)
-			! if(rank/=0) allocate(inflow(ln,0:jn-1,0:kn-1))
-			! call MPI_Barrier(comm,ierr)
-			! call MPI_Ibcast(inflow,ln*jn*kn,MPI_DOUBLE_COMPLEX,0,comm,request,ierr)
-		end select
-	end subroutine bcast_inflow
+	subroutine pack_parameters(comm)
+		use global_parameters
+		implicit none 
+		integer,intent(in) :: comm 
+		integer :: packsize,position
+		character(len=120) :: packbuf
+		if(rank==0)then 
+			position = 0
+			call MPI_Pack(in,1,MPI_INT,packbuf,120,position,comm,ierr)
+			call MPI_Pack(jn,1,MPI_INT,packbuf,120,position,comm,ierr)
+			call MPI_Pack(kn,1,MPI_INT,packbuf,120,position,comm,ierr)
+			call MPI_Pack(lns_mode,1,MPI_INT,packbuf,120,position,comm,ierr)
+			call MPI_Pack(Ma,1,MPI_DOUBLE,packbuf,120,position,comm,ierr)
+			call MPI_Pack(Re,1,MPI_DOUBLE,packbuf,120,position,comm,ierr)
+			call MPI_Pack(Te,1,MPI_DOUBLE,packbuf,120,position,comm,ierr)
+			call MPI_Pack(Alpha,1,MPI_DOUBLE_COMPLEX,packbuf,120,position,comm,ierr)
+			call MPI_Pack(Beta,1,MPI_DOUBLE_COMPLEX,packbuf,120,position,comm,ierr)
+			call MPI_Pack(Omega,1,MPI_DOUBLE_COMPLEX,packbuf,120,position,comm,ierr)
+		endif 
+		call MPI_Bcast(packbuf,120,MPI_PACKED,0,comm,ierr)
+		if(rank/=0)then 
+			position = 0
+			call MPI_Unpack(packbuf,120,position,in,1,MPI_INT,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,jn,1,MPI_INT,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,kn,1,MPI_INT,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,lns_mode,1,MPI_INT,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,Ma,1,MPI_DOUBLE,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,Re,1,MPI_DOUBLE,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,Te,1,MPI_DOUBLE,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,Alpha,1,MPI_DOUBLE_COMPLEX,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,Beta,1,MPI_DOUBLE_COMPLEX,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,Omega,1,MPI_DOUBLE_COMPLEX,comm,ierr)
+		endif 
+		call MPI_Barrier(comm,ierr)
+	end subroutine pack_parameters
 
 	subroutine read_mesh_3d(comm)
 		implicit none
-		PetscInt, INTENT(in) :: comm
+		PetscInt, intent(in) :: comm
 		call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
-		&                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE, &
+		&                 DMDA_STENCIL_BOX, in, jn, kn, 1, PETSC_DECIDE, PETSC_DECIDE, &
 		&                 1, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, DA, ierr)
 		call DMSetFromOptions(DA,ierr)
 		call DMSetUp(DA, ierr)
 		call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
-		&                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
+		&                 DMDA_STENCIL_BOX, in, jn, kn, 1, PETSC_DECIDE, PETSC_DECIDE,&
 		&                 3, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, coordDA, ierr)
 		call DMSetFromOptions(coordDA,ierr)
 		call DMSetUp(coordDA, ierr)
 		call DMGetGlobalVector(coordDA, Coord, ierr)
 		call DMGetLocalVector(coordDA, Coord_local, ierr)
-		call PetscViewerBinaryOpen(comm, trim(FileLocation)//"in//"//"grid.petsc",FILE_MODE_READ, Viewer, ierr)
+		call PetscViewerBinaryOpen(comm, "in/grid.petsc",FILE_MODE_READ, Viewer, ierr)
 		call VecLoad(Coord, Viewer, ierr)
 		call DMGlobalToLocalBegin(coordDA, Coord, INSERT_VALUES, Coord_local, ierr)
 		call DMGlobalToLocalEnd(coordDA, Coord, INSERT_VALUES, Coord_local, ierr)
 		call PetscViewerDestroy(Viewer, ierr)
 		call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_PERIODIC,& !DM_BOUNDARY_PERIODIC
-		&                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
+		&                 DMDA_STENCIL_BOX, in, jn, kn, 1, PETSC_DECIDE, PETSC_DECIDE,&
 		&                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, meshDA, ierr)
 		call DMSetFromOptions(meshDA,ierr)
 		call DMSetUp(meshDA, ierr)
 		call DMGetGlobalVector(meshDA, Flowfield, ierr)
 		call DMGetLocalVector(meshDA, Flowfield_local, ierr)
-		call PetscViewerBinaryOpen(comm, trim(FileLocation)//"in//"//"flow.petsc",FILE_MODE_READ, Viewer, ierr)
+		call PetscViewerBinaryOpen(comm, "in//flow.petsc",FILE_MODE_READ, Viewer, ierr)
 		call VecLoad(Flowfield, Viewer, ierr)
 		call DMGlobalToLocalBegin(meshDA, Flowfield, INSERT_VALUES, Flowfield_local, ierr)
 		call DMGlobalToLocalEnd(meshDA, Flowfield, INSERT_VALUES, Flowfield_local, ierr)
@@ -181,6 +205,20 @@ module mod_petsc_loader ! 读入并分发数据
 		call DMDAGetCorners(DA,is,js,ks,il,jl,kl,ierr)
 		ie=is+il-1; je=js+jl-1; ke=ks+kl-1
 	end subroutine get_layout
+
+	subroutine disturbance(comm)
+		implicit none 
+		PetscInt,intent(in) :: comm 
+		call DMDACreate2d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
+		&                 DMDA_STENCIL_BOX, jn, kn, PETSC_DECIDE, PETSC_DECIDE, &
+		&                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, disturbDA, ierr)
+		call DMSetFromOptions(disturbDA,ierr)
+		call DMSetUp(disturbDA, ierr)
+		call DMGetGlobalVector(disturbDA, disturb, ierr)
+        call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "in//disturbance.petsc", FILE_MODE_READ, Viewer, ierr)
+        call VecLoad(disturb, Viewer, ierr)
+        call PetscViewerDestroy(Viewer, ierr)
+	end subroutine disturbance
 
 	subroutine load_mesh_info()
 		implicit none
@@ -202,20 +240,20 @@ module mod_petsc_loader ! 读入并分发数据
 	end subroutine load_mesh_info
 
 	subroutine load_flow_info()
-			implicit none
-			integer :: i, j, k, l
-			allocate(qq(5, igs:ige, jgs:jge, kgs:kge))
-			call DMDAVecGetArrayReadF90(meshDA, Flowfield_local, flow, ierr)
-			do k=kgs, kge
-				do j=jgs, jge
-					do i=igs, ige
-						do l=0,4
-							qq(l+1, i, j, k)=real(flow(l, i, j, k))
-				  		enddo
-					enddo
-			  	enddo
+		implicit none
+		integer :: i, j, k, l
+		allocate(qq(5, igs:ige, jgs:jge, kgs:kge))
+		call DMDAVecGetArrayReadF90(meshDA, Flowfield_local, flow, ierr)
+		do k=kgs, kge
+			do j=jgs, jge
+				do i=igs, ige
+					do l=0,4
+						qq(l+1, i, j, k)=real(flow(l, i, j, k))
+			  		enddo
+				enddo
 		  	enddo
-		  	call DMDAVecRestoreArrayReadF90(meshDA, Flowfield_local, flow, ierr)
+	  	enddo
+	  	call DMDAVecRestoreArrayReadF90(meshDA, Flowfield_local, flow, ierr)
 	end subroutine load_flow_info
 
 	subroutine print_info(comm)

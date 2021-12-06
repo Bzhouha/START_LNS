@@ -79,18 +79,6 @@ contains
       deallocate(qq_0)
       write(*,*) '  流场信息读取结束。'
       write(*,*) ""
-      ! 读取来流扰动
-      if(lns_mode==0)then
-         write(*,*) "开始读取来流扰动..."
-         open(13, file="..//files//in//Disturbance.dat",action='read')
-         read(13,*)
-         allocate(inflow(ln,0:jn-1,0:kn-1))
-         do j=0,jn-1 
-               read(13,*) inflow(:,j,0)
-         enddo
-         close(13)
-         write(*,*) "  来流扰动读取结束。"
-      endif
    end subroutine load
 
    subroutine print_info()
@@ -104,7 +92,7 @@ contains
          write(*,*) "  Re =",Re 
          write(*,*) "  Te =",Te
          write(*,"(3X,A,2(F20.15))") "Alpha =",Alpha  
-         write(*,"(3X,A,2(F20.15))") "Beta =",Beta
+         write(*,"(3X,A,2(F20.15))") "Beta  =",Beta
          write(*,"(3X,A,2(F20.15))") "Omega =",Omega
       case(1)
          write(*,*) "  Ma =",Ma 

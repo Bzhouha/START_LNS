@@ -105,9 +105,8 @@ module mod_cfgio_adapter
         endif
         call cfg%get("filenames", "grid", grid)
         call cfg%get("filenames", "flow", flow)
-        gridfile=trim(dir)//'in/'//trim(grid)
-        flowfile=trim(dir)//'in/'//trim(flow)
-        FileLocation=trim(dir)
+        gridfile=trim(dir)//trim(grid)
+        flowfile=trim(dir)//trim(flow)
     end subroutine cfg_filename
 
     subroutine cfg_turbulent(cfg)

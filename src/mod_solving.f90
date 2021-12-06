@@ -35,7 +35,7 @@ module mod_solving
 		integer,intent(in) :: comm
 		logical :: Matrix_Free
 		Matrix_Free=.False.
-		!call set_right_hand_side(comm)
+		call set_right_hand_side(comm)
 		select case (Matrix_Free)
 			case (.True.)
 				call dolphin_coming(comm)
@@ -69,7 +69,7 @@ module mod_solving
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
 			call PetscPrintf(comm, "               计算中...             \n", ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
-			call KSPSolve(ksp,u,turtle,ierr)
+			call KSPSolve(ksp,RHS,turtle,ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
 			call PetscPrintf(comm, "              计算完毕。              \n", ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
@@ -100,18 +100,20 @@ module mod_solving
 
 	subroutine set_right_hand_side(comm)
 		implicit none 
-		PetscScalar,pointer :: tmp(:,:,:,:)
+		PetscScalar,pointer :: disturb_array(:,:,:)
+		PetscScalar,pointer :: RHS_array(:,:,:,:)
 		PetscInt,intent(in) :: comm
 		integer :: j,k 
-		call DMDAVecGetArrayF90(meshDA,RHS,tmp,ierr)
+		call DMDAVecGetArrayF90(meshDA,RHS,RHS_array,ierr)
+		call DMDAVecGetArrayReadF90(disturbDA,disturb,disturb_array,ierr)
 		do k=ks,ke 
 			do j=js,je 
-				tmp(:,0,j,k)=inflow(:,j,k)
+				RHS_array(:,0,j,k)=disturb_array(:,j,k)
 			enddo
 		enddo
-		call DMDAVecRestoreArrayF90(meshDA,RHS,tmp,ierr)
+		call DMDAVecRestoreArrayF90(meshDA,RHS,RHS_array,ierr)
+		call DMDAVecRestoreArrayReadF90(disturbDA,disturb,disturb_array,ierr)
 		call MPI_Barrier(comm,ierr)
-		deallocate(inflow)
 	end subroutine set_right_hand_side
 
 	subroutine deallocate_memory()

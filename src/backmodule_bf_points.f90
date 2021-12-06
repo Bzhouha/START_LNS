@@ -102,7 +102,7 @@ module bf_points
 		use mod_difference
 		implicit none
 		PetscScalar, pointer :: tmp(:, :, :, :)
-		select case (mode)
+		select case (lns_mode)
 		case(0)
 			call fd1(qqi,is,ie,js,je,ks,ke,qq,igs,ige,jgs,jge,kgs,kge,1,5)
 			call fd1(qqj,is,ie,js,je,ks,ke,qq,igs,ige,jgs,jge,kgs,kge,2,5)
@@ -141,7 +141,7 @@ module bf_points
 		call DMDAVecGetArrayReadF90(meshDA, QQ_K_local, tmp, ierr)
 		qq_k_local_array(:,igs:ige,jgs:jge,kgs:kge)=tmp(:,igs:ige,jgs:jge,kgs:kge)
 		call DMDAVecRestoreArrayReadF90(meshDA, QQ_K_local, tmp, ierr)
-		select case (mode)
+		select case (lns_mode)
 		case(0)
 			call fd1(qqij,is,ie,js,je,ks,ke,qq_i_local_array,igs,ige,jgs,jge,kgs,kge,2,5)
 			qqik=0.0d0;qqjk=0.0d0
@@ -200,7 +200,7 @@ module bf_points
 			qqij(l,:,:,:),qqik(l,:,:,:),qqjk(l,:,:,:),&
 			xi_yz,eta_yz,phi_yz,xi_y,xi_z,eta_y,eta_z,phi_y,phi_z)
 		enddo
-		select case (mode)
+		select case (lns_mode)
 		case(0)
 			qqz=0.0d0;qqzz=0.0d0;qqxz=0.0d0;qqyz=0.0d0
 		end select

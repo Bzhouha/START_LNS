@@ -12,14 +12,14 @@ module global_parameters
     real(R_P), dimension(:, :, :), allocatable :: xx, yy, zz 
     type(bf_point_type),dimension(:,:,:),allocatable :: bf 
     real(R_P), dimension(:, :, :, :), allocatable :: qq
-    complex(R_P),dimension(:,:,:),allocatable :: inflow
+    !complex(R_P),dimension(:,:,:),allocatable :: inflow
     real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge
     integer :: is,js,ks,il,jl,kl,ie,je,ke
-    character(len=256) :: FileLocation     
+    DM :: meshDA,coordDA,disturbDA,DA 
     character(len=256) :: gridfile 
-    character(len=256) :: flowfile     
-    DM :: meshDA, coordDA, DA
+    character(len=256) :: flowfile  
+    character(len=256) :: dir      
     PetscInt :: in,jn,kn,ln
     complex(R_P) :: Alpha
     complex(R_P) :: Omega
@@ -28,6 +28,7 @@ module global_parameters
     integer :: BC_type 
     integer :: rank   
     integer :: size 
+    Vec :: disturb
     Vec :: turtle
     Mat :: Dolphin
     Mat :: Whale      
