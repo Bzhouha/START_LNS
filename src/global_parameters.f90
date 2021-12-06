@@ -12,7 +12,6 @@ module global_parameters
     real(R_P), dimension(:, :, :), allocatable :: xx, yy, zz 
     type(bf_point_type),dimension(:,:,:),allocatable :: bf 
     real(R_P), dimension(:, :, :, :), allocatable :: qq
-    !complex(R_P),dimension(:,:,:),allocatable :: inflow
     real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge
     integer :: is,js,ks,il,jl,kl,ie,je,ke

@@ -138,6 +138,19 @@ install:
 	mkdir -p ~/bin
 	cp bin/START_LNS ~/bin/
 
+name:
+	@echo 
+	@echo "   o            o       o       ooooooo"
+	@echo "  o            oo      o      o"
+	@echo "  o            o o     o      o"
+	@echo "  o            o  o    o      o"
+	@echo "  o            o   o   o       ooooooo"
+	@echo "  o            o    o  o              o"
+	@echo "  o            o     o o              o"
+	@echo "  o            o      oo              o"
+	@echo " oooooooo     o       o       ooooooo "
+	@echo
+
 befor64_pack_data_m.o: \
 	befor64_pack_data_m.F90 \
 	penf.o
@@ -211,7 +224,8 @@ cfgio_adapter.o: \
 	global_parameters.o
 petsc_output.o: \
 	petsc_output.f90 \
-	global_parameters.o
+	global_parameters.o \
+	penf.o
 compute_metrics.o: \
 	compute_metrics.f90 \
 	global_parameters.o \
