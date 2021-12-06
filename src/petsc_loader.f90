@@ -184,14 +184,14 @@ module mod_petsc_loader ! 读入并分发数据
 		call DMGlobalToLocalBegin(coordDA, Coord, INSERT_VALUES, Coord_local, ierr)
 		call DMGlobalToLocalEnd(coordDA, Coord, INSERT_VALUES, Coord_local, ierr)
 		call PetscViewerDestroy(Viewer, ierr)
-		call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_PERIODIC,& !DM_BOUNDARY_PERIODIC
+		call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_PERIODIC,&
 		&                 DMDA_STENCIL_BOX, in, jn, kn, 1, PETSC_DECIDE, PETSC_DECIDE,&
 		&                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, meshDA, ierr)
 		call DMSetFromOptions(meshDA,ierr)
 		call DMSetUp(meshDA, ierr)
 		call DMGetGlobalVector(meshDA, Flowfield, ierr)
 		call DMGetLocalVector(meshDA, Flowfield_local, ierr)
-		call PetscViewerBinaryOpen(comm, "in//flow.petsc",FILE_MODE_READ, Viewer, ierr)
+		call PetscViewerBinaryOpen(comm, "in/flow.petsc",FILE_MODE_READ, Viewer, ierr)
 		call VecLoad(Flowfield, Viewer, ierr)
 		call DMGlobalToLocalBegin(meshDA, Flowfield, INSERT_VALUES, Flowfield_local, ierr)
 		call DMGlobalToLocalEnd(meshDA, Flowfield, INSERT_VALUES, Flowfield_local, ierr)

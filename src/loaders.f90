@@ -13,6 +13,7 @@ module mod_loaders
 contains
    subroutine plot3d_load()
       call load()
+      call format_basic_file()
       call print_info()
    end subroutine plot3d_load
 
@@ -113,4 +114,39 @@ contains
       write(*,104) "  第三个坐标是：",xx(3,1,1),yy(3,1,1),zz(3,1,1)
       write(*,*)
    end subroutine print_info
+
+   subroutine format_basic_file()
+      implicit none
+      integer :: i,j,k
+      open(30,file='out/hlns_info.txt',action='write',status='replace')
+      write(30,*) "In,Jn,Kn,Alpha,Beta,Omega"
+      write(30,*) in
+      write(30,*) jn
+      write(30,*) kn
+      write(30,*) real(Alpha),aimag(Alpha)
+      write(30,*) real(Beta),aimag(Beta)
+      write(30,*) real(Omega),aimag(Omega) 
+      close(30)
+      open(31, file='out/grid.csv',action='write',status='replace')
+      write(31,*) "xx,yy,zz"
+      do i=1,in 
+         do j=1,jn 
+            do k=1,kn
+               write(31,*) xx(i,j,k),',',yy(i,j,k),',',zz(i,j,k)
+            enddo
+         enddo
+      enddo
+      close(31)
+      open(32,file='out/flow.csv',action='write',status='replace')
+      write(32,*) 'rho,u,v,w,T'
+      do i=1,in 
+         do j=1,jn 
+            do k=1,kn
+               write(32,*) qq(1,i,j,k),',',qq(2,i,j,k),',',qq(3,i,j,k),&
+               &',',qq(4,i,j,k),',',qq(5,i,j,k)
+            enddo
+         enddo
+      enddo
+      close(32)
+   end subroutine format_basic_file
 end module mod_loaders

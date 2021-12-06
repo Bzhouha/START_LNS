@@ -15,7 +15,7 @@ module mod_petsc_output
         PetscErrorCode  :: ierr
         call signal_ending(comm)
         call PetscViewerBinaryOpen(comm, "out//Turtle.petsc", FILE_MODE_WRITE, Viewer, ierr)
-        call VecView(turtle, Viewer, ierr)
+        call VecView(Turtle, Viewer, ierr)
         call PetscViewerDestroy(Viewer, ierr)
         call print_info(comm)
     end subroutine result_to_file
