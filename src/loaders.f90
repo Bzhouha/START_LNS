@@ -118,14 +118,10 @@ contains
    subroutine format_basic_file()
       implicit none
       integer :: i,j,k
-      open(30,file='out/hlns_info.txt',action='write',status='replace')
-      write(30,*) "In,Jn,Kn,Alpha,Beta,Omega"
-      write(30,*) in
-      write(30,*) jn
-      write(30,*) kn
-      write(30,*) real(Alpha),aimag(Alpha)
-      write(30,*) real(Beta),aimag(Beta)
-      write(30,*) real(Omega),aimag(Omega) 
+      open(30,file='out/hlns_info.csv',action='write',status='replace')
+      write(30,*) "In,Jn,Kn,Alpha_r,Alpha_i,Beta_r,Beta_i,Omega_r,Omega_i"
+      write(30,*) in,',',jn,',',kn,',',real(Alpha),',',aimag(Alpha),',',&
+                  & real(Beta),',',aimag(Beta),',',real(Omega),',',aimag(Omega) 
       close(30)
       open(31, file='out/grid.csv',action='write',status='replace')
       write(31,*) "xx,yy,zz"
