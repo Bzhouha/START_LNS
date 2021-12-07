@@ -15,11 +15,13 @@ module matrix_used_as_cofficient
 !
 ! 			3.call colored_cubes(i,j,k) 获得对应方程的系数小矩阵
 !
-! 				1).call skyblue_cubes(i,j,k) 天空蓝色的小块儿，3D-HLNS对应的系数小矩阵
+! 				1).call teal_cubes(i,j,k) 水鸭色的小块儿，2D-HLNS对应的系数小矩阵disturbance=f(x,y)*e^i(bz-wt)
 !
-! 				2).call teal_cubes(i,j,k) 水鸭色的小块儿，2D-HLNS对应的系数小矩阵
+! 				2).call mint_cubes(i,j,k) 薄荷色的小块儿，2D-HLNS对应的系数小矩阵,disturbance=f(x,y)*e^i(ax+bz-wt)
 !
-! 				3).call mint_cubes(i,j,k) 薄荷色的小块儿，2D-HLNS对应的系数小矩阵
+! 				3).call skyblue_cubes(i,j,k) 天空蓝色的小块儿，3D-HLNS对应的系数小矩阵,disturbance=f(x,y,z)*e^i(-wt)
+!
+! 				4).call lilac_cubes(i,j,k) 浅紫色的小块儿，3D-HLNS对应的系数小矩阵,disturbance=f(x,y,z)*e^i(ax-wt)
 !
 ! -----------------------------------------------------------
 	use penf, only: R_P
@@ -48,7 +50,7 @@ module matrix_used_as_cofficient
 		complex(R_P), dimension(5, 5) :: Vyz=0.0d0 
 		Contains
 		  procedure::get_unadorned_cubes,get_adorned_cubes
-		  procedure::colored_cubes,skyblue_cubes,mint_cubes,teal_cubes
+		  procedure::colored_cubes,teal_cubes,mint_cubes,skyblue_cubes,lilac_cubes
 	end type lns_OP_point_type
 	contains
 	subroutine get_unadorned_cubes(this,i,j,k)
@@ -477,11 +479,29 @@ module matrix_used_as_cofficient
 			case(0)
 				call this%mint_cubes(i,j,k)
 			case(1)
-				call this%skyblue_cubes(i,j,k)
-			case(2)
-				call this%teal_cubes(i,j,k)
+				call this%lilac_cubes(i,j,k)
 		end select
 	end subroutine colored_cubes
+
+	subroutine teal_cubes(this,i,j,k)
+		use global_parameters,only:Beta,Omega 
+		implicit none
+		class(lns_OP_point_type),intent(inout) :: this
+		type(lns_OP_point_type) :: Jor
+		integer,intent(in) :: i,j,k
+		call Jor%get_adorned_cubes(i,j,k)
+		this%G=Jor%G
+		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
+		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
+		this%A_p=Jor%A_p; this%A_m=Jor%A_m
+		this%A_v=Jor%A_v-cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vxz
+		this%B_p=Jor%B_p; this%B_m=Jor%B_m
+		this%B_v=Jor%B_v-cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vyz 
+		this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
+		this%D=Jor%D-cmplx(0.0d0,1.0d0,R_P)*Omega*Jor%G+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%C+Beta*Beta*Jor%Vzz
+		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
+		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
+	end subroutine teal_cubes
 
 	subroutine mint_cubes(this,i,j,k)
 		use global_parameters,only:Alpha,Beta,Omega 
@@ -494,12 +514,12 @@ module matrix_used_as_cofficient
 		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
 		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
 		this%A_p=Jor%A_p; this%A_m=Jor%A_m
-		this%A_v=Jor%A_v+2.0d0*cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%Vxx+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vxz
+		this%A_v=Jor%A_v-2.0d0*cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%Vxx-cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vxz
 		this%B_p=Jor%B_p; this%B_m=Jor%B_m
-		this%B_v=Jor%B_v+cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%Vxy+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vyz 
+		this%B_v=Jor%B_v-cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%Vxy-cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vyz 
 		this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
-		this%D=Jor%D-cmplx(0.0d0,1.0d0,R_P)*Omega*Jor%G+cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%A+&
-		cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%C-Alpha*Alpha*Jor%Vxx-Beta*Beta*Jor%Vzz-Alpha*Beta*Jor%Vxz
+		this%D=Jor%D-cmplx(0.0d0,1.0d0,R_P)*Omega*Jor%G+cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%A &
+		+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%C+Alpha*Alpha*Jor%Vxx+Beta*Beta*Jor%Vzz+Alpha*Beta*Jor%Vxz
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
 		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
 	end subroutine mint_cubes
@@ -522,25 +542,23 @@ module matrix_used_as_cofficient
 		this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
 	end subroutine skyblue_cubes
 
-	subroutine teal_cubes(this,i,j,k)
-		use global_parameters,only:Beta,Omega 
-		implicit none
+	subroutine lilac_cubes(this,i,j,k)
+		use global_parameters,only:Alpha,Omega
+		implicit none 
 		class(lns_OP_point_type),intent(inout) :: this
 		type(lns_OP_point_type) :: Jor
 		integer,intent(in) :: i,j,k
 		call Jor%get_adorned_cubes(i,j,k)
-		this%G=Jor%G
+		this%G=Jor%G 
 		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
 		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
-		this%A_p=Jor%A_p; this%A_m=Jor%A_m
-		this%A_v=Jor%A_v+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vxz
-		this%B_p=Jor%B_p; this%B_m=Jor%B_m
-		this%B_v=Jor%B_v+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vyz 
-		this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
-		this%D=Jor%D-cmplx(0.0d0,1.0d0,R_P)*Omega*Jor%G+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%C-Beta*Beta*Jor%Vzz
-		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
-		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
-	end subroutine teal_cubes
+		this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v-2*cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%Vxx
+		this%B_p=Jor%B_p; this%B_m=Jor%B_m; this%B_v=Jor%B_v-cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%Vxy
+		this%C_p=Jor%C_p; this%C_m=Jor%C_m; this%C_v=Jor%C_v-cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%Vxz
+		this%D=Jor%D-cmplx(0.0d0,1.0d0,R_P)*Omega*Jor%G+cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%A+Alpha*Alpha*Jor%Vxx
+		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
+		this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
+	end subroutine lilac_cubes
 
 	subroutine split(A,G,Aplus,Aminus)
 		implicit none
