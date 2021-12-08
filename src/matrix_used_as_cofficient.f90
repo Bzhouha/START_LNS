@@ -52,6 +52,7 @@ module matrix_used_as_cofficient
 		  procedure::get_unadorned_cubes,get_adorned_cubes
 		  procedure::colored_cubes,teal_cubes,mint_cubes,skyblue_cubes,lilac_cubes
 	end type lns_OP_point_type
+	complex(R_P),parameter :: Li = cmplx(0.0d0,1.0d0,R_P)
 	contains
 	subroutine get_unadorned_cubes(this,i,j,k)
 		use bf_point_org
@@ -494,11 +495,11 @@ module matrix_used_as_cofficient
 		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
 		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
 		this%A_p=Jor%A_p; this%A_m=Jor%A_m
-		this%A_v=Jor%A_v-cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vxz
+		this%A_v=Jor%A_v-Li*Beta*Jor%Vxz
 		this%B_p=Jor%B_p; this%B_m=Jor%B_m
-		this%B_v=Jor%B_v-cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vyz 
+		this%B_v=Jor%B_v-Li*Beta*Jor%Vyz 
 		this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
-		this%D=Jor%D-cmplx(0.0d0,1.0d0,R_P)*Omega*Jor%G+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%C+Beta*Beta*Jor%Vzz
+		this%D=Jor%D-Li*Omega*Jor%G+Li*Beta*Jor%C+Beta*Beta*Jor%Vzz
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
 		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
 	end subroutine teal_cubes
@@ -514,12 +515,12 @@ module matrix_used_as_cofficient
 		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
 		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
 		this%A_p=Jor%A_p; this%A_m=Jor%A_m
-		this%A_v=Jor%A_v-2.0d0*cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%Vxx-cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vxz
+		this%A_v=Jor%A_v-2.0d0*Li*Alpha*Jor%Vxx-Li*Beta*Jor%Vxz
 		this%B_p=Jor%B_p; this%B_m=Jor%B_m
-		this%B_v=Jor%B_v-cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%Vxy-cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%Vyz 
+		this%B_v=Jor%B_v-Li*Alpha*Jor%Vxy-Li*Beta*Jor%Vyz 
 		this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
-		this%D=Jor%D-cmplx(0.0d0,1.0d0,R_P)*Omega*Jor%G+cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%A &
-		+cmplx(0.0d0,1.0d0,R_P)*Beta*Jor%C+Alpha*Alpha*Jor%Vxx+Beta*Beta*Jor%Vzz+Alpha*Beta*Jor%Vxz
+		this%D=Jor%D-Li*Omega*Jor%G+Li*Alpha*Jor%A &
+		+Li*Beta*Jor%C+Alpha*Alpha*Jor%Vxx+Beta*Beta*Jor%Vzz+Alpha*Beta*Jor%Vxz
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
 		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
 	end subroutine mint_cubes
@@ -537,7 +538,7 @@ module matrix_used_as_cofficient
 		this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v
 		this%B_p=Jor%B_p; this%B_m=Jor%B_m; this%B_v=Jor%B_v
 		this%C_p=Jor%C_p; this%C_m=Jor%C_m; this%C_v=Jor%C_v
-		this%D=Jor%D-cmplx(0.0d0,1.0d0,R_P)*Omega*Jor%G
+		this%D=Jor%D-Li*Omega*Jor%G
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
 		this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
 	end subroutine skyblue_cubes
@@ -552,10 +553,10 @@ module matrix_used_as_cofficient
 		this%G=Jor%G 
 		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
 		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
-		this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v-2*cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%Vxx
-		this%B_p=Jor%B_p; this%B_m=Jor%B_m; this%B_v=Jor%B_v-cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%Vxy
-		this%C_p=Jor%C_p; this%C_m=Jor%C_m; this%C_v=Jor%C_v-cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%Vxz
-		this%D=Jor%D-cmplx(0.0d0,1.0d0,R_P)*Omega*Jor%G+cmplx(0.0d0,1.0d0,R_P)*Alpha*Jor%A+Alpha*Alpha*Jor%Vxx
+		this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v-2*Li*Alpha*Jor%Vxx
+		this%B_p=Jor%B_p; this%B_m=Jor%B_m; this%B_v=Jor%B_v-Li*Alpha*Jor%Vxy
+		this%C_p=Jor%C_p; this%C_m=Jor%C_m; this%C_v=Jor%C_v-Li*Alpha*Jor%Vxz
+		this%D=Jor%D-Li*Omega*Jor%G+Li*Alpha*Jor%A+Alpha*Alpha*Jor%Vxx
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
 		this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
 	end subroutine lilac_cubes

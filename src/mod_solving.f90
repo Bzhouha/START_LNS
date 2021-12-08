@@ -43,7 +43,7 @@ module mod_solving
 			case (.False.)
 				call whale_coming(comm)
 				call whale_ready(comm,0)
-				!call print_result()
+				! call print_result()
 		end select
 	end subroutine linear_equations
 

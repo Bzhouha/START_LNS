@@ -38,7 +38,7 @@ module mod_petsc_output
         complex(R_P),dimension(:,:,:,:),allocatable :: resrray
         real(R_P),dimension(:,:,:,:),allocatable :: modrray
         PetscScalar,dimension(:,:,:,:),pointer :: tmp 
-        integer :: xs, ys, zs, xl, yl, zl
+        integer :: xs,ys,zs,xl,yl,zl,xe,ye,ze
         PetscInt,intent(in) :: comm
         integer :: i,j,k,l
         DM :: ResDA
@@ -49,29 +49,32 @@ module mod_petsc_output
         call DMSetUp(ResDA, ierr)
         call DMGetGlobalVector(ResDA, Res, ierr)
         call DMDAGetCorners(ResDA,xs,ys,zs,xl,yl,zl,ierr)
+        xe=xs+xl-1;ye=ys+yl-1;ze=zs+zl-1
         call PetscViewerBinaryOpen(comm, "out/Turtle.petsc",FILE_MODE_READ, Viewer, ierr)
         call VecLoad(Res, Viewer, ierr)
         call PetscViewerDestroy(Viewer, ierr)
-        allocate(resrray(5,in,jn,kn))
-        allocate(modrray(5,in,jn,kn))
+        allocate(resrray(0:4,xs:xe,ys:ye,zs:ze))
+        allocate(modrray(0:4,xs:xe,ys:ye,zs:ze))
         call DMDAVecGetArrayReadF90(ResDA, Res, tmp, ierr)
         resrray=tmp
         call DMDAVecRestoreArrayReadF90(ResDA, Res, tmp, ierr)
         modrray=abs(resrray)
         open(37, file='out/turtle.csv',action='write',status='replace')
         write(37,*) "rho_r,rho_i,rho_m,u_r,u_i,u_m,v_r,v_i,v_m,w_r,w_i,w_m,T_r,T_i,T_m"
-        do i=1,in 
-            do j=1,jn 
-                do k=1,kn
-                    write(37,*)  real(resrray(1,i,j,k)),',',aimag(resrray(1,i,j,k)),',',modrray(1,i,j,k),',',&
+        do i=xs,xe 
+            do j=ys,ye 
+                do k=zs,ze
+                    write(37,*)  real(resrray(0,i,j,k)),',',aimag(resrray(0,i,j,k)),',',modrray(0,i,j,k),',',&
+                                &real(resrray(1,i,j,k)),',',aimag(resrray(1,i,j,k)),',',modrray(1,i,j,k),',',&
                                 &real(resrray(2,i,j,k)),',',aimag(resrray(2,i,j,k)),',',modrray(2,i,j,k),',',&
                                 &real(resrray(3,i,j,k)),',',aimag(resrray(3,i,j,k)),',',modrray(3,i,j,k),',',&
-                                &real(resrray(4,i,j,k)),',',aimag(resrray(4,i,j,k)),',',modrray(4,i,j,k),',',&
-                                &real(resrray(5,i,j,k)),',',aimag(resrray(5,i,j,k)),',',modrray(5,i,j,k)
+                                &real(resrray(4,i,j,k)),',',aimag(resrray(4,i,j,k)),',',modrray(4,i,j,k)
                 enddo
             enddo
         enddo
         close(37)
+        deallocate(resrray)
+        deallocate(modrray)
     end subroutine format_file
 
     subroutine test_format_file(comm)
@@ -80,7 +83,7 @@ module mod_petsc_output
         complex(R_P),dimension(:,:,:),allocatable :: resrray
         real(R_P),dimension(:,:,:),allocatable :: modrray
         PetscScalar,dimension(:,:,:),pointer :: tmp 
-        integer :: xs, ys, zs, xl, yl, zl
+        integer :: xs,ys,zs,xl,yl,zl,xe,ye,ze
         PetscInt,intent(in) :: comm
         integer :: i,j,k,l
         DM :: ResDA
@@ -91,27 +94,30 @@ module mod_petsc_output
         call DMSetUp(ResDA, ierr)
         call DMGetGlobalVector(ResDA, Res, ierr)
         call DMDAGetCorners(ResDA,xs,ys,zs,xl,yl,zl,ierr)
+        xe=xs+xl-1;ye=ys+yl-1;ze=zs+zl-1
         call PetscViewerBinaryOpen(comm, "lpse/lpse.petsc",FILE_MODE_READ, Viewer, ierr)
         call VecLoad(Res, Viewer, ierr)
         call PetscViewerDestroy(Viewer, ierr)
-        allocate(resrray(5,in,jn))
-        allocate(modrray(5,in,jn))
+        allocate(resrray(0:4,xs:xe,ys:ye))
+        allocate(modrray(0:4,xs:xe,ys:ye))
         call DMDAVecGetArrayReadF90(ResDA, Res, tmp, ierr)
         resrray=tmp
         call DMDAVecRestoreArrayReadF90(ResDA, Res, tmp, ierr)
         modrray=abs(resrray)
         open(38, file='out/lpse.csv',action='write',status='replace')
         write(38,*) "rho_r,rho_i,rho_m,u_r,u_i,u_m,v_r,v_i,v_m,w_r,w_i,w_m,T_r,T_i,T_m"
-        do i=1,in 
-            do j=1,jn 
-                write(38,*)  real(resrray(1,i,j)),',',aimag(resrray(1,i,j)),',',modrray(1,i,j),',',&
+        do i=xs,xe 
+            do j=ys,ye 
+                write(38,*)  real(resrray(0,i,j)),',',aimag(resrray(0,i,j)),',',modrray(0,i,j),',',&
+                            &real(resrray(1,i,j)),',',aimag(resrray(1,i,j)),',',modrray(1,i,j),',',&
                             &real(resrray(2,i,j)),',',aimag(resrray(2,i,j)),',',modrray(2,i,j),',',&
                             &real(resrray(3,i,j)),',',aimag(resrray(3,i,j)),',',modrray(3,i,j),',',&
-                            &real(resrray(4,i,j)),',',aimag(resrray(4,i,j)),',',modrray(4,i,j),',',&
-                            &real(resrray(5,i,j)),',',aimag(resrray(5,i,j)),',',modrray(5,i,j)
+                            &real(resrray(4,i,j)),',',aimag(resrray(4,i,j)),',',modrray(4,i,j)
             enddo
         enddo
         close(38)
+        deallocate(resrray)
+        deallocate(modrray)
     end subroutine test_format_file
     
     subroutine signal_ending(comm)
