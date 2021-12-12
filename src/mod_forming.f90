@@ -194,39 +194,6 @@ module mod_forming
 		implicit none
 		PetscErrorCode :: ierr
 		integer :: i,j,k
-		! integer :: l_i(3),l_j(4)
-		! l_i=(/74,149,252/)
-		! l_j=(/19,210,299,476/)
-		! k=0
-		! do i=1,3 
-		! 	do j=1,4 
-		! 		call Jor%get_unadorned_cubes(l_i(i),l_j(j),k)
-		! 		write(*,*) l_i(i),l_j(j),k
-		! 		write(*,*) "G"
-		! 		call test(Jor%G)
-		! 		write(*,*) "A"
-		! 		call test(Jor%A)
-		! 		write(*,*) "B"
-		! 		call test(Jor%B)
-		! 		write(*,*) "C"
-		! 		call test(Jor%C)
-		! 		write(*,*) "D"
-		! 		call test(Jor%D)
-		! 		write(*,*) "Vxx"
-		! 		call test(Jor%Vxx)
-		! 		write(*,*) "Vyy"
-		! 		call test(Jor%Vyy)
-		! 		write(*,*) "Vzz"
-		! 		call test(Jor%Vzz)
-		! 		write(*,*) "Vxy"
-		! 		call test(Jor%Vxy)
-		! 		write(*,*) "Vxz"
-		! 		call test(Jor%Vxz)
-		! 		write(*,*) "Vyz"
-		! 		call test(Jor%Vyz)
-		! 		read(*,*)
-		! 	enddo
-		! enddo 
 		do k=ks,ke
 			do j=js,je
 				do i=is,ie
@@ -241,15 +208,6 @@ module mod_forming
 		call MatAssemblyBegin(Whale,MAT_FINAL_ASSEMBLY,ierr)
 		call MatAssemblyEnd(Whale,MAT_FINAL_ASSEMBLY,ierr)
 	end subroutine whale_growing_up
-
-	! subroutine test(mat)
-	! 	implicit none 
-	! 	complex(8),intent(in) :: mat(5,5)
-	! 	integer :: mm,nn 
-	! 	do mm=1,5 
-	! 		write(*,*) (real(mat(mm,nn)),nn=1,5)
-	! 	enddo
-	! end subroutine test
 
 	subroutine whale_catch_shrimps(i,j,k)
 		implicit none
