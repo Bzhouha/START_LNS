@@ -51,15 +51,8 @@ module mod_solving
 		implicit none
 		integer,intent(in) :: level
 		PetscInt,intent(in) :: comm
-		PetscScalar :: one
-		Vec :: b,u
 		KSP :: ksp 
 		PC :: pc
-		one=1.0
-		call VecDuplicate(turtle,b,ierr)
-		call VecDuplicate(turtle,u,ierr)
-		call VecSet(b,one,ierr)
-		call MatMult(Whale,b,u,ierr)
 		if(level==0)then ! 如果level是0，那么不使用多重网格
 			call KSPCreate(comm,ksp,ierr)
 			call KSPSetOperators(ksp,Whale,Whale,ierr)
@@ -94,25 +87,35 @@ module mod_solving
 			! #####设置每层迭代矩阵
 		endif
 		call KSPDestroy(ksp,ierr)
-		call VecDestroy(b,ierr)
-		call VecDestroy(u,ierr)
 	end subroutine whale_ready
 
 	subroutine set_right_hand_side(comm)
 		implicit none 
-		PetscScalar,pointer :: disturb_array(:,:,:)
+		PetscScalar,pointer :: disturb_array_3d(:,:,:)
+		PetscScalar,pointer :: disturb_array_2d(:,:)
 		PetscScalar,pointer :: RHS_array(:,:,:,:)
 		PetscInt,intent(in) :: comm
 		integer :: j,k 
-		call DMDAVecGetArrayF90(meshDA,RHS,RHS_array,ierr)
-		call DMDAVecGetArrayReadF90(disturbDA,disturb,disturb_array,ierr)
-		do k=ks,ke 
-			do j=js,je 
-				RHS_array(:,0,j,k)=disturb_array(:,j,k)
+		select case (lns_mode)
+		case(0)
+			call DMDAVecGetArrayF90(meshDA,RHS,RHS_array,ierr)
+			call DMDAVecGetArrayReadF90(disturbDA,disturb,disturb_array_2d,ierr)
+			do j=js,je  
+				RHS_array(:,0,j,0)=disturb_array_2d(:,j)
 			enddo
-		enddo
-		call DMDAVecRestoreArrayF90(meshDA,RHS,RHS_array,ierr)
-		call DMDAVecRestoreArrayReadF90(disturbDA,disturb,disturb_array,ierr)
+			call DMDAVecRestoreArrayReadF90(disturbDA,disturb,disturb_array_2d,ierr)
+			call DMDAVecRestoreArrayF90(meshDA,RHS,RHS_array,ierr)
+		case(1)
+			call DMDAVecGetArrayF90(meshDA,RHS,RHS_array,ierr)
+			call DMDAVecGetArrayReadF90(disturbDA,disturb,disturb_array_3d,ierr)
+			do k=ks,ke 
+				do j=js,je 
+					RHS_array(:,0,j,k)=disturb_array_3d(:,j,k)
+				enddo
+			enddo
+			call DMDAVecRestoreArrayReadF90(disturbDA,disturb,disturb_array_3d,ierr)
+			call DMDAVecRestoreArrayF90(meshDA,RHS,RHS_array,ierr)
+		end select
 		call MPI_Barrier(comm,ierr)
 	end subroutine set_right_hand_side
 
@@ -125,7 +128,6 @@ module mod_solving
 	subroutine print_result()
 		implicit none
 		PetscScalar,pointer :: tmp(:,:,:,:)
-		PetscErrorCode :: ierr
 		integer :: l,i,j,k
 		call DMDAVecGetArrayReadF90(meshDA,turtle,tmp,ierr)
 		do l=0,4

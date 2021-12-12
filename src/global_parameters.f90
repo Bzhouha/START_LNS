@@ -15,7 +15,7 @@ module global_parameters
     real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge
     integer :: is,js,ks,il,jl,kl,ie,je,ke
-    DM :: meshDA,coordDA,disturbDA,DA 
+    DM :: disturbDA,coordDA,meshDA,DA
     character(len=256) :: gridfile 
     character(len=256) :: flowfile  
     character(len=256) :: dir      
@@ -28,7 +28,7 @@ module global_parameters
     integer :: rank   
     integer :: size 
     Vec :: disturb
-    Vec :: turtle
     Mat :: Dolphin
+    Vec :: Turtle
     Mat :: Whale      
 end module global_parameters

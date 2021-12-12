@@ -89,12 +89,13 @@ module mod_petsc_output
         DM :: ResDA
         Vec :: Res
         call DMDACreate2d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
-        &                 DMDA_STENCIL_BOX, in, jn,  1, PETSC_DECIDE, &
+        &                 DMDA_STENCIL_BOX, in, jn,  PETSC_DECIDE, PETSC_DECIDE, &
         &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, ResDA, ierr)
         call DMSetUp(ResDA, ierr)
         call DMGetGlobalVector(ResDA, Res, ierr)
         call DMDAGetCorners(ResDA,xs,ys,zs,xl,yl,zl,ierr)
         xe=xs+xl-1;ye=ys+yl-1;ze=zs+zl-1
+        zs=0;ze=0
         call PetscViewerBinaryOpen(comm, "lpse/lpse.petsc",FILE_MODE_READ, Viewer, ierr)
         call VecLoad(Res, Viewer, ierr)
         call PetscViewerDestroy(Viewer, ierr)
@@ -108,11 +109,13 @@ module mod_petsc_output
         write(38,*) "rho_r,rho_i,rho_m,u_r,u_i,u_m,v_r,v_i,v_m,w_r,w_i,w_m,T_r,T_i,T_m"
         do i=xs,xe 
             do j=ys,ye 
-                write(38,*)  real(resrray(0,i,j)),',',aimag(resrray(0,i,j)),',',modrray(0,i,j),',',&
-                            &real(resrray(1,i,j)),',',aimag(resrray(1,i,j)),',',modrray(1,i,j),',',&
-                            &real(resrray(2,i,j)),',',aimag(resrray(2,i,j)),',',modrray(2,i,j),',',&
-                            &real(resrray(3,i,j)),',',aimag(resrray(3,i,j)),',',modrray(3,i,j),',',&
-                            &real(resrray(4,i,j)),',',aimag(resrray(4,i,j)),',',modrray(4,i,j)
+                do k=zs,ze
+                    write(38,*)  real(resrray(0,i,j)),',',aimag(resrray(0,i,j)),',',modrray(0,i,j),',',&
+                                &real(resrray(1,i,j)),',',aimag(resrray(1,i,j)),',',modrray(1,i,j),',',&
+                                &real(resrray(2,i,j)),',',aimag(resrray(2,i,j)),',',modrray(2,i,j),',',&
+                                &real(resrray(3,i,j)),',',aimag(resrray(3,i,j)),',',modrray(3,i,j),',',&
+                                &real(resrray(4,i,j)),',',aimag(resrray(4,i,j)),',',modrray(4,i,j)
+                enddo
             enddo
         enddo
         close(38)
