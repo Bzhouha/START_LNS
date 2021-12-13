@@ -200,7 +200,7 @@ for i in range(In - 1):
 # 依次摞加得到积分
 jifen = np.zeros(In, np.complex128)
 for i in range(1, In):
-    jifen[i] = jifen[0] + small_area[i - 1]
+    jifen[i] = jifen[i - 1] + small_area[i - 1]
 # e底积分
 ln = np.zeros(In, np.complex128)
 for i in range(In):
@@ -226,7 +226,7 @@ del small_area, small_edges, jifen
 
 # 3.1 绘图-某流向位置
 iloc = 200
-flg = 2
+flg = 1
 # 3.1.1 HLNS
 drt1 = hlns[flg, iloc, :, 0]
 # 3.1.2 LPSE

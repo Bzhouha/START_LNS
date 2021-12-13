@@ -142,7 +142,7 @@ module mod_petsc_output
         call PetscPrintf(comm," 输出解向量...                                     ooo    ooo\n", ierr)
         call PetscPrintf(comm,"   输出结束。                                     o   o  o   o\n", ierr)
         call PetscPrintf(comm,"                                            ooo   o   o  o   o   ooo\n", ierr)
-        call PetscPrintf(comm," ========================================  o   o   ooo    ooo   o   o  ====\n", ierr)
+        call PetscPrintf(comm," ========================================  o   o   ooo    ooo   o   o\n", ierr)
         call PetscPrintf(comm,"                                           o   o                o   o\n",ierr)
         call PetscPrintf(comm,"                                            ooo    oooooooooo    ooo\n",ierr)
         call PetscPrintf(comm,"               ooo    ooo                        o            o\n",ierr)

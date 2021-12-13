@@ -211,12 +211,13 @@ module mod_forming
 
 	subroutine whale_catch_shrimps(i,j,k)
 		implicit none
-		PetscScalar :: box(5,5),trans(5,5),B(5,5),D(5,5)
+		PetscScalar :: box(5,5),trans(5,5)
 		MatStencil :: idxm(4,1),idxn(4,1)
 		integer :: ic_index, jc_index
 		integer :: lib, lie, ljb, lje
 		integer,intent(in) :: i,j,k
 		PetscErrorCode :: ierr
+		integer :: ii,jj
 		integer :: li,lj
 		associate( &
 			coef_c1f=>FDM_1nd_4ORD_Forward, &
@@ -231,16 +232,21 @@ module mod_forming
 			ljb=0;lje=1
 			jc_index=1
 			idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
-			B=0.0d0;D=0.0d0 
-			B(1,3)=bf(i,j,k)%BF%rho
-			D(1,1)=bf(i,j,k)%BFDy%y-cmplx(0.0d0,1.0d0,R_P)*Omega
-			D(2,2)=1.0d0;D(3,3)=1.0d0;D(4,4)=1.0d0;D(5,5)=1.0d0
+			call Jor%colored_cubes(i,j,k)
+			do jj=1,5
+				do ii=2,5
+					Jor%D(ii,jj)=0.0d0
+					Jor%B(ii,jj)=0.0d0
+				enddo
+			enddo
+			Jor%D(2,2)=1.0d0;Jor%D(3,3)=1.0d0 
+			Jor%D(4,4)=1.0d0;Jor%D(5,5)=1.0d0
 			do lj=ljb,lje
 				idxn(MatStencil_i, 1)=i
 				idxn(MatStencil_j, 1)=j+lj
 				idxn(MatStencil_k, 1)=k
 				box=0.0d0;trans=0.0d0
-				box=delta_j(lj)*D+coef_c1f(lj,jc_index)*B
+				box=delta_j(lj)*Jor%D+coef_c1f(lj,jc_index)*Jor%B
 				trans=transpose(box)
 				call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
 			enddo
