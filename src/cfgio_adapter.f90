@@ -44,9 +44,9 @@ module mod_cfgio_adapter
         implicit none
         character(len=*), intent(in) :: cfgfn
         cfg=parse_cfg(trim(cfgfn))
-        call cfg%set("Domain", "in", in)
-        call cfg%set("Domain", "jn", jn)
-        call cfg%set("Domain", "kn", kn)
+        call cfg%set("domain", "in", in)
+        call cfg%set("domain", "jn", jn)
+        call cfg%set("domain", "kn", kn)
         call cfg%write(cfgfn)
     end subroutine cfg_writer
 
@@ -56,22 +56,22 @@ module mod_cfgio_adapter
     subroutine cfg_freestream(cfg)
         implicit none
         type(cfg_t) :: cfg
-        if(cfg%has_key("Freestream", "Ma"))then
-            call cfg%get("Freestream", "Ma", Ma)
+        if(cfg%has_key("freestream", "ma"))then
+            call cfg%get("freestream", "ma", Ma)
         else
             print*, 'No Mach number is input,'
             Ma=0.001d0
             print*, 'The Ma is set to 0.001.'
         endif
-        if(cfg%has_key("Freestream", "Re"))then
-            call cfg%get("Freestream", "Re", Re)
+        if(cfg%has_key("freestream", "re"))then
+            call cfg%get("freestream", "re", Re)
         else
             print*, 'No Reynolds number is input,'
             Re=1.0d20
             print*, 'The Re is set to 1.0d20.'
         endif
-        if(cfg%has_key("Freestream", "Te"))then
-            call cfg%get("Freestream", "Te", Te)
+        if(cfg%has_key("freestream", "te"))then
+            call cfg%get("freestream", "te", Te)
         else
             print*, 'No freestream temperature is input,'
             Te=300.0d0
@@ -116,26 +116,26 @@ module mod_cfgio_adapter
         real(R_P), allocatable, dimension(:) :: Ber
         integer :: npar
         npar=2
-        if(cfg%has_key("Turbulent", "Alpha"))then
-          call cfg%get("Turbulent", "Alpha", Ber, npar)
+        if(cfg%has_key("hlns", "lns_mode"))then
+          call cfg%get("hlns", "lns_mode", lns_mode)
+        endif
+        if(cfg%has_key("hlns", "Alpha"))then
+          call cfg%get("hlns", "Alpha", Ber, npar)
           Alpha=cmplx(Ber(1),Ber(2),R_P)
         else
           print*, "No Alpha is input."
         endif
-        if(cfg%has_key("Turbulent", "Beta"))then
-          call cfg%get("Turbulent", "Beta", Ber, npar)
+        if(cfg%has_key("hlns", "Beta"))then
+          call cfg%get("hlns", "Beta", Ber, npar)
           Beta=cmplx(Ber(1),Ber(2),R_P)
         else
           print*, "No Beta is input."
         endif
-        if(cfg%has_key("Turbulent", "Omega"))then
-          call cfg%get("Turbulent", "Omega", Ber, npar)
+        if(cfg%has_key("hlns", "Omega"))then
+          call cfg%get("hlns", "Omega", Ber, npar)
           Omega=cmplx(Ber(1),Ber(2),R_P)
         else
           print*, "No Omega is input."
-        endif
-        if(cfg%has_key("Turbulent", "lns_mode"))then
-          call cfg%get("Turbulent", "lns_mode", lns_mode)
         endif
     end subroutine cfg_turbulent
 end module mod_cfgio_adapter

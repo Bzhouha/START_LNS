@@ -96,7 +96,7 @@ module mod_petsc_output
         call DMDAGetCorners(ResDA,xs,ys,zs,xl,yl,zl,ierr)
         xe=xs+xl-1;ye=ys+yl-1;ze=zs+zl-1
         zs=0;ze=0
-        call PetscViewerBinaryOpen(comm, "lpse/lpse.petsc",FILE_MODE_READ, Viewer, ierr)
+        call PetscViewerBinaryOpen(comm, "out/LPSE_istart=+1_iend=+301_phi.petsc",FILE_MODE_READ, Viewer, ierr)
         call VecLoad(Res, Viewer, ierr)
         call PetscViewerDestroy(Viewer, ierr)
         allocate(resrray(0:4,xs:xe,ys:ye))

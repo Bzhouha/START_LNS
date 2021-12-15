@@ -482,6 +482,24 @@ module matrix_used_as_cofficient
 			case(1)
 				call this%lilac_cubes(i,j,k)
 		end select
+		!call this%get_adorned_cubes(i,j,k)	
+		BLOCK 
+		integer :: ii,jj 
+		write(*,*) "-> ",i+1,j+1 
+		write(*,*) " Matrix : A"
+		do ii=1,5 
+		write(*,*) (this%A(ii,jj),jj=1,5)
+		enddo
+		write(*,*) " Matrix : B"
+		do ii=1,5 
+		write(*,*) (this%B(ii,jj),jj=1,5)
+		enddo
+		write(*,*) " Matrix : Vyy"
+		do ii=1,5 
+		write(*,*) (this%Vyy(ii,jj),jj=1,5)
+		enddo
+		read(*,*)
+		END BLOCK 
 	end subroutine colored_cubes
 
 	subroutine teal_cubes(this,i,j,k)
@@ -492,7 +510,9 @@ module matrix_used_as_cofficient
 		integer,intent(in) :: i,j,k
 		call Jor%get_adorned_cubes(i,j,k)
 		this%G=Jor%G
-		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
+		this%A=Jor%A-Li*Beta*Jor%Vxz
+		this%B=Jor%B-Li*Beta*Jor%Vyz
+		this%C=Jor%C
 		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
 		this%A_p=Jor%A_p; this%A_m=Jor%A_m
 		this%A_v=Jor%A_v-Li*Beta*Jor%Vxz
@@ -512,7 +532,9 @@ module matrix_used_as_cofficient
 		integer,intent(in) :: i,j,k
 		call Jor%get_adorned_cubes(i,j,k)
 		this%G=Jor%G
-		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
+		this%A=Jor%A-2.0d0*Li*Alpha*Jor%Vxx-Li*Beta*Jor%Vxz
+		this%B=Jor%B-Li*Alpha*Jor%Vxy-Li*Beta*Jor%Vyz 
+		this%C=Jor%C
 		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
 		this%A_p=Jor%A_p; this%A_m=Jor%A_m
 		this%A_v=Jor%A_v-2.0d0*Li*Alpha*Jor%Vxx-Li*Beta*Jor%Vxz
@@ -522,7 +544,7 @@ module matrix_used_as_cofficient
 		this%D=Jor%D-Li*Omega*Jor%G+Li*Alpha*Jor%A &
 		+Li*Beta*Jor%C+Alpha*Alpha*Jor%Vxx+Beta*Beta*Jor%Vzz+Alpha*Beta*Jor%Vxz
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
-		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
+		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0		
 	end subroutine mint_cubes
 
 	subroutine skyblue_cubes(this,i,j,k)
@@ -551,7 +573,9 @@ module matrix_used_as_cofficient
 		integer,intent(in) :: i,j,k
 		call Jor%get_adorned_cubes(i,j,k)
 		this%G=Jor%G 
-		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
+		this%A=Jor%A-2*Li*Alpha*Jor%Vxx
+		this%B=Jor%B-Li*Alpha*Jor%Vxy
+		this%C=Jor%C-Li*Alpha*Jor%Vxz
 		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
 		this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v-2*Li*Alpha*Jor%Vxx
 		this%B_p=Jor%B_p; this%B_m=Jor%B_m; this%B_v=Jor%B_v-Li*Alpha*Jor%Vxy

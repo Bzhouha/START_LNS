@@ -171,7 +171,9 @@ del rho0, u0, v0, w0, T0
 # 2.处理数据
 
 # 2.1 HLNS
-ln = np.exp(1j * hlns_a * loc)
+ln = np.zeros(In, np.complex128)
+for i in range(In):
+    ln[i] = np.exp(1j * hlns_a * loc[i])
 hlns_dist = np.zeros((5, In, Jn, Kn), np.complex128)
 for l in range(5):
     for i in range(In):
@@ -225,7 +227,7 @@ del small_area, small_edges, jifen
 # 3.绘图
 
 # 3.1 绘图-某流向位置
-iloc = 200
+iloc = 100
 flg = 1
 # 3.1.1 HLNS
 drt1 = hlns[flg, iloc, :, 0]
@@ -234,7 +236,7 @@ drt2 = lpse[flg, iloc, :, 0]
 # 3.1.3 横坐标
 hor = yy[iloc, :, 0]
 # 3.1.4 开始绘图
-dic = ('$|/rho|$', '$|u|$', '$|v|$', '$|w|$', '$|T|$')
+dic = ('$|rho|$', '$|u|$', '$|v|$', '$|w|$', '$|T|$')
 plt.figure(figsize=(10, 10), dpi=200)
 plt.subplot(211)
 plt.plot(hor, drt1, label='HLNS', linewidth=0.8, linestyle="-")
@@ -249,30 +251,56 @@ plt.xlabel("y")
 plt.ylabel(dic[flg])
 plt.legend()
 plt.show()
-del drt1, drt2, hor
+del drt1, drt2, hor, dic
 
 # 3.2 绘图-最大值
 # 3.2.1 HLNS
 drt1 = np.zeros(In, np.float64)
 for i in range(In):
-    drt1[i] = np.max(hlns[1, i, :, 0])
+    drt1[i] = np.max(hlns[flg, i, :, 0])
+drt1 = np.log(drt1)
 # 3.2.2 LPSE
 drt2 = np.zeros(In, np.float64)
 for i in range(In):
-    drt2[i] = np.max(lpse[1, i, :, 0])
+    drt2[i] = np.max(lpse[flg, i, :, 0])
+drt2 = np.log(drt2)
 # 3.2.2 开始绘图
+dic = ('${|rho|}_{max}$', '${|u|}_{max}$', '${|v|}_{max}$', '${|w}_{max}$', '${|T|}_{max}$')
 plt.figure(figsize=(10, 10), dpi=200)
 plt.subplot(211)
 plt.plot(loc, drt1, label='HLNS', linewidth=0.8, linestyle="-")
 plt.title("HLNS")
 plt.xlabel("iloc")
-plt.ylabel("$|u_{max}|$")
+plt.ylabel('ln ' + dic[flg])
 plt.legend()
 plt.subplot(212)
 plt.scatter(loc, drt2, label='LPSE', s=0.3)
 plt.title("LPSE")
 plt.xlabel("iloc")
-plt.ylabel("$|u_{max}|$")
+plt.ylabel('ln ' + dic[flg])
 plt.legend()
 plt.show()
-del drt1, drt2
+del drt1, drt2, dic
+
+# 3.3 绘图-入口
+iloc = 0
+flg = 0
+# 3.1.1 HLNS
+drt1 = hlns[flg, iloc, :, 0]
+# 3.1.2 LPSE
+drt2 = lpse[flg, iloc, :, 0]
+# 3.1.3 横坐标
+hor = yy[iloc, :, 0]
+# 3.1.4 开始绘图
+dic = ('$|rho|$', '$|u|$', '$|v|$', '$|w|$', '$|T|$')
+plt.figure(figsize=(10, 10), dpi=200)
+plt.plot(hor, drt1, label='HLNS', linewidth=0.8, linestyle="-")
+plt.plot(hor, drt2, label='LPSE', linewidth=0.8, linestyle="-.")
+# plt.scatter(hor, drt2, label='LPSE', s=0.3)
+plt.xlim(0, 5)
+plt.title("Disturb:iloc=0")
+plt.xlabel("y")
+plt.ylabel(dic[flg])
+plt.legend()
+plt.show()
+del drt1, drt2, hor, dic

@@ -196,7 +196,7 @@ module mod_petsc_loader ! 读入并分发数据
 		call DMSetFromOptions(disturbDA,ierr)
 		call DMSetUp(disturbDA, ierr)
 		call DMGetGlobalVector(disturbDA, disturb, ierr)
-        call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "in//disturbance.petsc", FILE_MODE_READ, Viewer, ierr)
+        call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "in//LPSE_disturbance+1.petsc", FILE_MODE_READ, Viewer, ierr)
         call VecLoad(disturb, Viewer, ierr)
         call PetscViewerDestroy(Viewer, ierr)
 	end subroutine load_disturbance_2d
@@ -210,7 +210,7 @@ module mod_petsc_loader ! 读入并分发数据
 		call DMSetFromOptions(disturbDA,ierr)
 		call DMSetUp(disturbDA, ierr)
 		call DMGetGlobalVector(disturbDA, disturb, ierr)
-        call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "in//disturbance.petsc", FILE_MODE_READ, Viewer, ierr)
+        call PetscViewerBinaryOpen(PETSC_COMM_WORLD, "in//LPSE_disturbance+1.petsc", FILE_MODE_READ, Viewer, ierr)
         call VecLoad(disturb, Viewer, ierr)
         call PetscViewerDestroy(Viewer, ierr)
 	end subroutine load_disturbance_3d
