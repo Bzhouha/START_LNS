@@ -54,6 +54,22 @@ module bf_points
 		call deallocate_memory()
 		call print_info(comm)
 		call MPI_Barrier(comm,ierr)
+		! BLOCK 
+		! ! 平行流验证
+		! integer :: ii 
+		! do ii=1,300
+		! 	if(sum(abs(bf(ii,:,:)%BF%rho-abs(bf(ii-1,:,:)%BF%rho)))>0.00000001) write(*,*) "rho" 
+		! 	if(sum(abs(bf(ii,:,:)%BF%x-abs(bf(ii-1,:,:)%BF%x)))>0.00000001) write(*,*) "u" 
+		! 	if(sum(abs(bf(ii,:,:)%BF%y-abs(bf(ii-1,:,:)%BF%y)))>0.00000001) write(*,*) "v" 
+		! 	if(sum(abs(bf(ii,:,:)%BF%z-abs(bf(ii-1,:,:)%BF%z)))>0.00000001) write(*,*) "w" 
+		! 	if(sum(abs(bf(ii,:,:)%BF%T-abs(bf(ii-1,:,:)%BF%T)))>0.00000001) write(*,*) "T" 
+		! 	if(sum(abs(bf(:,:,:)%BFDx%rho))>0.00000001) write(*,*) "rhox"
+		! 	if(sum(abs(bf(:,:,:)%BFDx%x))>0.00000001) write(*,*) "ux"
+		! 	if(sum(abs(bf(:,:,:)%BFDx%y))>0.00000001) write(*,*) "vx"
+		! 	if(sum(abs(bf(:,:,:)%BFDx%z))>0.00000001) write(*,*) "wx"
+		! 	if(sum(abs(bf(:,:,:)%BFDx%T))>0.00000001) write(*,*) "Tx"
+		! enddo
+		! END BLOCK
 	end subroutine partial_derivatives
 
 	subroutine allocate_memory()

@@ -1,7 +1,25 @@
 #include <slepc/finclude/slepc.h>
-!#include <petsc/finclude/petscksp.h>
 
 module mod_solving
+! ----------------------------------------------------
+! 
+!  这个模块是主工作流。
+! 
+!       1.call working(comm) 主工作流。
+! 
+! 			1).call allocate_memory() 分配内存。
+!
+!			2).call linear_equations(comm) 求解线性系统。
+!
+!				a).call dolphin_ready(comm,level) 设置免矩阵求解方法。
+!
+!				b).call whale_ready(comm,level) 设置显式矩阵求解方法。
+!
+!			3).call set_right_hand_side(comm) 设置右边量，即来流。
+!
+! 			4).call deallocate_memory() 释放内存。
+! 
+! ----------------------------------------------------
 	use petsc
 	use mod_metrics
 	use bf_points
@@ -39,11 +57,10 @@ module mod_solving
 		select case (Matrix_Free)
 			case (.True.)
 				call dolphin_coming(comm)
-				!call DolphinReady(comm,0)
+				!call dolphin_ready(comm,0)
 			case (.False.)
 				call whale_coming(comm)
 				call whale_ready(comm,0)
-				! call print_result()
 		end select
 	end subroutine linear_equations
 
@@ -57,6 +74,8 @@ module mod_solving
 			call KSPCreate(comm,ksp,ierr)
 			call KSPSetOperators(ksp,Whale,Whale,ierr)
 			call KSPSetType(ksp,KSPFGMRES,ierr)
+			! call KspGetPC(ksp,pc,ierr)
+			! call PCSetType(pc,PCASM,ierr)
 			call KSPSetFromOptions(ksp,ierr)
 			call KSPSetUp(ksp,ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
@@ -125,20 +144,4 @@ module mod_solving
 		call VecDestroy(RHS,ierr)
 	end subroutine deallocate_memory
 
-	subroutine print_result()
-		implicit none
-		PetscScalar,pointer :: tmp(:,:,:,:)
-		integer :: l,i,j,k
-		call DMDAVecGetArrayReadF90(meshDA,turtle,tmp,ierr)
-		do l=0,4
-			do k=ks,ke
-				do j=js,je
-					write(*,*) (real(tmp(l,i,j,k)),i=is,ie)
-				enddo
-				write(*,*) 
-			enddo
-			write(*,*) "---"
-		enddo
-		call DMDAVecRestoreArrayReadF90(meshDA,turtle,tmp,ierr)
-	end subroutine print_result
 end module mod_solving

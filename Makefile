@@ -132,8 +132,10 @@ clean ::
 	@echo " =   Mods have been sweeping away.   ="
 
 install:
-	mkdir -p ~/bin
-	cp bin/START_LNS ~/bin/
+	@mkdir -p ~/bin
+	@cp bin/START_LNS ~/bin/
+	@echo " -              Install              -"
+	@echo " =     hlns have been installed.     ="
 
 befor64_pack_data_m.o: \
 	befor64_pack_data_m.F90 \
