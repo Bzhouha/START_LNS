@@ -387,27 +387,6 @@ module matrix_used_as_cofficient
 			case(1)
 				call this%lilac_cubes(i,j,k)
 		end select
-		! BLOCK 
-		! integer :: ii,jj 
-		! write(*,*) "-> ",i+1,j+1 
-		! write(*,*) "坐标变换之前："
-		! write(*,*) " Matrix : D_"
-		! do ii=1,5 
-		! write(*,*) (this%D(ii,jj),jj=1,5)
-		! enddo
-		! write(*,*) " Matrix : A_"
-		! do ii=1,5 
-		! write(*,*) (this%A(ii,jj),jj=1,5)
-		! enddo
-		! write(*,*) " Matrix : B_"
-		! do ii=1,5 
-		! write(*,*) (this%B(ii,jj),jj=1,5)
-		! enddo
-		! write(*,*) " Matrix : Vyy_"
-		! do ii=1,5 
-		! write(*,*) (this%Vyy(ii,jj),jj=1,5)
-		! enddo
-		! END BLOCK
 	end subroutine colored_cubes
 
 	subroutine teal_cubes(this,i,j,k)
@@ -587,22 +566,6 @@ module matrix_used_as_cofficient
 		this%C_p=C_p; this%C_m=C_m; this%C_v=C_v
 		this%Vxx=Vxx; this%Vyy=Vyy; this%Vzz=Vzz 
 		this%Vxy=Vxy; this%Vxz=Vxz; this%Vyz=Vyz 
-		! BLOCK 
-		! integer :: ii,jj 
-		! write(*,*) "坐标变换之后："
-		! write(*,*) " Matrix : A_"
-		! do ii=1,5 
-		! write(*,*) (this%A(ii,jj),jj=1,5)
-		! enddo
-		! write(*,*) " Matrix : B_"
-		! do ii=1,5 
-		! write(*,*) (this%B(ii,jj),jj=1,5)
-		! enddo
-		! write(*,*) " Matrix : Vyy_"
-		! do ii=1,5 
-		! write(*,*) (this%Vyy(ii,jj),jj=1,5)
-		! enddo
-		! END BLOCK
 	end subroutine get_adorned_cubes
 
 	subroutine split(A,G,Aplus,Aminus)

@@ -175,7 +175,6 @@ module mod_forming
 		PetscInt,intent(in) :: comm
 		PetscErrorCode :: ierr 
 		call we_hear_a_sound(comm)
-		!call test(21,186,0)
 		call DMCreateMatrix(meshDA, Whale, ierr)
 		call MatZeroEntries(Whale,ierr)
 		call whale_growing_up()
@@ -209,38 +208,6 @@ module mod_forming
 		call MatAssemblyBegin(Whale,MAT_FINAL_ASSEMBLY,ierr)
 		call MatAssemblyEnd(Whale,MAT_FINAL_ASSEMBLY,ierr)
 	end subroutine whale_growing_up
-
-	subroutine test(i, j, k)
-		implicit none
-		integer,intent(in) :: i,j,k
-		complex(R_P),dimension(5) :: res,D1,B1,V1
-
-		call Jor%get_adorned_cubes(i,j,k)
-
-		D1(1) = bf(i,j,k)%BF%rho
-		D1(2) = bf(i,j,k)%BF%x
-		D1(3) = bf(i,j,k)%BF%y
-		D1(4) = bf(i,j,k)%BF%z
-		D1(5) = bf(i,j,k)%BF%T
-
-		B1(1) = bf(i,j,k)%BFDy%rho
-		B1(2) = bf(i,j,k)%BFDy%x
-		B1(3) = bf(i,j,k)%BFDy%y
-		B1(4) = bf(i,j,k)%BFDy%z
-		B1(5) = bf(i,j,k)%BFDy%T
-
-		V1(1) = bf(i,j,k)%BFDyy%rho
-		V1(2) = bf(i,j,k)%BFDyy%x
-		V1(3) = bf(i,j,k)%BFDyy%y
-		V1(4) = bf(i,j,k)%BFDyy%z
-		V1(5) = bf(i,j,k)%BFDyy%T
-
-		res = matmul(Jor%B,B1)+matmul(Jor%Vyy,V1)+matmul(Jor%D,D1)
-
-		if(sum(abs(res))>0.0000001) write(*,*) i,j,k,res
-
-		read(*,*)
-	end subroutine test
 
 	subroutine whale_catch_shrimps(i,j,k)
 		implicit none

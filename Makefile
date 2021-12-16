@@ -5,8 +5,21 @@ LIBS = ${SLEPC_LIB} ${PETSC_LIB}
 EXE = START_LNS
 FC = 
 IDIR = 
-CFLAGS = -g -I$(OBJS_DIR) $(IDIR)
+CFLAGS = -g -J$(OBJS_DIR) $(IDIR)
 LFLAGS =  
+
+OBJS_DIR = obj/
+EXE_DIR = bin/
+
+SRC_DIR_F90d1 = ./src/third_party/BeFoR64/
+
+SRC_DIR_f90d2 = ./src/third_party/cfgio/
+
+SRC_DIR_f90d3 = ./src/
+
+SRC_DIR_F90d4 = ./src/third_party/PENF/
+
+SRC_DIR_F90d5 = ./src/third_party/stringifor/
 
 VPATH = $(SRC_DIR_F90d1):$(OBJS_DIR):$(SRC_DIR_f90d2):$(OBJS_DIR):$(SRC_DIR_f90d3):$(OBJS_DIR):$(SRC_DIR_F90d4):$(OBJS_DIR):$(SRC_DIR_F90d5):$(OBJS_DIR)
 AOBJS = $(addprefix $(OBJS_DIR), $(OBJS_F90d1) $(OBJS_f90d2) $(OBJS_f90d3) $(OBJS_F90d4) $(OBJS_F90d5))
@@ -83,21 +96,6 @@ OBJS_F90d5 = \
 stringifor.o \
 stringifor_string_t.o 
 
-
-SRC_DIR_F90d1 = ./src/third_party/BeFoR64/
-
-SRC_DIR_f90d2 = ./src/third_party/cfgio/
-
-SRC_DIR_f90d3 = ./src/
-
-SRC_DIR_F90d4 = ./src/third_party/PENF/
-
-SRC_DIR_F90d5 = ./src/third_party/stringifor/
-
-
-OBJS_DIR = ./obj/
-EXE_DIR = bin/
-
 all : $(EXE)
 
 $(EXE) : $(OBJS_F90d1) $(OBJS_f90d2) $(OBJS_f90d3) $(OBJS_F90d4) $(OBJS_F90d5)
@@ -124,9 +122,8 @@ $(OBJS_F90d5):
 	$(FC) ${FFLAG} $(CFLAGS) -c $(SRC_DIR_F90d5)$(@:.o=.F90) -o $(OBJS_DIR)$@
 
 clean ::
-	@rm -f $(OBJS_DIR)*.*
-	@rm -f *.mod 
-	@rm -f $(EXE_DIR)$(EXE)
+	@rm -f $(OBJS_DIR)*.o
+	@rm -f $(OBJS_DIR)*.mod
 	@echo " -               Clean               -"
 	@echo " =      Objs have been deleted.      ="
 	@echo " =   Mods have been sweeping away.   ="
