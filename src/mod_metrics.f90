@@ -19,7 +19,7 @@ module mod_metrics
 !           5).call print_info(comm) 输出本模块运行结束信息
 !
 ! ----------------------------------------------------------------
-    use global_parameters
+    use mod_parameters
     use penf, only: R_P
     implicit none
     private

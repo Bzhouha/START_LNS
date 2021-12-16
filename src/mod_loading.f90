@@ -1,11 +1,11 @@
 !#include <petsc/finclude/petsc.h>
 #include <slepc/finclude/slepc.h>
 
-module mod_petsc_loader ! 读入并分发数据
+module mod_loading ! 读入并分发数据
 	use petsc
 	use mod_loaders
 	use mod_petsc_viewer
-	use global_parameters
+	use mod_parameters
 	use mod_cfgio_adapter
 	implicit none
 	private
@@ -57,7 +57,7 @@ module mod_petsc_loader ! 读入并分发数据
 	end subroutine read_from_file
 
 	subroutine bcast_parameters(comm)
-		use global_parameters
+		use mod_parameters
 		implicit none 
 		integer(KIND=MPI_ADDRESS_KIND) :: address_in,address_jn,address_kn,address_ln
 		integer(KIND=MPI_ADDRESS_KIND) :: address_mode,address_Ma,address_Re,address_Te
@@ -101,7 +101,7 @@ module mod_petsc_loader ! 读入并分发数据
 	end subroutine bcast_parameters
 
 	subroutine pack_parameters(comm)
-		use global_parameters
+		use mod_parameters
 		implicit none 
 		integer,intent(in) :: comm 
 		integer :: packsize,position
@@ -299,4 +299,4 @@ module mod_petsc_loader ! 读入并分发数据
 		call PetscPrintf(comm,"        流场和网格数据已录入。      \n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 	end subroutine print_info
-end module mod_petsc_loader
+end module mod_loading

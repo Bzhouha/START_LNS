@@ -9,7 +9,7 @@ module mod_difference
 ! 
 ! ----------------------------------------------------
     use penf, only: R_P
-    use global_parameters
+    use mod_parameters
     implicit none
     public :: fd1,fd2
     contains

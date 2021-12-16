@@ -1,6 +1,6 @@
 #include <slepc/finclude/slepc.h>
 
-module bf_points 
+module mod_points 
 ! -----------------------------------------------------------
 !
 !   这个模块计算流场中基本流的物理量对坐标的导数
@@ -25,7 +25,7 @@ module bf_points
 !
 ! -----------------------------------------------------------
 	use petsc
-	use global_parameters
+	use mod_parameters
 	use penf, only: R_P
 	implicit none
 	private
@@ -221,10 +221,10 @@ module bf_points
 	end subroutine insert_to_BF
 
 	subroutine insert(obj,arr)
-		use mod_baseflow_org 
+		use mod_flowtype 
 		implicit none
 		real(R_P),dimension(5),intent(in) :: arr
-		type(bf_flux_org_type),intent(out) :: obj
+		type(basetype),intent(out) :: obj
 		obj%rho = arr(1)
 		obj%x = arr(2)
 		obj%y = arr(3)
@@ -256,4 +256,4 @@ module bf_points
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 	end subroutine print_info
 
-end module bf_points
+end module mod_points

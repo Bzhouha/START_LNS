@@ -10,7 +10,7 @@ module mod_petsc_viewer
 !
 ! ----------------------------------------------------------------
   use petsc
-  use global_parameters
+  use mod_parameters
   implicit none
   private
   PetscScalar, pointer :: grid(:,:,:,:)

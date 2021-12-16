@@ -1,6 +1,6 @@
-module mod_mf_tools
+module mod_mftools
     use penf, only: R_P
-    use global_parameters, only: in,jn,kn
+    use mod_parameters, only: in,jn,kn
     implicit none
     public
     contains
@@ -140,4 +140,4 @@ module mod_mf_tools
         out_array(:)=(-1.0d0*f(:,1)+1.0d0*f(:,2))
     end subroutine f2d1r
 
-end module mod_mf_tools
+end module mod_mftools

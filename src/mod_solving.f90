@@ -22,9 +22,9 @@ module mod_solving
 ! ----------------------------------------------------
 	use petsc
 	use mod_metrics
-	use bf_points
+	use mod_points
 	use mod_forming
-	use global_parameters
+	use mod_parameters
 	private
 	PetscErrorCode :: ierr
 	public :: working

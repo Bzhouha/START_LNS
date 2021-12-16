@@ -1,9 +1,9 @@
 !#include <petsc/finclude/petsc.h>
 #include <slepc/finclude/slepc.h>
 
-module mod_petsc_output
+module mod_output
     use petsc
-    use global_parameters
+    use mod_parameters
     implicit none
     private
     public :: result_to_file
@@ -156,4 +156,4 @@ module mod_petsc_output
         call PetscPrintf(comm,"             o            o\n",ierr)
         call PetscPrintf(comm,"               oooooooooo\n",ierr)
     end subroutine print_info
-end module mod_petsc_output  
+end module mod_output  

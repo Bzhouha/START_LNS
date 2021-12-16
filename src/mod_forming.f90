@@ -21,9 +21,9 @@ module mod_forming
 ! ------------------------------------------------------------------
 	use petsc
 	use penf, only: R_P
-	use bf_point_org
-	use matrix_used_as_cofficient 
-	use global_parameters
+	use mod_flowtype
+	use mod_cubes
+	use mod_parameters
 	implicit none
 	private
 	public :: dolphin_coming, whale_coming
@@ -75,7 +75,7 @@ module mod_forming
 	end subroutine dolphin_coming
 
 	subroutine Mymult(A, X, F, ierr)
-		use mod_mf_tools
+		use mod_mftools
 		implicit none
 		PetscScalar,pointer :: F_r(:,:,:,:),X_r(:,:,:,:)
 		complex(R_P), dimension(5,15) :: crab

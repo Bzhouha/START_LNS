@@ -6,7 +6,7 @@ module mod_loaders
 !       call plot3d_load() 读取Plot3D格式的基本流和网格和来流扰动
 !
 ! ----------------------------------------------------------------
-   use global_parameters
+   use mod_parameters
    implicit none
    public :: plot3d_load
    private

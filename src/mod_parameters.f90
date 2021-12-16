@@ -1,16 +1,16 @@
 ! #include <petsc/finclude/petsc.h>
 #include <slepc/finclude/slepc.h>
 
-module global_parameters
+module mod_parameters
     use penf, only: R_P
     use petsc
-    use bf_point_org
+    use mod_flowtype
     implicit none
     real(R_P), dimension(:, :, :), allocatable :: xi_xx,xi_yy,xi_zz,eta_xx,eta_yy,eta_zz,phi_xx,phi_yy,phi_zz
     real(R_P), dimension(:, :, :), allocatable :: xi_xy,xi_xz,xi_yz,eta_xy,eta_yz,eta_xz,phi_xy,phi_yz,phi_xz 
     real(R_P), dimension(:, :, :), allocatable :: xi_x,xi_y,xi_z,eta_x,eta_y,eta_z,phi_x,phi_y,phi_z
     real(R_P), dimension(:, :, :), allocatable :: xx, yy, zz 
-    type(bf_point_type),dimension(:,:,:),allocatable :: bf 
+    type(flowtype),dimension(:,:,:),allocatable :: bf 
     real(R_P), dimension(:, :, :, :), allocatable :: qq
     real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge
@@ -31,4 +31,4 @@ module global_parameters
     Mat :: Dolphin
     Vec :: Turtle
     Mat :: Whale      
-end module global_parameters
+end module mod_parameters

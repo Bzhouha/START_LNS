@@ -11,7 +11,7 @@
 module mod_cfgio_adapter
 
     use cfgio_mod
-    use global_parameters
+    use mod_parameters
 
     implicit none
 

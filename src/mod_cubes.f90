@@ -1,4 +1,4 @@
-module matrix_used_as_cofficient 
+module mod_cubes
 ! -----------------------------------------------------------
 !
 !   这个模块生成系数小矩阵G、A、A_p、A_m、A_v、B、...、D、Vxx、Vxy等。
@@ -55,8 +55,8 @@ module matrix_used_as_cofficient
 	complex(R_P),parameter :: Li = cmplx(0.0d0,1.0d0,R_P)
 	contains
 	subroutine get_unadorned_cubes(this,i,j,k)
-		use bf_point_org
-		use global_parameters
+		use mod_flowtype
+		use mod_parameters
 		implicit none
 		class(lns_OP_point_type),intent(inout) :: this 
 		integer,intent(in) :: i,j,k
@@ -377,7 +377,7 @@ module matrix_used_as_cofficient
 	end subroutine get_unadorned_cubes
 
 	subroutine colored_cubes(this,i,j,k)
-		use global_parameters,only:lns_mode
+		use mod_parameters,only:lns_mode
 		implicit none
 		class(lns_OP_point_type),intent(inout) :: this
 		integer,intent(in) :: i,j,k
@@ -390,7 +390,7 @@ module matrix_used_as_cofficient
 	end subroutine colored_cubes
 
 	subroutine teal_cubes(this,i,j,k)
-		use global_parameters,only:Beta,Omega 
+		use mod_parameters,only:Beta,Omega 
 		implicit none
 		class(lns_OP_point_type),intent(inout) :: this
 		type(lns_OP_point_type) :: Jor
@@ -412,7 +412,7 @@ module matrix_used_as_cofficient
 	end subroutine teal_cubes
 
 	subroutine mint_cubes(this,i,j,k)
-		use global_parameters,only:Alpha,Beta,Omega 
+		use mod_parameters,only:Alpha,Beta,Omega 
 		implicit none 
 		class(lns_OP_point_type),intent(inout) :: this
 		type(lns_OP_point_type) :: Jor
@@ -435,7 +435,7 @@ module matrix_used_as_cofficient
 	end subroutine mint_cubes
 
 	subroutine skyblue_cubes(this,i,j,k)
-		use global_parameters,only:Omega
+		use mod_parameters,only:Omega
 		implicit none 
 		class(lns_OP_point_type),intent(inout) :: this
 		type(lns_OP_point_type) :: Jor
@@ -453,7 +453,7 @@ module matrix_used_as_cofficient
 	end subroutine skyblue_cubes
 
 	subroutine lilac_cubes(this,i,j,k)
-		use global_parameters,only:Alpha,Omega
+		use mod_parameters,only:Alpha,Omega
 		implicit none 
 		class(lns_OP_point_type),intent(inout) :: this
 		type(lns_OP_point_type) :: Jor
@@ -473,7 +473,7 @@ module matrix_used_as_cofficient
 	end subroutine lilac_cubes
 
 	subroutine get_adorned_cubes(this,i,j,k)
-		use global_parameters
+		use mod_parameters
 		implicit none
 		class(lns_OP_point_type),intent(inout) :: this
 		type(lns_OP_point_type) :: Jor
@@ -605,4 +605,4 @@ module matrix_used_as_cofficient
 		Aplus=At
 		Aminus=Ab
 	end subroutine split
-end module matrix_used_as_cofficient
+end module mod_cubes

@@ -5,7 +5,7 @@ LIBS = ${SLEPC_LIB} ${PETSC_LIB}
 EXE = START_LNS
 FC = 
 IDIR = 
-CFLAGS = -g -J$(OBJS_DIR) $(IDIR)
+CFLAGS = -O2 -g -J$(OBJS_DIR) $(IDIR) -fallow-argument-mismatch
 LFLAGS =  
 
 OBJS_DIR = obj/
@@ -33,22 +33,21 @@ cfgio_mod.f90 \
 string_conv_mod.f90
 
 SRCS_f90d3 = \
-module_bf_point_org.f90 \
 mod_difference.f90 \
 mod_forming.f90 \
-mod_mf_tools.f90 \
+mod_mftools.f90 \
 mod_solving.f90 \
-petsc_loader.f90 \
+mod_loading.f90 \
 cfgio_adapter.f90 \
-petsc_output.f90 \
-compute_metrics.f90 \
-global_parameters.f90 \
+mod_output.f90 \
+mod_metrics.f90 \
+mod_parameters.f90 \
 main.f90 \
-matrix_used_as_cofficient.f90 \
-module_baseflow_org.f90 \
+mod_cubes.f90 \
+mod_flowtype.f90 \
 petsc_viewer.f90 \
 loaders.f90 \
-module_bf_points.f90 
+mod_points.f90 
 
 SRCS_F90d4 = \
 penf.F90 \
@@ -69,22 +68,21 @@ cfgio_mod.o \
 string_conv_mod.o 
 
 OBJS_f90d3 = \
-module_bf_point_org.o \
 mod_difference.o \
 mod_forming.o \
-mod_mf_tools.o \
+mod_mftools.o \
 mod_solving.o \
-petsc_loader.o \
+mod_loading.o \
 cfgio_adapter.o \
-petsc_output.o \
-compute_metrics.o \
-global_parameters.o \
+mod_output.o \
+mod_metrics.o \
+mod_parameters.o \
 main.o \
-matrix_used_as_cofficient.o \
-module_baseflow_org.o \
+mod_cubes.o \
+mod_flowtype.o \
 petsc_viewer.o \
 loaders.o \
-module_bf_points.o 
+mod_points.o 
 
 OBJS_F90d4 = \
 penf.o \
@@ -141,14 +139,11 @@ cfgio_mod.o: \
 	cfgio_mod.f90 \
 	string_conv_mod.o \
 	penf.o
-module_bf_point_org.o: \
-	module_bf_point_org.f90 \
-	module_baseflow_org.o
 string_conv_mod.o: \
 	string_conv_mod.f90
 module_gas.o: \
 	module_gas.f90 \
-	global_parameters.o \
+	mod_parameters.o \
 	penf.o
 penf.o: \
 	penf.F90 \
@@ -160,25 +155,25 @@ penf_b_size.o: \
 	penf_global_parameters_variables.o
 mod_difference.o: \
 	mod_difference.f90 \
-	global_parameters.o \
+	mod_parameters.o \
 	penf.o
 penf_global_parameters_variables.o: \
 	penf_global_parameters_variables.F90
 mod_forming.o: \
 	mod_forming.f90 \
-	module_bf_point_org.o \
-	global_parameters.o \
-	matrix_used_as_cofficient.o \
+	mod_flowtype.o \
+	mod_parameters.o \
+	mod_cubes.o \
 	mod_difference.o \
-	mod_mf_tools.o \
+	mod_mftools.o \
 	penf.o 
 penf_stringify.o: \
 	penf_stringify.F90 \
 	penf_b_size.o \
 	penf_global_parameters_variables.o
-mod_mf_tools.o: \
-	mod_mf_tools.f90 \
-	global_parameters.o \
+mod_mftools.o: \
+	mod_mftools.f90 \
+	mod_parameters.o \
 	penf.o
 stringifor.o: \
 	stringifor.F90 \
@@ -186,62 +181,61 @@ stringifor.o: \
 	stringifor_string_t.o
 mod_solving.o: \
 	mod_solving.f90 \
-	module_bf_points.o \
-	global_parameters.o \
-	matrix_used_as_cofficient.o \
+	mod_points.o \
+	mod_parameters.o \
+	mod_cubes.o \
 	mod_forming.o \
-	compute_metrics.o 
+	mod_metrics.o 
 stringifor_string_t.o: \
 	stringifor_string_t.F90 \
 	befor64.o \
 	penf.o
-petsc_loader.o: \
-	petsc_loader.f90 \
+mod_loading.o: \
+	mod_loading.f90 \
 	cfgio_adapter.o \
 	loaders.o \
 	petsc_viewer.o \
-	global_parameters.o
+	mod_parameters.o
 cfgio_adapter.o: \
 	cfgio_adapter.f90 \
 	cfgio_mod.o \
-	global_parameters.o
-petsc_output.o: \
-	petsc_output.f90 \
-	global_parameters.o \
+	mod_parameters.o
+mod_output.o: \
+	mod_output.f90 \
+	mod_parameters.o \
 	penf.o
-compute_metrics.o: \
-	compute_metrics.f90 \
-	global_parameters.o \
+mod_metrics.o: \
+	mod_metrics.f90 \
+	mod_parameters.o \
 	mod_difference.o \
 	penf.o
 petsc_viewer.o: \
 	petsc_viewer.f90 \
-	global_parameters.o
-global_parameters.o: \
-	global_parameters.f90 \
-	module_bf_point_org.o \
+	mod_parameters.o
+mod_parameters.o: \
+	mod_parameters.f90 \
+	mod_flowtype.o \
 	penf.o
 loaders.o: \
 	loaders.f90 \
-	global_parameters.o
+	mod_parameters.o
 main.o: \
 	main.f90 \
-	petsc_loader.o \
+	mod_loading.o \
 	mod_solving.o \
-	petsc_output.o
-matrix_used_as_cofficient.o: \
-	matrix_used_as_cofficient.f90 \
-	module_bf_point_org.o \
-	global_parameters.o \
+	mod_output.o
+mod_cubes.o: \
+	mod_cubes.f90 \
+	mod_flowtype.o \
+	mod_parameters.o \
 	penf.o
-module_baseflow_org.o: \
-	module_baseflow_org.f90 \
+mod_flowtype.o: \
+	mod_flowtype.f90 \
 	penf.o
-module_bf_points.o: \
-	module_bf_points.f90 \
-	module_bf_point_org.o \
-	global_parameters.o \
-	module_baseflow_org.o \
+mod_points.o: \
+	mod_points.f90 \
+	mod_parameters.o \
+	mod_flowtype.o \
 	penf.o
 befor64.o: \
 	befor64.F90 \
