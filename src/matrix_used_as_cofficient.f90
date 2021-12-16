@@ -11,9 +11,7 @@ module matrix_used_as_cofficient
 !
 !               call split(A,G,Aplus,Aminus) 矢通量分裂函数
 !
-!           2.call get_adorned_cubes(i,j,k) 获得坐标变换后的系数小矩阵
-!
-! 			3.call colored_cubes(i,j,k) 获得对应方程的系数小矩阵
+! 			2.call colored_cubes(i,j,k) 获得对应方程的系数小矩阵
 !
 ! 				1).call teal_cubes(i,j,k) 水鸭色的小块儿，2D-HLNS对应的系数小矩阵disturbance=f(x,y)*e^i(bz-wt)
 !
@@ -22,6 +20,8 @@ module matrix_used_as_cofficient
 ! 				3).call skyblue_cubes(i,j,k) 天空蓝色的小块儿，3D-HLNS对应的系数小矩阵,disturbance=f(x,y,z)*e^i(-wt)
 !
 ! 				4).call lilac_cubes(i,j,k) 浅紫色的小块儿，3D-HLNS对应的系数小矩阵,disturbance=f(x,y,z)*e^i(ax-wt)
+!
+!           3.call get_adorned_cubes(i,j,k) 获得坐标变换后的系数小矩阵
 !
 ! -----------------------------------------------------------
 	use penf, only: R_P
@@ -376,6 +376,102 @@ module matrix_used_as_cofficient
 		this%Vxy=Vxy; this%Vxz=Vxz; this%Vyz=Vyz
 	end subroutine get_unadorned_cubes
 
+	subroutine colored_cubes(this,i,j,k)
+		use global_parameters,only:lns_mode
+		implicit none
+		class(lns_OP_point_type),intent(inout) :: this
+		integer,intent(in) :: i,j,k
+		select case (lns_mode)
+			case(0)
+				call this%mint_cubes(i,j,k)
+			case(1)
+				call this%lilac_cubes(i,j,k)
+		end select
+	end subroutine colored_cubes
+
+	subroutine teal_cubes(this,i,j,k)
+		use global_parameters,only:Beta,Omega 
+		implicit none
+		class(lns_OP_point_type),intent(inout) :: this
+		type(lns_OP_point_type) :: Jor
+		integer,intent(in) :: i,j,k
+		call Jor%get_unadorned_cubes(i,j,k)
+		this%G=Jor%G
+		this%A=Jor%A-Li*Beta*Jor%Vxz
+		this%B=Jor%B-Li*Beta*Jor%Vyz
+		this%C=Jor%C
+		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
+		this%A_p=Jor%A_p; this%A_m=Jor%A_m
+		this%A_v=Jor%A_v-Li*Beta*Jor%Vxz
+		this%B_p=Jor%B_p; this%B_m=Jor%B_m
+		this%B_v=Jor%B_v-Li*Beta*Jor%Vyz 
+		this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
+		this%D=Jor%D-Li*Omega*Jor%G+Li*Beta*Jor%C+Beta*Beta*Jor%Vzz
+		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
+		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
+	end subroutine teal_cubes
+
+	subroutine mint_cubes(this,i,j,k)
+		use global_parameters,only:Alpha,Beta,Omega 
+		implicit none 
+		class(lns_OP_point_type),intent(inout) :: this
+		type(lns_OP_point_type) :: Jor
+		integer,intent(in) :: i,j,k
+		call Jor%get_unadorned_cubes(i,j,k)
+		this%G=Jor%G
+		this%A=Jor%A-2.0d0*Li*Alpha*Jor%Vxx-Li*Beta*Jor%Vxz
+		this%B=Jor%B-Li*Alpha*Jor%Vxy-Li*Beta*Jor%Vyz 
+		this%C=Jor%C
+		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
+		this%A_p=Jor%A_p; this%A_m=Jor%A_m
+		this%A_v=Jor%A_v-2.0d0*Li*Alpha*Jor%Vxx-Li*Beta*Jor%Vxz
+		this%B_p=Jor%B_p; this%B_m=Jor%B_m
+		this%B_v=Jor%B_v-Li*Alpha*Jor%Vxy-Li*Beta*Jor%Vyz 
+		this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
+		this%D=Jor%D-Li*Omega*Jor%G+Li*Alpha*Jor%A &
+		+Li*Beta*Jor%C+Alpha*Alpha*Jor%Vxx+Beta*Beta*Jor%Vzz+Alpha*Beta*Jor%Vxz
+		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
+		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0		
+	end subroutine mint_cubes
+
+	subroutine skyblue_cubes(this,i,j,k)
+		use global_parameters,only:Omega
+		implicit none 
+		class(lns_OP_point_type),intent(inout) :: this
+		type(lns_OP_point_type) :: Jor
+		integer,intent(in) :: i,j,k
+		call Jor%get_unadorned_cubes(i,j,k)
+		this%G=Jor%G 
+		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
+		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
+		this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v
+		this%B_p=Jor%B_p; this%B_m=Jor%B_m; this%B_v=Jor%B_v
+		this%C_p=Jor%C_p; this%C_m=Jor%C_m; this%C_v=Jor%C_v
+		this%D=Jor%D-Li*Omega*Jor%G
+		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
+		this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
+	end subroutine skyblue_cubes
+
+	subroutine lilac_cubes(this,i,j,k)
+		use global_parameters,only:Alpha,Omega
+		implicit none 
+		class(lns_OP_point_type),intent(inout) :: this
+		type(lns_OP_point_type) :: Jor
+		integer,intent(in) :: i,j,k
+		call Jor%get_unadorned_cubes(i,j,k)
+		this%G=Jor%G 
+		this%A=Jor%A-2*Li*Alpha*Jor%Vxx
+		this%B=Jor%B-Li*Alpha*Jor%Vxy
+		this%C=Jor%C-Li*Alpha*Jor%Vxz
+		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
+		this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v-2*Li*Alpha*Jor%Vxx
+		this%B_p=Jor%B_p; this%B_m=Jor%B_m; this%B_v=Jor%B_v-Li*Alpha*Jor%Vxy
+		this%C_p=Jor%C_p; this%C_m=Jor%C_m; this%C_v=Jor%C_v-Li*Alpha*Jor%Vxz
+		this%D=Jor%D-Li*Omega*Jor%G+Li*Alpha*Jor%A+Alpha*Alpha*Jor%Vxx
+		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
+		this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
+	end subroutine lilac_cubes
+
 	subroutine get_adorned_cubes(this,i,j,k)
 		use global_parameters
 		implicit none
@@ -396,7 +492,7 @@ module matrix_used_as_cofficient
 		C_p=0.0d0;C_m=0.0d0;C_v=0.0d0
 		Vxx=0.0d0;Vyy=0.0d0;Vzz=0.0d0
 		Vxy=0.0d0;Vxz=0.0d0;Vyz=0.0d0
-		call Jor%get_unadorned_cubes(i,j,k)
+		call Jor%colored_cubes(i,j,k)
 		associate( &
 			xi_x => xi_x(i,j,k), &
 			xi_y => xi_y(i,j,k), &
@@ -468,122 +564,8 @@ module matrix_used_as_cofficient
 		this%B_p=B_p; this%B_m=B_m; this%B_v=B_v
 		this%C_p=C_p; this%C_m=C_m; this%C_v=C_v
 		this%Vxx=Vxx; this%Vyy=Vyy; this%Vzz=Vzz 
-		this%Vxy=Vxy; this%Vxz=Vxz; this%Vyz=Vyz
+		this%Vxy=Vxy; this%Vxz=Vxz; this%Vyz=Vyz 
 	end subroutine get_adorned_cubes
-
-	subroutine colored_cubes(this,i,j,k)
-		use global_parameters,only:lns_mode
-		implicit none
-		class(lns_OP_point_type),intent(inout) :: this
-		integer,intent(in) :: i,j,k
-		select case (lns_mode)
-			case(0)
-				call this%mint_cubes(i,j,k)
-			case(1)
-				call this%lilac_cubes(i,j,k)
-		end select
-		!call this%get_adorned_cubes(i,j,k)	
-		BLOCK 
-		integer :: ii,jj 
-		write(*,*) "-> ",i+1,j+1 
-		write(*,*) " Matrix : A"
-		do ii=1,5 
-		write(*,*) (this%A(ii,jj),jj=1,5)
-		enddo
-		write(*,*) " Matrix : B"
-		do ii=1,5 
-		write(*,*) (this%B(ii,jj),jj=1,5)
-		enddo
-		write(*,*) " Matrix : Vyy"
-		do ii=1,5 
-		write(*,*) (this%Vyy(ii,jj),jj=1,5)
-		enddo
-		read(*,*)
-		END BLOCK 
-	end subroutine colored_cubes
-
-	subroutine teal_cubes(this,i,j,k)
-		use global_parameters,only:Beta,Omega 
-		implicit none
-		class(lns_OP_point_type),intent(inout) :: this
-		type(lns_OP_point_type) :: Jor
-		integer,intent(in) :: i,j,k
-		call Jor%get_adorned_cubes(i,j,k)
-		this%G=Jor%G
-		this%A=Jor%A-Li*Beta*Jor%Vxz
-		this%B=Jor%B-Li*Beta*Jor%Vyz
-		this%C=Jor%C
-		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
-		this%A_p=Jor%A_p; this%A_m=Jor%A_m
-		this%A_v=Jor%A_v-Li*Beta*Jor%Vxz
-		this%B_p=Jor%B_p; this%B_m=Jor%B_m
-		this%B_v=Jor%B_v-Li*Beta*Jor%Vyz 
-		this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
-		this%D=Jor%D-Li*Omega*Jor%G+Li*Beta*Jor%C+Beta*Beta*Jor%Vzz
-		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
-		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
-	end subroutine teal_cubes
-
-	subroutine mint_cubes(this,i,j,k)
-		use global_parameters,only:Alpha,Beta,Omega 
-		implicit none 
-		class(lns_OP_point_type),intent(inout) :: this
-		type(lns_OP_point_type) :: Jor
-		integer,intent(in) :: i,j,k
-		call Jor%get_adorned_cubes(i,j,k)
-		this%G=Jor%G
-		this%A=Jor%A-2.0d0*Li*Alpha*Jor%Vxx-Li*Beta*Jor%Vxz
-		this%B=Jor%B-Li*Alpha*Jor%Vxy-Li*Beta*Jor%Vyz 
-		this%C=Jor%C
-		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
-		this%A_p=Jor%A_p; this%A_m=Jor%A_m
-		this%A_v=Jor%A_v-2.0d0*Li*Alpha*Jor%Vxx-Li*Beta*Jor%Vxz
-		this%B_p=Jor%B_p; this%B_m=Jor%B_m
-		this%B_v=Jor%B_v-Li*Alpha*Jor%Vxy-Li*Beta*Jor%Vyz 
-		this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
-		this%D=Jor%D-Li*Omega*Jor%G+Li*Alpha*Jor%A &
-		+Li*Beta*Jor%C+Alpha*Alpha*Jor%Vxx+Beta*Beta*Jor%Vzz+Alpha*Beta*Jor%Vxz
-		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
-		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0		
-	end subroutine mint_cubes
-
-	subroutine skyblue_cubes(this,i,j,k)
-		use global_parameters,only:Omega
-		implicit none 
-		class(lns_OP_point_type),intent(inout) :: this
-		type(lns_OP_point_type) :: Jor
-		integer,intent(in) :: i,j,k
-		call Jor%get_adorned_cubes(i,j,k)
-		this%G=Jor%G 
-		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
-		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
-		this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v
-		this%B_p=Jor%B_p; this%B_m=Jor%B_m; this%B_v=Jor%B_v
-		this%C_p=Jor%C_p; this%C_m=Jor%C_m; this%C_v=Jor%C_v
-		this%D=Jor%D-Li*Omega*Jor%G
-		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
-		this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
-	end subroutine skyblue_cubes
-
-	subroutine lilac_cubes(this,i,j,k)
-		use global_parameters,only:Alpha,Omega
-		implicit none 
-		class(lns_OP_point_type),intent(inout) :: this
-		type(lns_OP_point_type) :: Jor
-		integer,intent(in) :: i,j,k
-		call Jor%get_adorned_cubes(i,j,k)
-		this%G=Jor%G 
-		this%A=Jor%A-2*Li*Alpha*Jor%Vxx
-		this%B=Jor%B-Li*Alpha*Jor%Vxy
-		this%C=Jor%C-Li*Alpha*Jor%Vxz
-		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
-		this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v-2*Li*Alpha*Jor%Vxx
-		this%B_p=Jor%B_p; this%B_m=Jor%B_m; this%B_v=Jor%B_v-Li*Alpha*Jor%Vxy
-		this%C_p=Jor%C_p; this%C_m=Jor%C_m; this%C_v=Jor%C_v-Li*Alpha*Jor%Vxz
-		this%D=Jor%D-Li*Omega*Jor%G+Li*Alpha*Jor%A+Alpha*Alpha*Jor%Vxx
-		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
-		this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
-	end subroutine lilac_cubes
 
 	subroutine split(A,G,Aplus,Aminus)
 		implicit none

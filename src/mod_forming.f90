@@ -114,7 +114,7 @@ module mod_forming
 						F(:,i,j,k)=matmul(M2,x(:,i,j,k))+matmul(M1,x(:,i,j+1,k))-matmul(M1,x(:,i,j,k))
 					elseif(i>1 .and. j>1 .and. i<(in-2) .and. j<(jn-2))then
 						crab=0.0d0
-						call Jor%colored_cubes(i,j,k)
+						call Jor%get_adorned_cubes(i,j,k)
 						call f3d1r(crab(:,1),x(:,i-2:i,j,k)) ! A1p
 						call f3d1f(crab(:,2),x(:,i:i+2,j,k)) ! A1m
 						call f5d1(crab(:,3),x(:,i-2:i+2,j,k)) ! A2
@@ -138,7 +138,7 @@ module mod_forming
 									-matmul(Vxy,crab(:,13))-matmul(Vxz,crab(:,14))-matmul(Vyz,crab(:,15))
 					else 
 						crab=0.0d0
-						call Jor%colored_cubes(i,j,k)
+						call Jor%get_adorned_cubes(i,j,k)
 						call f4_index(i1,i2,j1,j2,i,j)
 						call f2d1r(crab(:,1),x(:,i-1:i,j,k)) ! A1p
 						call f2d1f(crab(:,2),x(:,i:i+1,j,k)) ! A1m
@@ -232,7 +232,7 @@ module mod_forming
 			ljb=0;lje=1
 			jc_index=1
 			idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
-			call Jor%colored_cubes(i,j,k)
+			call Jor%get_adorned_cubes(i,j,k)
 			do jj=1,5
 				do ii=2,5
 					Jor%D(ii,jj)=0.0d0
@@ -276,7 +276,7 @@ module mod_forming
 		integer,intent(in) :: i,j,k 
 		PetscErrorCode :: ierr
 		integer :: li, lj, lk
-		call Jor%colored_cubes(i,j,k)
+		call Jor%get_adorned_cubes(i,j,k)
 		if(i==0)then
 			lib=0; lie=2
 			ic_index=-2
