@@ -3,9 +3,10 @@ FFLAG= -cpp $(SLEPC_FC_INCLUDES) $(PETSC_FC_INCLUDES)
 LIBS = ${SLEPC_LIB} ${PETSC_LIB}
 
 EXE = START_LNS
-FC = 
+FC =  
 IDIR = 
 CFLAGS = -O2 -g -J$(OBJS_DIR) $(IDIR) -fallow-argument-mismatch
+# CFLAGS = -O2 -g -module $(OBJS_DIR) $(IDIR)
 LFLAGS =  
 
 OBJS_DIR = obj/
@@ -45,8 +46,7 @@ mod_parameters.f90 \
 main.f90 \
 mod_cubes.f90 \
 mod_flowtype.f90 \
-petsc_viewer.f90 \
-loaders.f90 \
+mod_reading.f90 \
 mod_points.f90 
 
 SRCS_F90d4 = \
@@ -80,8 +80,7 @@ mod_parameters.o \
 main.o \
 mod_cubes.o \
 mod_flowtype.o \
-petsc_viewer.o \
-loaders.o \
+mod_reading.o \
 mod_points.o 
 
 OBJS_F90d4 = \
@@ -193,8 +192,7 @@ stringifor_string_t.o: \
 mod_loading.o: \
 	mod_loading.f90 \
 	cfgio_adapter.o \
-	loaders.o \
-	petsc_viewer.o \
+	mod_reading.o \
 	mod_parameters.o
 cfgio_adapter.o: \
 	cfgio_adapter.f90 \
@@ -209,15 +207,12 @@ mod_metrics.o: \
 	mod_parameters.o \
 	mod_difference.o \
 	penf.o
-petsc_viewer.o: \
-	petsc_viewer.f90 \
-	mod_parameters.o
 mod_parameters.o: \
 	mod_parameters.f90 \
 	mod_flowtype.o \
 	penf.o
-loaders.o: \
-	loaders.f90 \
+mod_reading.o: \
+	mod_reading.f90 \
 	mod_parameters.o
 main.o: \
 	main.f90 \

@@ -10,7 +10,8 @@ module mod_parameters
     real(R_P), dimension(:, :, :), allocatable :: xi_xy,xi_xz,xi_yz,eta_xy,eta_yz,eta_xz,phi_xy,phi_yz,phi_xz 
     real(R_P), dimension(:, :, :), allocatable :: xi_x,xi_y,xi_z,eta_x,eta_y,eta_z,phi_x,phi_y,phi_z
     real(R_P), dimension(:, :, :), allocatable :: xx, yy, zz 
-    type(flowtype),dimension(:,:,:),allocatable :: bf 
+    complex(R_P), dimension(:, :, :), allocatable :: disturb
+    type(flowtype), dimension(:,:,:), allocatable :: bf 
     real(R_P), dimension(:, :, :, :), allocatable :: qq
     real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge
@@ -27,7 +28,6 @@ module mod_parameters
     integer :: BC_type 
     integer :: rank   
     integer :: size 
-    Vec :: disturb
     Mat :: Dolphin
     Vec :: Turtle
     Mat :: Whale      

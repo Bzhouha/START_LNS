@@ -79,6 +79,7 @@ module mod_solving
 			call KspGetPC(ksp,pc,ierr)
 			call PCSetType(pc,PCASM,ierr)
 			call PCASMSetOverlap(pc,10,ierr)
+			! call PCFactorSetUseInPlace(pc,PETSC_TRUE,ierr)
 			call PCSetFromOptions(pc,ierr)
 			call PCSetUp(pc,ierr)
 			call KSPSetFromOptions(ksp,ierr)
@@ -115,32 +116,20 @@ module mod_solving
 
 	subroutine set_right_hand_side(comm)
 		implicit none 
-		PetscScalar,pointer :: disturb_array_3d(:,:,:)
-		PetscScalar,pointer :: disturb_array_2d(:,:)
 		PetscScalar,pointer :: RHS_array(:,:,:,:)
 		PetscInt,intent(in) :: comm
 		integer :: j,k 
-		select case (lns_mode)
-		case(0)
+		if (is==0) then
 			call DMDAVecGetArrayF90(meshDA,RHS,RHS_array,ierr)
-			call DMDAVecGetArrayReadF90(disturbDA,disturb,disturb_array_2d,ierr)
-			do j=js,je  
-				RHS_array(:,0,j,0)=disturb_array_2d(:,j)
-			enddo
-			call DMDAVecRestoreArrayReadF90(disturbDA,disturb,disturb_array_2d,ierr)
-			call DMDAVecRestoreArrayF90(meshDA,RHS,RHS_array,ierr)
-		case(1)
-			call DMDAVecGetArrayF90(meshDA,RHS,RHS_array,ierr)
-			call DMDAVecGetArrayReadF90(disturbDA,disturb,disturb_array_3d,ierr)
-			do k=ks,ke 
-				do j=js,je 
-					RHS_array(:,0,j,k)=disturb_array_3d(:,j,k)
+				do k=ks,ke 
+					do j=js,je 
+						RHS_array(:,0,j,k)=disturb(:,j,k)
+					enddo
 				enddo
-			enddo
-			call DMDAVecRestoreArrayReadF90(disturbDA,disturb,disturb_array_3d,ierr)
 			call DMDAVecRestoreArrayF90(meshDA,RHS,RHS_array,ierr)
-		end select
+		endif
 		call MPI_Barrier(comm,ierr)
+		deallocate(disturb)
 	end subroutine set_right_hand_side
 
 	subroutine deallocate_memory()
