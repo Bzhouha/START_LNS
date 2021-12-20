@@ -9,8 +9,8 @@ module mod_parameters
     real(R_P), dimension(:, :, :), allocatable :: xi_xx,xi_yy,xi_zz,eta_xx,eta_yy,eta_zz,phi_xx,phi_yy,phi_zz
     real(R_P), dimension(:, :, :), allocatable :: xi_xy,xi_xz,xi_yz,eta_xy,eta_yz,eta_xz,phi_xy,phi_yz,phi_xz 
     real(R_P), dimension(:, :, :), allocatable :: xi_x,xi_y,xi_z,eta_x,eta_y,eta_z,phi_x,phi_y,phi_z
-    real(R_P), dimension(:, :, :), allocatable :: xx, yy, zz 
     complex(R_P), dimension(:, :, :), allocatable :: disturb
+    real(R_P), dimension(:, :, :), allocatable :: xx,yy,zz 
     type(flowtype), dimension(:,:,:), allocatable :: bf 
     real(R_P), dimension(:, :, :, :), allocatable :: qq
     real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re
@@ -19,6 +19,7 @@ module mod_parameters
     DM :: disturbDA,coordDA,meshDA,DA
     character(len=256) :: gridfile 
     character(len=256) :: flowfile  
+    character(len=256) :: turbfile
     character(len=256) :: dir      
     PetscInt :: in,jn,kn,ln
     complex(R_P) :: Alpha

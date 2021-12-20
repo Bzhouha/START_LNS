@@ -16,12 +16,9 @@ module mod_cfgio_adapter
     implicit none
 
     public :: cfg_loader, cfg_writer
-    !public :: gridfile, flowfile
 
     private
 
-    !character(len=256) :: gridfile   !<grid file
-    !character(len=256) :: flowfile   !<flow file
     type(cfg_t), save :: cfg                            !<cfg类
 
     contains
@@ -36,7 +33,7 @@ module mod_cfgio_adapter
         call cfg_filename(cfg)
         call cfg_freestream(cfg)
         !call cfg_bc(cfg)
-        call cfg_turbulent(cfg)
+        call cfg_hlns(cfg)
         endif
     end subroutine cfg_loader
 
@@ -50,12 +47,39 @@ module mod_cfgio_adapter
         call cfg%write(cfgfn)
     end subroutine cfg_writer
 
+    !> read filenames
+    !> @param[in] cfg cfg_type
+    subroutine cfg_filename(cfg)
+        implicit none
+        character(len=256) :: grid
+        character(len=256) :: flow
+        character(len=256) :: turb
+        character(len=256) :: dir
+        type(cfg_t) :: cfg
+
+        if(cfg%has_key("filenames", "dir")) then
+          call cfg%get("filenames", "dir", dir)
+        else
+          dir="./"
+        endif
+
+        call cfg%get("filenames", "grid", grid)
+        call cfg%get("filenames", "flow", flow)
+        call cfg%get("filenames", "disturb", turb)
+
+        gridfile=trim(dir)//trim(grid)
+        flowfile=trim(dir)//trim(flow)
+        turbfile=trim(dir)//trim(turb)
+
+    end subroutine cfg_filename
+
     !> 来流信息提取函数
     !> @param[in] cfg cfg类
     !> @return 返回配置文件freestream字段相关信息
     subroutine cfg_freestream(cfg)
         implicit none
         type(cfg_t) :: cfg
+
         if(cfg%has_key("freestream", "ma"))then
             call cfg%get("freestream", "ma", Ma)
         else
@@ -63,6 +87,7 @@ module mod_cfgio_adapter
             Ma=0.001d0
             print*, 'The Ma is set to 0.001.'
         endif
+
         if(cfg%has_key("freestream", "re"))then
             call cfg%get("freestream", "re", Re)
         else
@@ -70,6 +95,7 @@ module mod_cfgio_adapter
             Re=1.0d20
             print*, 'The Re is set to 1.0d20.'
         endif
+
         if(cfg%has_key("freestream", "te"))then
             call cfg%get("freestream", "te", Te)
         else
@@ -82,6 +108,7 @@ module mod_cfgio_adapter
     subroutine cfg_bc(cfg)
         implicit none
         type(cfg_t) :: cfg
+
         if(cfg%has_key("Boundary Conditions", "BC_type"))then
             call cfg%get("Boundary Conditions", "BC_type", BC_type)
         else
@@ -90,52 +117,39 @@ module mod_cfgio_adapter
             print*, 'The Boundary_Condition type is set to Dirichlet.'
         endif
     end subroutine cfg_bc
-    !> read filenames
-    !> @param[in] cfg cfg_type
-    subroutine cfg_filename(cfg)
-        implicit none
-        type(cfg_t) :: cfg
-        character(len=256) :: grid
-        character(len=256) :: flow
-        character(len=256) :: dir
-        if(cfg%has_key("filenames", "dir")) then
-          call cfg%get("filenames", "dir", dir)
-        else
-          dir="./"
-        endif
-        call cfg%get("filenames", "grid", grid)
-        call cfg%get("filenames", "flow", flow)
-        gridfile=trim(dir)//trim(grid)
-        flowfile=trim(dir)//trim(flow)
-    end subroutine cfg_filename
 
-    subroutine cfg_turbulent(cfg)
+    subroutine cfg_hlns(cfg)
         use penf,only:R_P
         implicit none
-        type(cfg_t) :: cfg
         real(R_P), allocatable, dimension(:) :: Ber
+        type(cfg_t) :: cfg
         integer :: npar
+
         npar=2
+
         if(cfg%has_key("hlns", "lns_mode"))then
           call cfg%get("hlns", "lns_mode", lns_mode)
         endif
+
         if(cfg%has_key("hlns", "Alpha"))then
           call cfg%get("hlns", "Alpha", Ber, npar)
           Alpha=cmplx(Ber(1),Ber(2),R_P)
         else
           print*, "No Alpha is input."
         endif
+
         if(cfg%has_key("hlns", "Beta"))then
           call cfg%get("hlns", "Beta", Ber, npar)
           Beta=cmplx(Ber(1),Ber(2),R_P)
         else
           print*, "No Beta is input."
         endif
+
         if(cfg%has_key("hlns", "Omega"))then
           call cfg%get("hlns", "Omega", Ber, npar)
           Omega=cmplx(Ber(1),Ber(2),R_P)
         else
           print*, "No Omega is input."
         endif
-    end subroutine cfg_turbulent
+    end subroutine cfg_hlns
 end module mod_cfgio_adapter

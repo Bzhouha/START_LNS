@@ -8,15 +8,14 @@ module mod_reading
 !       call plot3d_load() 读取Plot3D格式的基本流和网格和来流扰动
 !
 ! ----------------------------------------------------------------
-    use petsc
     use mod_parameters
+    use petsc
     implicit none
     public :: load
     private
-    PetscScalar, pointer :: grid(:,:,:,:)
-    PetscScalar, pointer :: flow(:,:,:,:)
     PetscErrorCode :: ierr
     PetscViewer :: Viewer
+    Vec :: Single_disturb
     Vec :: Multi_disturb
     Vec :: Flowfield
     DM :: singleDA 
@@ -29,16 +28,19 @@ contains
         PetscInt, INTENT(in) :: comm
 
         call signal_loading(comm)
-        call load_plot3d()
-
-        call signal_convert()
+        call load_plot3d_file()
         call set_seq_da(comm)
         call load_petsc_file(comm)
+
+        call signal_converting()
+        call convert_petsc_file()
         call to_petsc_files(comm)
 
-        call format_basic_file()
+        call signal_printing()
         call print_info()
+        call format_csv_file()
         call deallocate_memory()
+
     end subroutine load
 
     subroutine signal_loading(comm)
@@ -49,17 +51,17 @@ contains
         call PetscPrintf(comm, " =                                 读    取                                = \n", ierr)
         call PetscPrintf(comm, " ===========================================================================\n", ierr)
         call PetscPrintf(comm, " 「 主 进 程 」\n",ierr)
-    end subroutine signal_loading
-
-    ! 读取普通的数据文件
-    subroutine load_plot3d()
-        implicit none
-        real(R_P),dimension(:,:,:,:),allocatable :: qq_0
-        integer :: l,i,j,k 
         write(*,*) "-----------------------------------"
         write(*,*) "              读取数据              "
         write(*,*) "-----------------------------------"
         write(*,*) " "
+    end subroutine signal_loading
+
+    ! 读取普通的数据文件
+    subroutine load_plot3d_file()
+        implicit none
+        real(R_P),dimension(:,:,:,:),allocatable :: qq_0
+        integer :: l,i,j,k 
 
         ! 读取网格信息
         write(*,*) "开始读取网格数据..."
@@ -69,21 +71,16 @@ contains
         select case (lns_mode)
         case(0)
             read(11) in,jn
-            write(*,"(A,I5)") '   流向的网格数in=',in 
-            write(*,"(A,I5)") '   法向的网格数jn=',jn 
             allocate(xx(in,jn,kn), yy(in,jn,kn), zz(in,jn,kn))
             read(11) xx,yy
             zz=0.0d0
         case(1)
             read(11) in,jn,kn
-            write(*,"(A,I5)") '   流向的网格数in=',in
-            write(*,"(A,I5)") '   法向的网格数jn=',jn
-            write(*,"(A,I5)") '   展向的网格数kn=',kn
             allocate(xx(in,jn,kn), yy(in,jn,kn), zz(in,jn,kn))
             read(11) xx,yy,zz
         end select
         close(11)
-        write(*,*) '  网格数据读取结束。'
+        write(*,*) '  网格信息读取结束。'
         write(*,*) ""
 
         ! 读取基本流数据
@@ -93,15 +90,8 @@ contains
         select case (lns_mode)
         case(0)
             read(12) in,jn,ln
-            write(*,"(A,I5)") '   流向的网格数in=',in 
-            write(*,"(A,I5)") '   法向的网格数jn=',jn 
-            write(*,"(A,I5)") '   自由度ln=',ln 
         case(1)
             read(12) in,jn,kn,ln
-            write(*,"(A,I5)") '   流向的网格数in=',in 
-            write(*,"(A,I5)") '   法向的网格数jn=',jn 
-            write(*,"(A,I5)") '   展向的网格数kn=',kn 
-            write(*,"(A,I5)") '   自由度ln=',ln 
         end select
         allocate(qq_0(in,jn,kn,5))
         read(12)((((qq_0(i,j,k,l), i=1,in), j=1,jn), k=1,kn), l=1,5)
@@ -119,15 +109,7 @@ contains
         write(*,*) '  流场信息读取结束。'
         write(*,*) ""
 
-    end subroutine load_plot3d
-
-    subroutine signal_convert()
-        implicit none 
-        write(*,*) "-----------------------------------"
-        write(*,*) "         转换数据并生成文件          "
-        write(*,*) "-----------------------------------"
-        write(*,*)
-    end subroutine signal_convert
+    end subroutine load_plot3d_file
 
     subroutine set_seq_da(comm)
         implicit none
@@ -139,7 +121,7 @@ contains
         call DMSetUp(coordDA, ierr)
 
         call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
-        &                 DMDA_STENCIL_STAR, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
+        &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
         &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, meshDA, ierr)
         call DMSetUp(meshDA, ierr)
 
@@ -157,15 +139,35 @@ contains
 
     subroutine load_petsc_file(comm)
         implicit none
+        PetscInt, INTENT(in) :: comm
+
+        write(*,*) "开始读取来流数据..."
+        call DMGetGlobalVector(singleDA, Single_disturb, ierr)
+        call PetscViewerBinaryOpen(comm, trim(turbfile), FILE_MODE_READ, Viewer, ierr)
+        call VecLoad(Single_disturb, Viewer, ierr)
+        call PetscViewerDestroy(Viewer, ierr)
+        write(*,*) ' 来流信息读取结束。'
+        write(*,*) ""
+
+    end subroutine load_petsc_file
+
+    subroutine signal_converting()
+        implicit none 
+        write(*,*) "-----------------------------------"
+        write(*,*) "         转换数据并生成文件          "
+        write(*,*) "-----------------------------------"
+        write(*,*)
+    end subroutine signal_converting
+
+    subroutine convert_petsc_file()
+        implicit none
         PetscScalar, pointer :: multi(:,:,:,:)
         PetscScalar, pointer :: grid(:,:,:,:)
         PetscScalar, pointer :: flow(:,:,:,:)
         PetscScalar, pointer :: single(:,:,:)
         integer :: xs, ys, zs, xl, yl, zl
-        PetscInt, INTENT(in) :: comm
         integer :: i, j, k, l
-        Vec :: Single_disturb
-        
+
         write(*,*) "开始转换为PetsC数据类型..."
 
         call DMGetGlobalVector(coordDA, Coord, ierr)
@@ -198,11 +200,6 @@ contains
         call DMDAVecRestoreArrayF90(MeshDA, Flowfield, flow,ierr)
         write(*,*) '  流场信息转换结束。'
 
-        call DMGetGlobalVector(singleDA, Single_disturb, ierr)
-        call PetscViewerBinaryOpen(comm, "in/LPSE_disturbance+1.petsc", FILE_MODE_READ, Viewer, ierr)
-        call VecLoad(Single_disturb, Viewer, ierr)
-        call PetscViewerDestroy(Viewer, ierr)
-
         call DMDAGetCorners(disturbDA,xs,ys,zs,xl,yl,zl,ierr)
         call DMGetGlobalVector(disturbDA, Multi_disturb, ierr)
         call DMDAVecGetArrayF90(disturbDA, Multi_disturb, multi, ierr)
@@ -219,7 +216,7 @@ contains
         write(*,*) '  来流信息转换结束。'
 
         write(*,*)
-    end subroutine load_petsc_file
+    end subroutine convert_petsc_file
 
     subroutine to_petsc_files(comm)
         implicit none
@@ -245,27 +242,45 @@ contains
         write(*,*) ""
     end subroutine to_petsc_files
 
+    subroutine signal_printing()
+        implicit none 
+        write(*,*) "-----------------------------------"
+        write(*,*) "              部分信息              "
+        write(*,*) "-----------------------------------"
+        write(*,*)
+    end subroutine signal_printing
+
     subroutine print_info()
         implicit none
-        write(*,*) "输出部分信息："
-        write(*,*)
         select case (lns_mode)
         case(0)
+            write(*,*) "  HLNS = 2-D"
+            write(*,"(A,I5)") '   流向的网格数in =',in
+            write(*,"(A,I5)") '   法向的网格数jn =',jn
+            write(*,"(A,I5)") '   自由度ln =',ln
             write(*,*) "  Ma =",Ma 
             write(*,*) "  Re =",Re 
             write(*,*) "  Te =",Te
             write(*,"(3X,A,2(F20.15))") "Alpha =",Alpha  
             write(*,"(3X,A,2(F20.15))") "Beta  =",Beta
             write(*,"(3X,A,2(F20.15))") "Omega =",Omega
+            write(*,"(A,F10.5,' ->',F10.5)") "   流向起止位置: ",xx(1, 1, 1), xx(in, 1, 1)
+            write(*,"(A,F10.5,' ->',F10.5)") "   法向起止位置: ",yy(1, 1, 1), yy(1, jn, 1)
         case(1)
+            write(*,*) "  HLNS = 3-D"
+            write(*,"(A,I5)") '   流向的网格数in =',in
+            write(*,"(A,I5)") '   法向的网格数jn =',jn
+            write(*,"(A,I5)") '   展向的网格数kn =',kn
+            write(*,"(A,I5)") '   自由度ln =',ln
             write(*,*) "  Ma =",Ma 
             write(*,*) "  Re =",Re 
             write(*,*) "  Te =",Te
+            write(*,"(3X,A,2(F20.15))") "Alpha =",Alpha
             write(*,"(3X,A,2(F20.15))") "Omega =",Omega
+            write(*,"(A,F10.5,' ->',F10.5)") "   流向起止位置: ",xx(1, 1, 1), xx(in, 1, 1)
+            write(*,"(A,F10.5,' ->',F10.5)") "   法向起止位置: ",yy(1, 1, 1), yy(1, jn, 1)
+            write(*,"(A,F10.5,' ->',F10.5)") "   展向起止位置: ",zz(1, 1, 1), zz(1, 1, kn)
         end select
-        write(*,"(A,F10.5,' ->',F10.5)") "   流向起止位置: ",xx(1, 1, 1), xx(in, 1, 1)
-        write(*,"(A,F10.5,' ->',F10.5)") "   法向起止位置: ",yy(1, 1, 1), yy(1, jn, 1)
-        write(*,"(A,F10.5,' ->',F10.5)") "   展向起止位置: ",zz(1, 1, 1), zz(1, 1, kn)
         write(*,103) "  第一个数据是：",qq(1,1,1,1),qq(2,1,1,1),qq(3,1,1,1),qq(4,1,1,1),qq(5,1,1,1)
         103 format (1X,A,5(F10.5))
         write(*,103) "  第二个数据是：",qq(1,2,1,1),qq(2,2,1,1),qq(3,2,1,1),qq(4,2,1,1),qq(5,2,1,1)
@@ -274,10 +289,9 @@ contains
         104 format (1X,A,3(F10.5))
         write(*,104) "  第二个坐标是：",xx(2,1,1),yy(2,1,1),zz(2,1,1)
         write(*,104) "  第三个坐标是：",xx(3,1,1),yy(3,1,1),zz(3,1,1)
-        write(*,*)
     end subroutine print_info
 
-    subroutine format_basic_file()
+    subroutine format_csv_file()
         implicit none
         integer :: i,j,k
         open(30,file='out/hlns_info.csv',action='write',status='replace')
@@ -305,7 +319,7 @@ contains
             enddo
         enddo
         close(32)
-    end subroutine format_basic_file
+    end subroutine format_csv_file
 
     subroutine deallocate_memory()
         implicit none 
