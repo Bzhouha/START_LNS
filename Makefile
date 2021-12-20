@@ -5,7 +5,7 @@ LIBS = ${SLEPC_LIB} ${PETSC_LIB}
 EXE = START_LNS
 FC =  
 IDIR = 
-CFLAGS = -O2 -g -J$(OBJS_DIR) $(IDIR) -fallow-argument-mismatch
+CFLAGS = -O2 -g -J $(OBJS_DIR) $(IDIR) -fallow-argument-mismatch
 # CFLAGS = -O2 -g -module $(OBJS_DIR) $(IDIR)
 LFLAGS =  
 
