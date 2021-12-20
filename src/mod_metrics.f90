@@ -19,15 +19,16 @@ module mod_metrics
 !           5).call print_info(comm) 输出本模块运行结束信息
 !
 ! ----------------------------------------------------------------
-    use mod_parameters
     use penf, only: R_P
+    use mod_parameters
+    use petsc
     implicit none
+    public :: metric_coefficient
     private
     Vec :: XIX_local, XIY_local, XIZ_local, ETAX_local, ETAY_local, ETAZ_local, PHIX_local, PHIY_local, PHIZ_local 
     real(R_P), dimension(:, :, :), allocatable :: x_xi,x_eta,x_phi,y_xi,y_eta,y_phi,z_xi,z_eta,z_phi
     Vec :: XIX, XIY, XIZ, ETAX, ETAY, ETAZ, PHIX, PHIY, PHIZ 
     real(R_P), dimension(:, :, :), allocatable :: jacobi
-    public :: metric_coefficient
     PetscErrorCode  :: ierr
 contains
     subroutine metric_coefficient(comm)
@@ -585,7 +586,7 @@ contains
         PetscInt,intent(in) :: comm 
         PetscErrorCode :: ierr 
         call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm,"        度量系数矩阵计算结束。    \n",ierr)
+        call PetscPrintf(comm,"         度量系数矩阵计算结束         \n",ierr)
         call PetscPrintf(comm," -----------------------------------\n",ierr)
     end subroutine print_info
 

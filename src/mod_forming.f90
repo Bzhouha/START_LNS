@@ -19,14 +19,14 @@ module mod_forming
 !               2).call whale_catch_fish(i,j,k) 内部部分的填充数据函数
 !
 ! ------------------------------------------------------------------
-	use petsc
 	use penf, only: R_P
+	use mod_parameters
 	use mod_flowtype
 	use mod_cubes
-	use mod_parameters
+	use petsc
 	implicit none
-	private
 	public :: dolphin_coming, whale_coming
+	private
 	type(lns_OP_point_type) :: Jor
 	! 注：这里是列优先，存储在内存中的样子是下面形式的转置，所以实际使用时需要将行列调换，如C1(li,c_index)。
 	real(R_P), parameter, dimension(-2:2,-2:2) :: FDM_1nd_4ORD_CENTER=reshape( [&
@@ -366,7 +366,7 @@ module mod_forming
 		PetscInt,intent(in) :: comm
 		PetscErrorCode :: ierr
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
-		call PetscPrintf(comm,"            矩阵生成结束。             \n",ierr)
+		call PetscPrintf(comm,"            矩阵生成结束             \n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 	end subroutine whale_say_hi
 

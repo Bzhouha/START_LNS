@@ -1,6 +1,7 @@
 module mod_flowtype 
     use penf, only: R_P
     implicit none
+    
     type, public :: basetype
         real(R_P) :: rho=0.0d0
         real(R_P) :: x=0.0d0

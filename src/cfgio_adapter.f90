@@ -122,13 +122,14 @@ module mod_cfgio_adapter
         use penf,only:R_P
         implicit none
         real(R_P), allocatable, dimension(:) :: Ber
+        character(len=256) :: init
         type(cfg_t) :: cfg
         integer :: npar
 
         npar=2
 
-        if(cfg%has_key("hlns", "lns_mode"))then
-          call cfg%get("hlns", "lns_mode", lns_mode)
+        if(cfg%has_key("hlns", "lns mode"))then
+          call cfg%get("hlns", "lns mode", lns_mode)
         endif
 
         if(cfg%has_key("hlns", "Alpha"))then
@@ -151,5 +152,9 @@ module mod_cfgio_adapter
         else
           print*, "No Omega is input."
         endif
+
+        call cfg%get("hlns", "initial guess", init)
+        initfile=trim(init)
+
     end subroutine cfg_hlns
 end module mod_cfgio_adapter

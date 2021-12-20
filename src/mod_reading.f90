@@ -131,7 +131,7 @@ contains
         call DMSetUp(singleDA, ierr)
 
         call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
-        &                 DMDA_STENCIL_BOX, size, jn, kn, PETSC_DECIDE, 1, 1,&
+        &                 DMDA_STENCIL_BOX, sink, jn, kn, PETSC_DECIDE, 1, 1,&
         &                 5, 0, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, disturbDA, ierr)
         call DMSetUp(disturbDA, ierr)
 
@@ -146,8 +146,18 @@ contains
         call PetscViewerBinaryOpen(comm, trim(turbfile), FILE_MODE_READ, Viewer, ierr)
         call VecLoad(Single_disturb, Viewer, ierr)
         call PetscViewerDestroy(Viewer, ierr)
-        write(*,*) ' 来流信息读取结束。'
+        write(*,*) '  来流信息读取结束。'
         write(*,*) ""
+
+        write(*,*) "检查是否存在初值..."
+        inquire(file=trim(initfile),exist=initial_guess)
+        select case (initial_guess)
+        case(.True.)
+            write(*,*) '  True。'
+        case(.False.)
+            write(*,*) '  False。'
+        end select
+        write(*,*)
 
     end subroutine load_petsc_file
 

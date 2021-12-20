@@ -24,10 +24,11 @@ module mod_points
 ! 			6).call print_info(comm) 输出本模块运行结束信息
 !
 ! -----------------------------------------------------------
-	use petsc
-	use mod_parameters
 	use penf, only: R_P
+	use mod_parameters
+	use petsc
 	implicit none
+	public :: partial_derivatives
 	private
 	real(R_P), allocatable, dimension(:, :, :, :) :: qq_x_local_array
 	real(R_P), allocatable, dimension(:, :, :, :) :: qq_y_local_array
@@ -40,7 +41,6 @@ module mod_points
 	real(R_P), allocatable, dimension(:, :, :, :) :: qqi,qqj,qqk
 	real(R_P), allocatable, dimension(:, :, :, :) :: qqx,qqy,qqz
 	Vec :: QQ_X_local,QQ_Y_local,QQ_Z_local
-	public :: partial_derivatives
 	PetscErrorCode :: ierr
 	Vec :: QQ_X,QQ_Y,QQ_Z
 	contains
@@ -252,7 +252,7 @@ module mod_points
 		PetscInt,intent(in) :: comm 
 		PetscErrorCode :: ierr  
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
-		call PetscPrintf(comm,"         导数信息计算结束。      \n",ierr)
+		call PetscPrintf(comm,"           导数信息计算结束       \n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 	end subroutine print_info
 

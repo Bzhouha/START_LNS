@@ -2,11 +2,11 @@
 #include <slepc/finclude/slepc.h>
 
 module mod_output
-    use petsc
     use mod_parameters
+    use petsc
     implicit none
-    private
     public :: result_to_file
+    private
     PetscErrorCode :: ierr
     PetscViewer :: Viewer
     contains

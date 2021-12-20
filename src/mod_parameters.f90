@@ -3,8 +3,8 @@
 
 module mod_parameters
     use penf, only: R_P
-    use petsc
     use mod_flowtype
+    use petsc
     implicit none
     real(R_P), dimension(:, :, :), allocatable :: xi_xx,xi_yy,xi_zz,eta_xx,eta_yy,eta_zz,phi_xx,phi_yy,phi_zz
     real(R_P), dimension(:, :, :), allocatable :: xi_xy,xi_xz,xi_yz,eta_xy,eta_yz,eta_xz,phi_xy,phi_yz,phi_xz 
@@ -20,7 +20,9 @@ module mod_parameters
     character(len=256) :: gridfile 
     character(len=256) :: flowfile  
     character(len=256) :: turbfile
-    character(len=256) :: dir      
+    character(len=256) :: initfile
+    character(len=256) :: dir  
+    logical :: initial_guess    
     PetscInt :: in,jn,kn,ln
     complex(R_P) :: Alpha
     complex(R_P) :: Omega
@@ -28,7 +30,7 @@ module mod_parameters
     integer :: lns_mode
     integer :: BC_type 
     integer :: rank   
-    integer :: size 
+    integer :: sink 
     Mat :: Dolphin
     Vec :: Turtle
     Mat :: Whale      

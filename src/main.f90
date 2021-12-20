@@ -2,11 +2,11 @@
 #include <slepc/finclude/slepc.h>
 
 program main
-	use petsc
-	use mod_parameters,only:rank,size
+	use mod_parameters,only:rank,sink
 	use mod_loading
 	use mod_solving
 	use mod_output
+	use petsc
 	implicit none
 	PetscErrorCode :: ierr
     
@@ -16,7 +16,7 @@ program main
 		stop
 	endif
 	call mpi_comm_rank(PETSC_COMM_WORLD,rank,ierr) 
-	call mpi_comm_size(PETSC_COMM_WORLD,size,ierr) 
+	call mpi_comm_size(PETSC_COMM_WORLD,sink,ierr) 
     
 	call loading_data(PETSC_COMM_WORLD)
 	call working(PETSC_COMM_WORLD)              

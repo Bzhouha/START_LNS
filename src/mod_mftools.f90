@@ -1,6 +1,6 @@
 module mod_mftools
-    use penf, only: R_P
     use mod_parameters, only: in,jn,kn
+    use penf, only: R_P
     implicit none
     public
     contains

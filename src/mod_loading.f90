@@ -5,8 +5,6 @@ module mod_loading ! 读入并分发数据
 	use mod_parameters
 	use mod_reading
 	use petsc
-	implicit none
-
 	public :: loading_data
 	private
 	PetscErrorCode  :: ierr
@@ -16,7 +14,6 @@ module mod_loading ! 读入并分发数据
 	Vec :: Multi_disturb
 	Vec :: Coord_local
 	contains
-
 	subroutine loading_data(comm)
 		implicit none
 		PetscInt, intent(in) :: comm
@@ -25,8 +22,10 @@ module mod_loading ! 读入并分发数据
 
 		call signal_mpiing(comm)
 		call bcast_parameters(comm)
-		call pack_parameters(comm)
+		! call pack_parameters(comm)
 		call set_mpi_da(comm)
+
+		call signal_loading(comm)
 		call load_petsc_file(comm)
 		call get_layout()
 		call load_disturb_mesh_flow()
@@ -66,7 +65,7 @@ module mod_loading ! 读入并分发数据
 		call PetscPrintf(comm, " ===========================================================================\n", ierr)
 		call PetscPrintf(comm, " =                                 计    算                                = \n", ierr)
 		call PetscPrintf(comm, " ===========================================================================\n", ierr)
-		call PetscPrintf(comm, " 「 多 进 程 」\n",ierr)
+		call PetscPrintf(comm, " 「 M P I 」\n",ierr)
 	end subroutine signal_mpiing
 
 	subroutine bcast_parameters(comm)
@@ -74,17 +73,19 @@ module mod_loading ! 读入并分发数据
 		integer(KIND=MPI_ADDRESS_KIND) :: address_in,address_jn,address_kn,address_ln
 		integer(KIND=MPI_ADDRESS_KIND) :: address_mode,address_Ma,address_Re,address_Te
 		integer(KIND=MPI_ADDRESS_KIND) :: address_Alpha,address_Omega,address_Beta
-		integer(KIND=MPI_ADDRESS_KIND) :: displacement(11)
-		integer :: block_lengths(11)
+		integer(KIND=MPI_ADDRESS_KIND) :: address_initguess
+		integer(KIND=MPI_ADDRESS_KIND) :: displacement(12)
+		integer :: block_lengths(12)
 		PetscInt,intent(in) :: comm
 		integer :: pack_type
-		integer :: types(11)
+		integer :: types(12)
 
 		call MPI_Get_address(in,address_in,ierr)
 		call MPI_Get_address(jn,address_jn,ierr)
 		call MPI_Get_address(kn,address_kn,ierr)
 		call MPI_Get_address(ln,address_ln,ierr)
 		call MPI_Get_address(lns_mode,address_mode,ierr)
+		call MPI_Get_address(initial_guess,address_initguess,ierr)
 		call MPI_Get_address(Ma,address_Ma,ierr)
 		call MPI_Get_address(Re,address_Re,ierr)
 		call MPI_Get_address(Te,address_Te,ierr)
@@ -97,20 +98,21 @@ module mod_loading ! 读入并分发数据
 		displacement(3)=address_kn-address_in
 		displacement(4)=address_ln-address_in
 		displacement(5)=address_mode-address_in
-		displacement(6)=address_Ma-address_in
-		displacement(7)=address_Re-address_in
-		displacement(8)=address_Te-address_in
-		displacement(9)=address_Alpha-address_in
-		displacement(10)=address_Beta-address_in
-		displacement(11)=address_Omega-address_in
+		displacement(6)=address_initguess-address_in
+		displacement(7)=address_Ma-address_in
+		displacement(8)=address_Re-address_in
+		displacement(9)=address_Te-address_in
+		displacement(10)=address_Alpha-address_in
+		displacement(11)=address_Beta-address_in
+		displacement(12)=address_Omega-address_in
 
 		block_lengths=1
 
-		types=(/MPI_INT,MPI_INT,MPI_INT,MPI_INT,MPI_INT,&
-				MPI_DOUBLE,MPI_DOUBLE,MPI_DOUBLE,&
-				MPI_DOUBLE_COMPLEX,MPI_DOUBLE_COMPLEX,MPI_DOUBLE_COMPLEX/)
+		types=(/MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_LOGICAL,&
+				MPI_REAL8,MPI_REAL8,MPI_REAL8,&
+				MPI_COMPLEX16,MPI_COMPLEX16,MPI_COMPLEX16/)
 
-		call MPI_Type_create_struct(11,block_lengths,displacement,types,pack_type,ierr)
+		call MPI_Type_create_struct(12,block_lengths,displacement,types,pack_type,ierr)
 		call MPI_Type_commit(pack_type,ierr)
 		call MPI_Bcast(in,1,pack_type,0,comm,ierr)
 		call MPI_Barrier(comm,ierr)
@@ -126,31 +128,35 @@ module mod_loading ! 读入并分发数据
 
 		if(rank==0)then 
 			position = 0
-			call MPI_Pack(in,1,MPI_INT,packbuf,120,position,comm,ierr)
-			call MPI_Pack(jn,1,MPI_INT,packbuf,120,position,comm,ierr)
-			call MPI_Pack(kn,1,MPI_INT,packbuf,120,position,comm,ierr)
-			call MPI_Pack(lns_mode,1,MPI_INT,packbuf,120,position,comm,ierr)
-			call MPI_Pack(Ma,1,MPI_DOUBLE,packbuf,120,position,comm,ierr)
-			call MPI_Pack(Re,1,MPI_DOUBLE,packbuf,120,position,comm,ierr)
-			call MPI_Pack(Te,1,MPI_DOUBLE,packbuf,120,position,comm,ierr)
-			call MPI_Pack(Alpha,1,MPI_DOUBLE_COMPLEX,packbuf,120,position,comm,ierr)
-			call MPI_Pack(Beta,1,MPI_DOUBLE_COMPLEX,packbuf,120,position,comm,ierr)
-			call MPI_Pack(Omega,1,MPI_DOUBLE_COMPLEX,packbuf,120,position,comm,ierr)
+			call MPI_Pack(in,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
+			call MPI_Pack(jn,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
+			call MPI_Pack(kn,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
+			call MPI_Pack(ln,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
+			call MPI_Pack(lns_mode,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
+			call MPI_Pack(initial_guess,1,MPI_LOGICAL,packbuf,120,position,comm,ierr)
+			call MPI_Pack(Ma,1,MPI_REAL8,packbuf,120,position,comm,ierr)
+			call MPI_Pack(Re,1,MPI_REAL8,packbuf,120,position,comm,ierr)
+			call MPI_Pack(Te,1,MPI_REAL8,packbuf,120,position,comm,ierr)
+			call MPI_Pack(Alpha,1,MPI_COMPLEX16,packbuf,120,position,comm,ierr)
+			call MPI_Pack(Beta,1,MPI_COMPLEX16,packbuf,120,position,comm,ierr)
+			call MPI_Pack(Omega,1,MPI_COMPLEX16,packbuf,120,position,comm,ierr)
 		endif 
 		call MPI_Bcast(packbuf,120,MPI_PACKED,0,comm,ierr)
 
 		if(rank/=0)then 
 			position = 0
-			call MPI_Unpack(packbuf,120,position,in,1,MPI_INT,comm,ierr)
-			call MPI_Unpack(packbuf,120,position,jn,1,MPI_INT,comm,ierr)
-			call MPI_Unpack(packbuf,120,position,kn,1,MPI_INT,comm,ierr)
-			call MPI_Unpack(packbuf,120,position,lns_mode,1,MPI_INT,comm,ierr)
-			call MPI_Unpack(packbuf,120,position,Ma,1,MPI_DOUBLE,comm,ierr)
-			call MPI_Unpack(packbuf,120,position,Re,1,MPI_DOUBLE,comm,ierr)
-			call MPI_Unpack(packbuf,120,position,Te,1,MPI_DOUBLE,comm,ierr)
-			call MPI_Unpack(packbuf,120,position,Alpha,1,MPI_DOUBLE_COMPLEX,comm,ierr)
-			call MPI_Unpack(packbuf,120,position,Beta,1,MPI_DOUBLE_COMPLEX,comm,ierr)
-			call MPI_Unpack(packbuf,120,position,Omega,1,MPI_DOUBLE_COMPLEX,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,in,1,MPI_INTEGER4,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,jn,1,MPI_INTEGER4,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,kn,1,MPI_INTEGER4,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,ln,1,MPI_INTEGER4,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,lns_mode,1,MPI_INTEGER4,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,initial_guess,1,MPI_LOGICAL,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,Ma,1,MPI_REAL8,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,Re,1,MPI_REAL8,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,Te,1,MPI_REAL8,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,Alpha,1,MPI_COMPLEX16,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,Beta,1,MPI_COMPLEX16,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,Omega,1,MPI_COMPLEX16,comm,ierr)
 		endif 
 		call MPI_Barrier(comm,ierr)
 
@@ -179,11 +185,19 @@ module mod_loading ! 读入并分发数据
 		call DMSetUp(meshDA, ierr)
 
         call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
-        &                 DMDA_STENCIL_BOX, size, jn, kn, PETSC_DECIDE, 1, 1,&
+        &                 DMDA_STENCIL_BOX, sink, jn, kn, PETSC_DECIDE, 1, 1,&
         &                 5, 0, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, disturbDA, ierr)
         call DMSetUp(disturbDA, ierr)
 
 	end subroutine set_mpi_da
+
+	subroutine signal_loading(comm)
+		implicit none 
+		PetscInt,intent(in) :: comm 
+		call PetscPrintf(comm," -----------------------------------\n",ierr)
+		call PetscPrintf(comm,"               开始分发              \n",ierr)
+		call PetscPrintf(comm," -----------------------------------\n",ierr)
+	end subroutine signal_loading
 
 	subroutine load_petsc_file(comm)
 		implicit none 
@@ -209,6 +223,17 @@ module mod_loading ! 读入并分发数据
 		call PetscViewerBinaryOpen(comm, "in/disturb.petsc",FILE_MODE_READ, Viewer, ierr)
 		call VecLoad(Multi_disturb, Viewer, ierr)
 		call PetscViewerDestroy(Viewer, ierr)
+
+		call DMGetGlobalVector(meshDA, Turtle, ierr)
+		select case (initial_guess)
+		case(.True.)
+			call VecZeroEntries(Turtle,ierr)
+			call PetscViewerBinaryOpen(comm, trim(initfile),FILE_MODE_READ, Viewer, ierr)
+			call VecLoad(Turtle, Viewer, ierr)
+			call PetscViewerDestroy(Viewer, ierr)
+		case(.False.)
+			call VecZeroEntries(Turtle,ierr)
+		end select
 
 	end subroutine load_petsc_file
 
@@ -277,10 +302,10 @@ module mod_loading ! 读入并分发数据
 		implicit none 
 		PetscInt,intent(in) :: comm 
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
-		call PetscPrintf(comm,"        流场和网格数据已录入。      \n",ierr)
+		call PetscPrintf(comm,"               分发结束              \n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
-		call PetscPrintf(comm,"               验证信息              \n",ierr)
+		call PetscPrintf(comm,"               查对信息              \n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 		call PetscPrintf(comm,"\n",ierr)
 	end subroutine signal_printing
@@ -288,17 +313,7 @@ module mod_loading ! 读入并分发数据
 	subroutine print_info()
 		implicit none 
 		if(rank==0)then
-			select case (lns_mode)
-			case(0)
-	            write(*,"(A,I5)") '   流向的网格数in =',in
-	            write(*,"(A,I5)") '   法向的网格数jn =',jn
-	            write(*,"(A,I5)") '   自由度ln =',ln
-			case(1)
-	            write(*,"(A,I5)") '   流向的网格数in =',in
-	            write(*,"(A,I5)") '   法向的网格数jn =',jn
-	            write(*,"(A,I5)") '   展向的网格数kn =',kn
-	            write(*,"(A,I5)") '   自由度ln =',ln
-			end select
+			write(*,"(A,I5)") "   进程数 =",sink
 			write(*,113) "   第一个数据是：",qq(1,0,0,0),qq(2,0,0,0),qq(3,0,0,0),qq(4,0,0,0),qq(5,0,0,0)
 			113 format (A,5(F10.5))
 			write(*,113) "   第二个数据是：",qq(1,1,0,0),qq(2,1,0,0),qq(3,1,0,0),qq(4,1,0,0),qq(5,1,0,0)

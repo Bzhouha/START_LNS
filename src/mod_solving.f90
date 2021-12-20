@@ -20,19 +20,18 @@ module mod_solving
 ! 			4).call deallocate_memory() 释放内存。
 ! 
 ! ----------------------------------------------------
-	use petsc
-	use mod_metrics
-	use mod_points
-	use mod_forming
 	use mod_parameters
+	use mod_metrics
+	use mod_forming
+	use mod_points
+	use petsc
+	public :: working
 	private
 	PetscErrorCode :: ierr
-	public :: working
 	Vec :: RHS
 	contains
 	subroutine working(comm)
 		PetscInt,intent(in) :: comm
-		PetscErrorCode :: ierr 
 		call allocate_memory()
 		call metric_coefficient(comm)
 		call partial_derivatives(comm)
@@ -42,9 +41,7 @@ module mod_solving
 
 	subroutine allocate_memory()
 		implicit none 
-		call DMCreateGlobalVector(meshDA,Turtle,ierr)
 		call VecDuplicate(Turtle,RHS,ierr)
-		call VecZeroEntries(Turtle,ierr)
 		call VecZeroEntries(RHS,ierr)
 	end subroutine allocate_memory
 
