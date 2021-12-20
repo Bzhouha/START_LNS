@@ -131,7 +131,7 @@ module mod_output
         call PetscPrintf(comm, " =                                 输    出                                = \n", ierr)
         call PetscPrintf(comm, " ===========================================================================\n", ierr)
         call PetscPrintf(comm, " ----------------------------------\n", ierr)
-        call PetscPrintf(comm, "              输出结果               \n", ierr)
+        call PetscPrintf(comm, "               输出结果              \n", ierr)
         call PetscPrintf(comm, " ----------------------------------\n", ierr)
     end subroutine signal_ending
 

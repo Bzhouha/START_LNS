@@ -186,7 +186,7 @@ module mod_forming
 		PetscInt,intent(in) :: comm
 		PetscErrorCode :: ierr
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
-		call PetscPrintf(comm,"           开始生成矩阵...             \n",ierr)
+		call PetscPrintf(comm,"             开始生成矩阵             \n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 	end subroutine we_hear_a_sound
  
@@ -366,7 +366,7 @@ module mod_forming
 		PetscInt,intent(in) :: comm
 		PetscErrorCode :: ierr
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
-		call PetscPrintf(comm,"            矩阵生成结束             \n",ierr)
+		call PetscPrintf(comm,"             矩阵生成结束             \n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 	end subroutine whale_say_hi
 
@@ -375,7 +375,7 @@ module mod_forming
 		PetscInt,intent(in) :: comm
 		PetscErrorCode :: ierr
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
-		call PetscPrintf(comm,"           免矩阵生效中...             \n",ierr)
+		call PetscPrintf(comm,"             免矩阵生效中             \n",ierr)
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 	end subroutine dolphin_say_hi
 end module mod_forming
