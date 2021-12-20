@@ -65,18 +65,23 @@ module mod_solving
 		implicit none
 		integer,intent(in) :: level
 		PetscInt,intent(in) :: comm
+		real(8) :: rtol
 		KSP :: ksp 
 		PC :: pc
+		rtol = 1e-8
 		if(level==0)then ! 如果level是0，那么不使用多重网格
 			call KSPCreate(comm,ksp,ierr)
 			call KSPSetOperators(ksp,Whale,Whale,ierr)
 			call KSPSetType(ksp,KSPFGMRES,ierr)
 			call KSPSetInitialGuessNonzero(ksp,initial_guess,ierr)
 			call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
+			call KSPGMRESSetRestart(ksp,40,ierr)
+			call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
 			call KspGetPC(ksp,pc,ierr)
 			call PCSetType(pc,PCASM,ierr)
 			call PCASMSetOverlap(pc,10,ierr)
-			! call PCFactorSetUseInPlace(pc,PETSC_TRUE,ierr)
+			! call PCASMSetSubMatType(pc,MATBAIJ,ierr)
+			call PCFactorSetUseInPlace(pc,PETSC_TRUE,ierr)
 			call PCSetFromOptions(pc,ierr)
 			call PCSetUp(pc,ierr)
 			call KSPSetFromOptions(ksp,ierr)

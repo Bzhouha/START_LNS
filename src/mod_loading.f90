@@ -182,6 +182,7 @@ module mod_loading ! 读入并分发数据
 		call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_PERIODIC,&
 		&                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
 		&                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, meshDA, ierr)
+		call DMSetMatType(meshDA,MATBAIJ,ierr)
 		call DMSetFromOptions(meshDA,ierr)
 		call DMSetUp(meshDA, ierr)
 
