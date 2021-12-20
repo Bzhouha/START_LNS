@@ -313,16 +313,17 @@ module mod_forming
 			case(0)
 				lkb=0; lke=0; kc_index=0
 			case(1)
-				lkb=-2; lke=2; kc_index=0 !!周期边界条件
+				lkb=-2; lke=2; kc_index=0
 		end select
 		idxm=0; 
 		idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
 		associate( &
-		coef_c1 =>FDM_1nd_4ORD_CENTER, &
-		coef_d1 =>FDM_2nd_4ORD_CENTER, &
+		coef_c1 =>FDM_1nd_4ORD_CENTER,   &
+		coef_d1 =>FDM_2nd_4ORD_CENTER,   &
 		coef_c1b=>FDM_1nd_4ORD_Backward, &
-		coef_c1f=>FDM_1nd_4ORD_Forward, &
-		G => Jor%G,     D => Jor%D, &
+		coef_c1f=>FDM_1nd_4ORD_Forward,  &
+		  G => Jor%G,     D => Jor%D,    &
+		  A => Jor%A,     B => Jor%B,     C => Jor%C,   &
 		A_p => Jor%A_p, A_m => Jor%A_m, A_v => Jor%A_v, &
 		B_p => Jor%B_p, B_m => Jor%B_m, B_v => Jor%B_v, &
 		C_p => Jor%C_p, C_m => Jor%C_m, C_v => Jor%C_v, &

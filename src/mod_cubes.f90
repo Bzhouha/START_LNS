@@ -52,7 +52,7 @@ module mod_cubes
 		  procedure::get_unadorned_cubes,get_adorned_cubes
 		  procedure::colored_cubes,teal_cubes,mint_cubes,skyblue_cubes,lilac_cubes
 	end type lns_OP_point_type
-	complex(R_P),parameter :: Li = cmplx(0.0d0,1.0d0,R_P)
+	complex(R_P),parameter :: Ci = cmplx(0.0d0,1.0d0,R_P)
 	contains
 	subroutine get_unadorned_cubes(this,i,j,k)
 		use mod_flowtype
@@ -397,16 +397,15 @@ module mod_cubes
 		integer,intent(in) :: i,j,k
 		call Jor%get_unadorned_cubes(i,j,k)
 		this%G=Jor%G
-		this%A=Jor%A-Li*Beta*Jor%Vxz
-		this%B=Jor%B-Li*Beta*Jor%Vyz
-		this%C=Jor%C
-		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
+		this%A=Jor%A-Ci*Beta*Jor%Vxz
+		this%B=Jor%B-Ci*Beta*Jor%Vyz
+		this%C=0.0d0
 		this%A_p=Jor%A_p; this%A_m=Jor%A_m
-		this%A_v=Jor%A_v-Li*Beta*Jor%Vxz
+		this%A_v=Jor%A_v-Ci*Beta*Jor%Vxz
 		this%B_p=Jor%B_p; this%B_m=Jor%B_m
-		this%B_v=Jor%B_v-Li*Beta*Jor%Vyz 
+		this%B_v=Jor%B_v-Ci*Beta*Jor%Vyz 
 		this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
-		this%D=Jor%D-Li*Omega*Jor%G+Li*Beta*Jor%C+Beta*Beta*Jor%Vzz
+		this%D=Jor%D-Ci*Omega*Jor%G+Ci*Beta*Jor%C+Beta*Beta*Jor%Vzz
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
 		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
 	end subroutine teal_cubes
@@ -419,17 +418,16 @@ module mod_cubes
 		integer,intent(in) :: i,j,k
 		call Jor%get_unadorned_cubes(i,j,k)
 		this%G=Jor%G
-		this%A=Jor%A-2.0d0*Li*Alpha*Jor%Vxx-Li*Beta*Jor%Vxz
-		this%B=Jor%B-Li*Alpha*Jor%Vxy-Li*Beta*Jor%Vyz 
-		this%C=Jor%C
-		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
+		this%A=Jor%A-2.0d0*Ci*Alpha*Jor%Vxx-Ci*Beta*Jor%Vxz
+		this%B=Jor%B-Ci*Alpha*Jor%Vxy-Ci*Beta*Jor%Vyz 
+		this%C=0.0d0
 		this%A_p=Jor%A_p; this%A_m=Jor%A_m
-		this%A_v=Jor%A_v-2.0d0*Li*Alpha*Jor%Vxx-Li*Beta*Jor%Vxz
+		this%A_v=Jor%A_v-2.0d0*Ci*Alpha*Jor%Vxx-Ci*Beta*Jor%Vxz
 		this%B_p=Jor%B_p; this%B_m=Jor%B_m
-		this%B_v=Jor%B_v-Li*Alpha*Jor%Vxy-Li*Beta*Jor%Vyz 
+		this%B_v=Jor%B_v-Ci*Alpha*Jor%Vxy-Ci*Beta*Jor%Vyz 
 		this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
-		this%D=Jor%D-Li*Omega*Jor%G+Li*Alpha*Jor%A &
-		+Li*Beta*Jor%C+Alpha*Alpha*Jor%Vxx+Beta*Beta*Jor%Vzz+Alpha*Beta*Jor%Vxz
+		this%D=Jor%D-Ci*Omega*Jor%G+Ci*Alpha*Jor%A &
+		+Ci*Beta*Jor%C+Alpha*Alpha*Jor%Vxx+Beta*Beta*Jor%Vzz+Alpha*Beta*Jor%Vxz
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
 		this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0		
 	end subroutine mint_cubes
@@ -442,12 +440,11 @@ module mod_cubes
 		integer,intent(in) :: i,j,k
 		call Jor%get_unadorned_cubes(i,j,k)
 		this%G=Jor%G 
-		this%A=Jor%A;this%B=Jor%B;this%C=Jor%C
-		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
+		this%A=Jor%A;	  this%B=Jor%B;		this%C=Jor%C
 		this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v
 		this%B_p=Jor%B_p; this%B_m=Jor%B_m; this%B_v=Jor%B_v
 		this%C_p=Jor%C_p; this%C_m=Jor%C_m; this%C_v=Jor%C_v
-		this%D=Jor%D-Li*Omega*Jor%G
+		this%D=Jor%D-Ci*Omega*Jor%G
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
 		this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
 	end subroutine skyblue_cubes
@@ -460,14 +457,13 @@ module mod_cubes
 		integer,intent(in) :: i,j,k
 		call Jor%get_unadorned_cubes(i,j,k)
 		this%G=Jor%G 
-		this%A=Jor%A-2*Li*Alpha*Jor%Vxx
-		this%B=Jor%B-Li*Alpha*Jor%Vxy
-		this%C=Jor%C-Li*Alpha*Jor%Vxz
-		! Notice that the cubes above has been merged into below ones. Do not touch those durning assembing.
-		this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v-2*Li*Alpha*Jor%Vxx
-		this%B_p=Jor%B_p; this%B_m=Jor%B_m; this%B_v=Jor%B_v-Li*Alpha*Jor%Vxy
-		this%C_p=Jor%C_p; this%C_m=Jor%C_m; this%C_v=Jor%C_v-Li*Alpha*Jor%Vxz
-		this%D=Jor%D-Li*Omega*Jor%G+Li*Alpha*Jor%A+Alpha*Alpha*Jor%Vxx
+		this%A=Jor%A-2*Ci*Alpha*Jor%Vxx
+		this%B=Jor%B-Ci*Alpha*Jor%Vxy
+		this%C=Jor%C-Ci*Alpha*Jor%Vxz
+		this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v-2*Ci*Alpha*Jor%Vxx
+		this%B_p=Jor%B_p; this%B_m=Jor%B_m; this%B_v=Jor%B_v-Ci*Alpha*Jor%Vxy
+		this%C_p=Jor%C_p; this%C_m=Jor%C_m; this%C_v=Jor%C_v-Ci*Alpha*Jor%Vxz
+		this%D=Jor%D-Ci*Omega*Jor%G+Ci*Alpha*Jor%A+Alpha*Alpha*Jor%Vxx
 		this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
 		this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
 	end subroutine lilac_cubes
@@ -493,7 +489,6 @@ module mod_cubes
 		Vxx=0.0d0;Vyy=0.0d0;Vzz=0.0d0
 		Vxy=0.0d0;Vxz=0.0d0;Vyz=0.0d0
 		call Jor%colored_cubes(i,j,k)
-		!call Jor%get_unadorned_cubes(i,j,k)
 		associate( &
 			xi_x => xi_x(i,j,k), &
 			xi_y => xi_y(i,j,k), &

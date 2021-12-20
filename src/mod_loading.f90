@@ -29,6 +29,7 @@ module mod_loading ! 读入并分发数据
 		call load_petsc_file(comm)
 		call get_layout()
 		call load_disturb_mesh_flow()
+		call deallocate_memory()
 		call MPI_Barrier(comm,ierr)
 
 		call signal_printing(comm)
@@ -297,6 +298,14 @@ module mod_loading ! 读入并分发数据
 	  	enddo
 	  	call DMDAVecRestoreArrayReadF90(meshDA, Flowfield_local, flow, ierr)
 	end subroutine load_disturb_mesh_flow
+
+	subroutine deallocate_memory()
+		call VecDestroy(Flowfield_local,ierr)
+		call VecDestroy(Multi_disturb,ierr)
+		call VecDestroy(Coord_local,ierr)
+		call VecDestroy(Flowfield,ierr)
+		call VecDestroy(Coord,ierr)
+	end subroutine deallocate_memory
 
 	subroutine signal_printing(comm)
 		implicit none 

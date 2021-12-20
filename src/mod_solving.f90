@@ -71,7 +71,7 @@ module mod_solving
 			call KSPCreate(comm,ksp,ierr)
 			call KSPSetOperators(ksp,Whale,Whale,ierr)
 			call KSPSetType(ksp,KSPFGMRES,ierr)
-			call KSPSetInitialGuessNonzero(ksp,PETSC_TRUE,ierr)
+			call KSPSetInitialGuessNonzero(ksp,initial_guess,ierr)
 			call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
 			call KspGetPC(ksp,pc,ierr)
 			call PCSetType(pc,PCASM,ierr)

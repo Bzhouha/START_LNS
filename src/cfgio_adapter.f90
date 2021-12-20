@@ -153,7 +153,11 @@ module mod_cfgio_adapter
           print*, "No Omega is input."
         endif
 
-        call cfg%get("hlns", "initial guess", init)
+        if(cfg%has_key("hlns", "initial guess"))then
+            call cfg%get("hlns", "initial guess", init)
+        else
+            init='NULL'
+        endif
         initfile=trim(init)
 
     end subroutine cfg_hlns
