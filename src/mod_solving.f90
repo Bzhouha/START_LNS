@@ -94,6 +94,7 @@ module mod_solving
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
 			call PetscPrintf(comm, "             K S P 信 息             \n", ierr)
 			call PetscPrintf(comm, " -----------------------------------\n", ierr)
+			call PetscPrintf(comm, "\n", ierr)
 			call KSPView(ksp,PETSC_VIEWER_STDOUT_WORLD,ierr)
 		elseif(level>0)then
 			call KSPCreate(comm,ksp,ierr)
