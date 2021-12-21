@@ -49,6 +49,10 @@ module mod_loading ! 读入并分发数据
 			stop
 		endif
 
+		call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
+		call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-sub_pc_factor_in_place",PETSC_NULL_CHARACTER,ierr)
+		call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-pc_asm_sub_mat_type","baij",ierr)
+
 		call cfg_loader(trim(cfg_file))
 
 		if(rank==0)then

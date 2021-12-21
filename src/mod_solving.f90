@@ -77,6 +77,8 @@ module mod_solving
 			call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
 			call KSPGMRESSetRestart(ksp,40,ierr)
 			call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
+			! call KSPSetDiagonalScale(ksp,PETSC_TRUE,ierr)
+			! call KSPSetDiagonalScaleFix(ksp,PETSC_TRUE,ierr)
 			call KspGetPC(ksp,pc,ierr)
 			call PCSetType(pc,PCASM,ierr)
 			call PCASMSetOverlap(pc,10,ierr)
