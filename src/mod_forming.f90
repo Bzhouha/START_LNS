@@ -10,13 +10,13 @@ module mod_forming
 !       
 !           call Mymult(A, X, F, ierr) 免矩阵需要的矩阵向量乘法函数
 !
-!       2.call whale_coming(comm) 矩阵形式的矩阵生成函数
+!       2.call shark_coming(comm) 矩阵形式的矩阵生成函数
 !
-!           call whale_growing_up() 填充数据函数
+!           call shark_growing_up() 填充数据函数
 !
-!               1).call whale_catch_shrimps(i,j,k) 边界部分的填充数据函数
+!               1).call shark_eat_shrimps(i,j,k) 边界部分的填充数据函数
 !
-!               2).call whale_catch_fish(i,j,k) 内部部分的填充数据函数
+!               2).call shark_eat_sardine(i,j,k) 内部部分的填充数据函数
 !
 ! ------------------------------------------------------------------
 	use penf, only: R_P
@@ -25,7 +25,7 @@ module mod_forming
 	use mod_cubes
 	use petsc
 	implicit none
-	public :: dolphin_coming, whale_coming
+	public :: dolphin_coming, shark_coming
 	private
 	type(lns_OP_point_type) :: Jor
 	! 注：这里是列优先，存储在内存中的样子是下面形式的转置，所以实际使用时需要将行列调换，如C1(li,c_index)。
@@ -170,16 +170,16 @@ module mod_forming
 		call DMDAVecRestoreArrayF90(meshDA,F,F_r,ierr)
 	end subroutine Mymult
 
-	subroutine whale_coming(comm)
+	subroutine shark_coming(comm)
 		implicit none
 		PetscInt,intent(in) :: comm
 		PetscErrorCode :: ierr 
 		call we_hear_a_sound(comm)
-		call DMCreateMatrix(meshDA, Whale, ierr)
-		call MatZeroEntries(Whale,ierr)
-		call whale_growing_up()
+		call DMCreateMatrix(meshDA, Shark, ierr)
+		call MatZeroEntries(Shark,ierr)
+		call shark_growing_up()
 		call whale_say_hi(comm)
-	end subroutine whale_coming
+	end subroutine shark_coming
 
 	subroutine we_hear_a_sound(comm)
 		implicit none
@@ -190,26 +190,42 @@ module mod_forming
 		call PetscPrintf(comm," -----------------------------------\n",ierr)
 	end subroutine we_hear_a_sound
  
-	subroutine whale_growing_up()
+	subroutine shark_growing_up()
 		implicit none
 		PetscErrorCode :: ierr
 		integer :: i,j,k
-		do k=ks,ke
-			do j=js,je
-				do i=is,ie
-					if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
-						call whale_catch_shrimps(i,j,k)
-					else
-						call whale_catch_fish(i,j,k)
-					endif
+		write(*,*) differential_scheme
+		select case (differential_scheme)
+		case(0)
+			do k=ks,ke
+				do j=js,je
+					do i=is,ie
+						if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
+							call shark_eat_shrimps(i,j,k)
+						else
+							call shark_eat_tuna(i,j,k)
+						endif
+					enddo
+				enddo
+			enddo 
+		case(1)
+			do k=ks,ke
+				do j=js,je
+					do i=is,ie
+						if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
+							call shark_eat_shrimps(i,j,k)
+						else
+							call shark_eat_sardine(i,j,k)
+						endif
+					enddo
 				enddo
 			enddo
-		enddo 
-		call MatAssemblyBegin(Whale,MAT_FINAL_ASSEMBLY,ierr)
-		call MatAssemblyEnd(Whale,MAT_FINAL_ASSEMBLY,ierr)
-	end subroutine whale_growing_up
+		end select
+		call MatAssemblyBegin(Shark,MAT_FINAL_ASSEMBLY,ierr)
+		call MatAssemblyEnd(Shark,MAT_FINAL_ASSEMBLY,ierr)
+	end subroutine shark_growing_up
 
-	subroutine whale_catch_shrimps(i,j,k)
+	subroutine shark_eat_shrimps(i,j,k)
 		implicit none
 		PetscScalar :: box(5,5),trans(5,5)
 		MatStencil :: idxm(4,1),idxn(4,1)
@@ -227,7 +243,7 @@ module mod_forming
 			box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
 			idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
 			idxn(MatStencil_i, 1)=i; idxn(MatStencil_j, 1)=j; idxn(MatStencil_k, 1)=k
-			call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+			call MatSetValuesBlockedStencil(Shark, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
 		elseif(j==0 .and. i/=0)then
 			ljb=0;lje=1
 			jc_index=1
@@ -248,7 +264,7 @@ module mod_forming
 				box=0.0d0;trans=0.0d0
 				box=delta_j(lj)*Jor%D+coef_c1f(lj,jc_index)*Jor%B
 				trans=transpose(box)
-				call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+				call MatSetValuesBlockedStencil(Shark, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
 			enddo
 		elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
 			lib=-2;lie=0
@@ -261,13 +277,13 @@ module mod_forming
 				box=0.0d0
 				box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
 				box=coef_c1b(li,ic_index)*box
-				call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+				call MatSetValuesBlockedStencil(Shark, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
 			enddo
 		endif
 		end associate
-	end subroutine whale_catch_shrimps
+	end subroutine shark_eat_shrimps
 
-	subroutine whale_catch_fish(i,j,k)
+	subroutine shark_eat_sardine(i,j,k)
 		implicit none
 		integer :: ic_index, jc_index, kc_index
 		integer :: lib, lie, ljb, lje, lkb, lke
@@ -323,7 +339,6 @@ module mod_forming
 		coef_c1b=>FDM_1nd_4ORD_Backward, &
 		coef_c1f=>FDM_1nd_4ORD_Forward,  &
 		  G => Jor%G,     D => Jor%D,    &
-		  A => Jor%A,     B => Jor%B,     C => Jor%C,   &
 		A_p => Jor%A_p, A_m => Jor%A_m, A_v => Jor%A_v, &
 		B_p => Jor%B_p, B_m => Jor%B_m, B_v => Jor%B_v, &
 		C_p => Jor%C_p, C_m => Jor%C_m, C_v => Jor%C_v, &
@@ -355,12 +370,96 @@ module mod_forming
 						delta_j(lj)*Vxz*coef_c1(li,ic_index)*coef_c1(lk,kc_index)- &
 						delta_i(li)*Vyz*coef_c1(lj,jc_index)*coef_c1(lk,kc_index)
 					trans=transpose(box)
-					call MatSetValuesBlockedStencil(whale, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+					call MatSetValuesBlockedStencil(Shark, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
 				end do
 			end do
 		end do
 		end associate
-	end subroutine whale_catch_fish
+	end subroutine shark_eat_sardine
+
+	subroutine shark_eat_tuna(i,j,k)
+		implicit none
+		integer :: ic_index, jc_index, kc_index
+		integer :: lib, lie, ljb, lje, lkb, lke
+		PetscScalar :: box(5,5),trans(5,5)
+		MatStencil :: idxm(4,1),idxn(4,1)
+		integer,intent(in) :: i,j,k 
+		PetscErrorCode :: ierr
+		integer :: li, lj, lk
+		call Jor%get_adorned_cubes(i,j,k)
+		if(i==0)then
+			lib=0; lie=2
+			ic_index=-2
+		elseif(i==1)then
+			lib=-1; lie=2
+			ic_index=-1
+		elseif(i==(in-2))then
+			lib=-2; lie=1
+			ic_index=1
+		elseif(i==(in-1))then
+			lib=-2; lie=0
+			ic_index=2
+		else
+			lib=-2; lie=2
+			ic_index=0
+		endif
+		if(j==0)then
+			ljb=0; lje=2
+			jc_index=-2
+		elseif(j==1)then
+			ljb=-1; lje=2
+			jc_index=-1
+		elseif(j==(jn-2))then
+			ljb=-2; lje=1
+			jc_index=1
+		elseif(j==(jn-1))then
+			ljb=-2; lje=0
+			jc_index=2
+		else
+			ljb=-2; lje=2
+			jc_index=0
+		endif
+		select case (lns_mode)
+			case(0)
+				lkb=0; lke=0; kc_index=0
+			case(1)
+				lkb=-2; lke=2; kc_index=0
+		end select
+		idxm=0; 
+		idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
+		associate( &
+		coef_c1 =>FDM_1nd_4ORD_CENTER,   &
+		coef_d1 =>FDM_2nd_4ORD_CENTER,   &
+		  G => Jor%G,     D => Jor%D,    &
+		  A => Jor%A,     B => Jor%B,     C => Jor%C,   &
+		Vxx => Jor%Vxx, Vyy => Jor%Vyy, Vzz => Jor%Vzz, &
+		Vxy => Jor%Vxy, Vxz => Jor%Vxz, Vyz => Jor%Vyz)
+		do lk = lkb, lke
+			do lj = ljb, lje
+				do li = lib, lie
+					idxn=0;box=0.0d0;trans=0.0d0
+					idxn(MatStencil_i, 1)=i+li
+					idxn(MatStencil_j, 1)=j+lj
+					idxn(MatStencil_k, 1)=k+lk
+					!if(idxn(MatStencil_k, 1)>(kn-1)) idxn(MatStencil_k, 1)=idxn(MatStencil_k, 1)-kn
+					!if(idxn(MatStencil_k, 1)<0)  idxn(MatStencil_k, 1)=idxn(MatStencil_k, 1)+kn  !! kn为展向一个周期的点数
+					box=delta_i(li)*delta_j(lj)*delta_k(lk)*D + &
+						delta_j(lj)*delta_k(lk)*A*coef_c1(li,ic_index)+ &
+						delta_i(li)*delta_k(lk)*B*coef_c1(lj,jc_index)+ &
+						delta_i(li)*delta_j(lj)*C*coef_c1(lk,kc_index)+ &
+						delta_j(lj)*delta_k(lk)*Vxx*coef_d1(li,ic_index)- &
+						delta_i(li)*delta_k(lk)*Vyy*coef_d1(lj,jc_index)- &
+						delta_i(li)*delta_j(lj)*Vzz*coef_d1(lk,kc_index)- &
+						delta_k(lk)*Vxy*coef_c1(li,ic_index)*coef_c1(lj,jc_index)- &
+						delta_j(lj)*Vxz*coef_c1(li,ic_index)*coef_c1(lk,kc_index)- &
+						delta_i(li)*Vyz*coef_c1(lj,jc_index)*coef_c1(lk,kc_index)
+					trans=transpose(box)
+					call MatSetValuesBlockedStencil(Shark, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+				end do
+			end do
+		end do
+		end associate
+	end subroutine shark_eat_tuna
 
 	subroutine whale_say_hi(comm)
 		implicit none

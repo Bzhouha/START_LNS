@@ -21,8 +21,9 @@ module mod_parameters
     character(len=256) :: flowfile  
     character(len=256) :: turbfile
     character(len=256) :: initfile
+    integer :: differential_scheme
     character(len=256) :: dir  
-    logical :: initial_guess    
+    logical :: initial_guess 
     PetscInt :: in,jn,kn,ln
     complex(R_P) :: Alpha
     complex(R_P) :: Omega
@@ -33,5 +34,5 @@ module mod_parameters
     integer :: sink 
     Mat :: Dolphin
     Vec :: Turtle
-    Mat :: Whale      
+    Mat :: Shark      
 end module mod_parameters

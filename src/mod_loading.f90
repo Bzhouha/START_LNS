@@ -33,7 +33,7 @@ module mod_loading ! 读入并分发数据
 		call MPI_Barrier(comm,ierr)
 
 		call signal_printing(comm)
-		call print_info()
+		call print_info(comm)
 	end subroutine loading_data
 
 	subroutine read_argv_and_file(comm)
@@ -78,18 +78,19 @@ module mod_loading ! 读入并分发数据
 		integer(KIND=MPI_ADDRESS_KIND) :: address_in,address_jn,address_kn,address_ln
 		integer(KIND=MPI_ADDRESS_KIND) :: address_mode,address_Ma,address_Re,address_Te
 		integer(KIND=MPI_ADDRESS_KIND) :: address_Alpha,address_Omega,address_Beta
-		integer(KIND=MPI_ADDRESS_KIND) :: address_initguess
-		integer(KIND=MPI_ADDRESS_KIND) :: displacement(12)
-		integer :: block_lengths(12)
+		integer(KIND=MPI_ADDRESS_KIND) :: address_initguess,address_diffsch
+		integer(KIND=MPI_ADDRESS_KIND) :: displacement(13)
+		integer :: block_lengths(13)
 		PetscInt,intent(in) :: comm
 		integer :: pack_type
-		integer :: types(12)
+		integer :: types(13)
 
 		call MPI_Get_address(in,address_in,ierr)
 		call MPI_Get_address(jn,address_jn,ierr)
 		call MPI_Get_address(kn,address_kn,ierr)
 		call MPI_Get_address(ln,address_ln,ierr)
 		call MPI_Get_address(lns_mode,address_mode,ierr)
+		call MPI_Get_address(differential_scheme,address_diffsch,ierr)
 		call MPI_Get_address(initial_guess,address_initguess,ierr)
 		call MPI_Get_address(Ma,address_Ma,ierr)
 		call MPI_Get_address(Re,address_Re,ierr)
@@ -103,21 +104,22 @@ module mod_loading ! 读入并分发数据
 		displacement(3)=address_kn-address_in
 		displacement(4)=address_ln-address_in
 		displacement(5)=address_mode-address_in
-		displacement(6)=address_initguess-address_in
-		displacement(7)=address_Ma-address_in
-		displacement(8)=address_Re-address_in
-		displacement(9)=address_Te-address_in
-		displacement(10)=address_Alpha-address_in
-		displacement(11)=address_Beta-address_in
-		displacement(12)=address_Omega-address_in
+		displacement(6)=address_diffsch-address_in
+		displacement(7)=address_initguess-address_in
+		displacement(8)=address_Ma-address_in
+		displacement(9)=address_Re-address_in
+		displacement(10)=address_Te-address_in
+		displacement(11)=address_Alpha-address_in
+		displacement(12)=address_Beta-address_in
+		displacement(13)=address_Omega-address_in
 
 		block_lengths=1
 
-		types=(/MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_LOGICAL,&
-				MPI_REAL8,MPI_REAL8,MPI_REAL8,&
+		types=(/MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,&
+				MPI_INTEGER4,MPI_LOGICAL,MPI_REAL8,MPI_REAL8,MPI_REAL8,&
 				MPI_COMPLEX16,MPI_COMPLEX16,MPI_COMPLEX16/)
 
-		call MPI_Type_create_struct(12,block_lengths,displacement,types,pack_type,ierr)
+		call MPI_Type_create_struct(13,block_lengths,displacement,types,pack_type,ierr)
 		call MPI_Type_commit(pack_type,ierr)
 		call MPI_Bcast(in,1,pack_type,0,comm,ierr)
 		call MPI_Barrier(comm,ierr)
@@ -138,6 +140,7 @@ module mod_loading ! 读入并分发数据
 			call MPI_Pack(kn,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
 			call MPI_Pack(ln,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
 			call MPI_Pack(lns_mode,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
+			call MPI_Pack(differential_scheme,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
 			call MPI_Pack(initial_guess,1,MPI_LOGICAL,packbuf,120,position,comm,ierr)
 			call MPI_Pack(Ma,1,MPI_REAL8,packbuf,120,position,comm,ierr)
 			call MPI_Pack(Re,1,MPI_REAL8,packbuf,120,position,comm,ierr)
@@ -155,6 +158,7 @@ module mod_loading ! 读入并分发数据
 			call MPI_Unpack(packbuf,120,position,kn,1,MPI_INTEGER4,comm,ierr)
 			call MPI_Unpack(packbuf,120,position,ln,1,MPI_INTEGER4,comm,ierr)
 			call MPI_Unpack(packbuf,120,position,lns_mode,1,MPI_INTEGER4,comm,ierr)
+			call MPI_Unpack(packbuf,120,position,differential_scheme,1,MPI_INTEGER4,comm,ierr)
 			call MPI_Unpack(packbuf,120,position,initial_guess,1,MPI_LOGICAL,comm,ierr)
 			call MPI_Unpack(packbuf,120,position,Ma,1,MPI_REAL8,comm,ierr)
 			call MPI_Unpack(packbuf,120,position,Re,1,MPI_REAL8,comm,ierr)
@@ -252,6 +256,17 @@ module mod_loading ! 读入并分发数据
 		ige=igs+igl-1; jge=jgs+jgl-1; kge=kgs+kgl-1
 		ie=is+il-1; je=js+jl-1; ke=ks+kl-1
 
+		BLOCK 
+		integer :: xs,ys,zs,xl,yl,zl,xe,ye,ze
+		write(*,981) 'DA:',rank,' |',is,'->',ie,js,'->',je,ks,'->',ke
+		981 format (A,I3,A,3(I5,A,I5))
+		call MPI_Barrier(PETSC_COMM_WORLD,ierr)
+		call DMDAGetCorners(disturbDA,xs,ys,zs,xl,yl,zl,ierr)
+		xe=xs+xl-1;ye=ys+yl-1;ze=zs+zl-1
+		write(*,981) 'DisturbDA:',rank,' |',xs,'->',xe,ys,'->',ye,zs,'->',ze
+		call MPI_Barrier(PETSC_COMM_WORLD,ierr)
+		END BLOCK
+
 	end subroutine get_layout
 
 	subroutine load_disturb_mesh_flow()
@@ -324,19 +339,40 @@ module mod_loading ! 读入并分发数据
 		call PetscPrintf(comm,"\n",ierr)
 	end subroutine signal_printing
 
-	subroutine print_info()
+	subroutine print_info(comm)
 		implicit none 
+		PetscInt,intent(in) :: comm
 		if(rank==0)then
-			write(*,"(A,I5)") "   进程数 =",sink
-			write(*,113) "   第一个数据是：",qq(1,0,0,0),qq(2,0,0,0),qq(3,0,0,0),qq(4,0,0,0),qq(5,0,0,0)
-			113 format (A,5(F10.5))
-			write(*,113) "   第二个数据是：",qq(1,1,0,0),qq(2,1,0,0),qq(3,1,0,0),qq(4,1,0,0),qq(5,1,0,0)
-			write(*,113) "   第三个数据是：",qq(1,2,0,0),qq(2,2,0,0),qq(3,2,0,0),qq(4,2,0,0),qq(5,2,0,0)
-			write(*,114) "   第一个坐标是：",xx(0,0,0),yy(0,0,0),zz(0,0,0)
-			114 format (A,3(F10.5))
-			write(*,114) "   第二个坐标是：",xx(1,0,0),yy(1,0,0),zz(1,0,0)
-			write(*,114) "   第三个坐标是：",xx(2,0,0),yy(2,0,0),zz(2,0,0)
+			write(*,"(3X,A,I5)") "进程数 =",sink
+			write(*,*)
+			write(*,"(3X,A)") "查对广播"
+		endif
+		call MPI_Barrier(comm,ierr)
+		if(rank==(sink-1))then
+            write(*,"(7X,A,I5,1X,A,I5)") "Rank:",rank,"法向的网格数jn =",jn
+			write(*,"(7X,A,I5,1X,A,F20.10)") "Rank:",rank,"Re    =",Re
+			write(*,"(7X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Omega =",Omega
+		endif
+		call MPI_Barrier(comm,ierr)
+		if(rank==0)then
+            write(*,"(7X,A,I5,1X,A,I5)") "Rank:",rank,"法向的网格数jn =",jn
+			write(*,"(7X,A,I5,1X,A,F20.10)") "Rank:",rank,"Re    =",Re
+			write(*,"(7X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Omega =",Omega
+		endif
+		call MPI_Barrier(comm,ierr)
+		if(rank==0)then
+			write(*,*)
+			write(*,"(3X,A)") "部分数据"
+			write(*,113) "第一个数据是：",qq(1,0,0,0),qq(2,0,0,0),qq(3,0,0,0),qq(4,0,0,0),qq(5,0,0,0)
+			113 format (5X,A,5(F10.5))
+			write(*,113) "第二个数据是：",qq(1,1,0,0),qq(2,1,0,0),qq(3,1,0,0),qq(4,1,0,0),qq(5,1,0,0)
+			write(*,113) "第三个数据是：",qq(1,2,0,0),qq(2,2,0,0),qq(3,2,0,0),qq(4,2,0,0),qq(5,2,0,0)
+			write(*,114) "第一个坐标是：",xx(0,0,0),yy(0,0,0),zz(0,0,0)
+			114 format (5X,A,3(F10.5))
+			write(*,114) "第二个坐标是：",xx(1,0,0),yy(1,0,0),zz(1,0,0)
+			write(*,114) "第三个坐标是：",xx(2,0,0),yy(2,0,0),zz(2,0,0)
 			write(*,*)
 		endif
+		call MPI_Barrier(comm,ierr)
 	end subroutine print_info
 end module mod_loading
