@@ -58,9 +58,9 @@ module mod_cfgio_adapter
         type(cfg_t) :: cfg
 
         if(cfg%has_key("filenames", "dir")) then
-          call cfg%get("filenames", "dir", dir)
+            call cfg%get("filenames", "dir", dir)
         else
-          dir="./"
+            dir="./"
         endif
 
         call cfg%get("filenames", "grid", grid)
