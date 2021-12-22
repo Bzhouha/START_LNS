@@ -5,9 +5,15 @@ LIBS = ${SLEPC_LIB} ${PETSC_LIB}
 EXE = START_LNS
 FC =  
 IDIR = 
-CFLAGS = -O2 -g -J $(OBJS_DIR) $(IDIR) -fallow-argument-mismatch
+# CFLAGS = -O2 -g -J $(OBJS_DIR) $(IDIR) -fallow-argument-mismatch
 # CFLAGS = -O2 -g -module $(OBJS_DIR) $(IDIR)
 LFLAGS =  
+
+ifeq ($(shell uname -s),Darwin)
+CFLAGS = -O2 -g -J $(OBJS_DIR) $(IDIR) -fallow-argument-mismatch
+else ifeq ($(shell uname -s),Linux)
+CFLAGS = -O2 -g -module $(OBJS_DIR) $(IDIR)
+endif
 
 OBJS_DIR = obj/
 EXE_DIR = bin/
@@ -123,7 +129,6 @@ clean ::
 	@rm -f $(OBJS_DIR)*.mod
 	@echo " -               Clean               -"
 	@echo " =      Objs have been deleted.      ="
-	@echo " =   Mods have been sweeping away.   ="
 
 install:
 	@mkdir -p ~/bin

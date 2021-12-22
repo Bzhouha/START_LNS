@@ -256,17 +256,6 @@ module mod_loading ! 读入并分发数据
 		ige=igs+igl-1; jge=jgs+jgl-1; kge=kgs+kgl-1
 		ie=is+il-1; je=js+jl-1; ke=ks+kl-1
 
-		BLOCK 
-		integer :: xs,ys,zs,xl,yl,zl,xe,ye,ze
-		write(*,981) 'DA:',rank,' |',is,'->',ie,js,'->',je,ks,'->',ke
-		981 format (A,I3,A,3(I5,A,I5))
-		call MPI_Barrier(PETSC_COMM_WORLD,ierr)
-		call DMDAGetCorners(disturbDA,xs,ys,zs,xl,yl,zl,ierr)
-		xe=xs+xl-1;ye=ys+yl-1;ze=zs+zl-1
-		write(*,981) 'DisturbDA:',rank,' |',xs,'->',xe,ys,'->',ye,zs,'->',ze
-		call MPI_Barrier(PETSC_COMM_WORLD,ierr)
-		END BLOCK
-
 	end subroutine get_layout
 
 	subroutine load_disturb_mesh_flow()
@@ -345,24 +334,25 @@ module mod_loading ! 读入并分发数据
 		if(rank==0)then
 			write(*,"(3X,A,I5)") "进程数 =",sink
 			write(*,*)
-			write(*,"(3X,A)") "查对广播"
+			write(*,"(3X,A)") "查对广播和部分数据"
+			write(*,*)
 		endif
 		call MPI_Barrier(comm,ierr)
 		if(rank==(sink-1))then
-            write(*,"(7X,A,I5,1X,A,I5)") "Rank:",rank,"法向的网格数jn =",jn
-			write(*,"(7X,A,I5,1X,A,F20.10)") "Rank:",rank,"Re    =",Re
-			write(*,"(7X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Omega =",Omega
+            write(*,"(5X,A,I5,1X,A,I5)") "Rank:",rank,"法向的网格数jn =",jn
+			write(*,"(5X,A,I5,1X,A,F20.10)") "Rank:",rank,"Re    =",Re
+			write(*,"(5X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Alpha =",Alpha
+			write(*,"(5X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Omega =",Omega
 		endif
 		call MPI_Barrier(comm,ierr)
 		if(rank==0)then
-            write(*,"(7X,A,I5,1X,A,I5)") "Rank:",rank,"法向的网格数jn =",jn
-			write(*,"(7X,A,I5,1X,A,F20.10)") "Rank:",rank,"Re    =",Re
-			write(*,"(7X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Omega =",Omega
+            write(*,"(5X,A,I5,1X,A,I5)") "Rank:",rank,"法向的网格数jn =",jn
+			write(*,"(5X,A,I5,1X,A,F20.10)") "Rank:",rank,"Re    =",Re
+			write(*,"(5X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Alpha =",Alpha
+			write(*,"(5X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Omega =",Omega
 		endif
 		call MPI_Barrier(comm,ierr)
 		if(rank==0)then
-			write(*,*)
-			write(*,"(3X,A)") "部分数据"
 			write(*,113) "第一个数据是：",qq(1,0,0,0),qq(2,0,0,0),qq(3,0,0,0),qq(4,0,0,0),qq(5,0,0,0)
 			113 format (5X,A,5(F10.5))
 			write(*,113) "第二个数据是：",qq(1,1,0,0),qq(2,1,0,0),qq(3,1,0,0),qq(4,1,0,0),qq(5,1,0,0)
@@ -371,7 +361,6 @@ module mod_loading ! 读入并分发数据
 			114 format (5X,A,3(F10.5))
 			write(*,114) "第二个坐标是：",xx(1,0,0),yy(1,0,0),zz(1,0,0)
 			write(*,114) "第三个坐标是：",xx(2,0,0),yy(2,0,0),zz(2,0,0)
-			write(*,*)
 		endif
 		call MPI_Barrier(comm,ierr)
 	end subroutine print_info

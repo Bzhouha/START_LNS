@@ -585,6 +585,7 @@ contains
         implicit none
         PetscInt,intent(in) :: comm 
         PetscErrorCode :: ierr 
+        call PetscPrintf(comm,"\n",ierr)
         call PetscPrintf(comm," -----------------------------------\n",ierr)
         call PetscPrintf(comm,"         度量系数矩阵计算结束         \n",ierr)
         call PetscPrintf(comm," -----------------------------------\n",ierr)

@@ -194,7 +194,6 @@ module mod_forming
 		implicit none
 		PetscErrorCode :: ierr
 		integer :: i,j,k
-		write(*,*) differential_scheme
 		select case (differential_scheme)
 		case(0)
 			do k=ks,ke
