@@ -8,7 +8,7 @@ module mod_forming
 !
 !       1.call dolphin_coming(comm) 免矩阵形式的矩阵生成函数
 !       
-!           call Mymult(A, X, F, ierr) 免矩阵需要的矩阵向量乘法函数
+!           call dolphin_growing_up(A, X, F, ierr) 免矩阵需要的矩阵向量乘法函数
 !
 !       2.call shark_coming(comm) 矩阵形式的矩阵生成函数
 !
@@ -68,13 +68,13 @@ module mod_forming
         PetscInt :: ls
         call VecGetLocalSize(turtle,ls,ierr)
         call MatCreateShell(comm,ls,ls,PETSC_DETERMINE,PETSC_DETERMINE,PETSC_NULL_INTEGER,Dolphin,ierr)
-        call MatShellSetOperation(Dolphin,MATOP_MULT,Mymult,ierr)
+        call MatShellSetOperation(Dolphin,MATOP_MULT,dolphin_growing_up,ierr)
         call MatAssemblyBegin(Dolphin,MAT_FINAL_ASSEMBLY,ierr)
         call MatAssemblyEnd(Dolphin,MAT_FINAL_ASSEMBLY,ierr)
         call dolphin_say_hi(comm)
     end subroutine dolphin_coming
 
-    subroutine Mymult(A, X, F, ierr)
+    subroutine dolphin_growing_up(A, X, F, ierr)
         use mod_mftools
         implicit none
         PetscScalar,pointer :: F_r(:,:,:,:),X_r(:,:,:,:)
@@ -168,7 +168,7 @@ module mod_forming
         end associate
         call DMDAVecRestoreArrayReadF90(meshDA,Clams,X_r,ierr)
         call DMDAVecRestoreArrayF90(meshDA,F,F_r,ierr)
-    end subroutine Mymult
+    end subroutine dolphin_growing_up
 
     subroutine shark_coming(comm)
         implicit none
