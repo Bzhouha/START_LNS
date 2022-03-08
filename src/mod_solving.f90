@@ -15,7 +15,7 @@ module mod_solving
 !
 !               b).call shark_ready(comm,level) 设置显式矩阵求解方法。
 !
-!           3).call set_right_hand_side(comm) 设置右边量，即来流。
+!           3).call set_right_hand_side(comm) 设置右边量，即边界。
 !
 !           4).call deallocate_memory() 释放内存。
 ! 
