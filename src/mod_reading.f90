@@ -268,11 +268,6 @@ contains
             write(*,"(A,I5)") '   流向的网格数in =',in
             write(*,"(A,I5)") '   法向的网格数jn =',jn
             write(*,"(A,I5)") '   自由度ln =',ln
-            if(differential_scheme==0)then
-                write(*,*) '  差分方式 = Central'
-            else
-                write(*,*) '  差分方式 = Upwind'
-            endif
             write(*,*) "  Ma    =",Ma 
             write(*,*) "  Re    =",Re 
             write(*,*) "  Te    =",Te
@@ -287,11 +282,6 @@ contains
             write(*,"(A,I5)") '   法向的网格数jn =',jn
             write(*,"(A,I5)") '   展向的网格数kn =',kn
             write(*,"(A,I5)") '   自由度ln =',ln
-            if(differential_scheme==0)then
-                write(*,*) '  差分方式 = Central'
-            else
-                write(*,*) '  差分方式 = Upwind'
-            endif
             write(*,*) "  Ma    =",Ma 
             write(*,*) "  Re    =",Re 
             write(*,*) "  Te    =",Te

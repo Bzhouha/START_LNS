@@ -15,9 +15,7 @@ module mod_solving
 !
 !               b).call shark_ready(comm,level) 设置显式矩阵求解方法。
 !
-!           3).call set_right_hand_side(comm) 设置右边量，即边界。
-!
-!           4).call deallocate_memory() 释放内存。
+!           3).call deallocate_memory() 释放内存。
 ! 
 ! ----------------------------------------------------
     use mod_parameters
@@ -28,7 +26,6 @@ module mod_solving
     public :: working
     private
     PetscErrorCode :: ierr
-    Vec :: RHS
     contains
     subroutine working(comm)
         PetscInt,intent(in) :: comm
@@ -118,24 +115,6 @@ module mod_solving
         endif
         call KSPDestroy(ksp,ierr)
     end subroutine shark_ready
-
-    subroutine set_right_hand_side(comm)
-        implicit none 
-        PetscScalar,pointer :: RHS_array(:,:,:,:)
-        PetscInt,intent(in) :: comm
-        integer :: j,k 
-        if (is==0) then
-            call DMDAVecGetArrayF90(meshDA,RHS,RHS_array,ierr)
-                do k=ks,ke 
-                    do j=js,je 
-                        RHS_array(:,0,j,k)=disturb(:,j,k)
-                    enddo
-                enddo
-            call DMDAVecRestoreArrayF90(meshDA,RHS,RHS_array,ierr)
-        endif
-        call MPI_Barrier(comm,ierr)
-        deallocate(disturb)
-    end subroutine set_right_hand_side
 
     subroutine deallocate_memory()
         implicit none

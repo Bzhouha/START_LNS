@@ -78,19 +78,18 @@ module mod_loading ! 读入并分发数据
         integer(KIND=MPI_ADDRESS_KIND) :: address_in,address_jn,address_kn,address_ln
         integer(KIND=MPI_ADDRESS_KIND) :: address_mode,address_Ma,address_Re,address_Te
         integer(KIND=MPI_ADDRESS_KIND) :: address_Alpha,address_Omega,address_Beta
-        integer(KIND=MPI_ADDRESS_KIND) :: address_initguess,address_diffsch
-        integer(KIND=MPI_ADDRESS_KIND) :: displacement(13)
-        integer :: block_lengths(13)
+        integer(KIND=MPI_ADDRESS_KIND) :: address_initguess
+        integer(KIND=MPI_ADDRESS_KIND) :: displacement(12)
+        integer :: block_lengths(12)
         PetscInt,intent(in) :: comm
         integer :: pack_type
-        integer :: types(13)
+        integer :: types(12)
 
         call MPI_Get_address(in,address_in,ierr)
         call MPI_Get_address(jn,address_jn,ierr)
         call MPI_Get_address(kn,address_kn,ierr)
         call MPI_Get_address(ln,address_ln,ierr)
         call MPI_Get_address(lns_mode,address_mode,ierr)
-        call MPI_Get_address(differential_scheme,address_diffsch,ierr)
         call MPI_Get_address(initial_guess,address_initguess,ierr)
         call MPI_Get_address(Ma,address_Ma,ierr)
         call MPI_Get_address(Re,address_Re,ierr)
@@ -104,22 +103,21 @@ module mod_loading ! 读入并分发数据
         displacement(3)=address_kn-address_in
         displacement(4)=address_ln-address_in
         displacement(5)=address_mode-address_in
-        displacement(6)=address_diffsch-address_in
-        displacement(7)=address_initguess-address_in
-        displacement(8)=address_Ma-address_in
-        displacement(9)=address_Re-address_in
-        displacement(10)=address_Te-address_in
-        displacement(11)=address_Alpha-address_in
-        displacement(12)=address_Beta-address_in
-        displacement(13)=address_Omega-address_in
+        displacement(6)=address_initguess-address_in
+        displacement(7)=address_Ma-address_in
+        displacement(8)=address_Re-address_in
+        displacement(9)=address_Te-address_in
+        displacement(10)=address_Alpha-address_in
+        displacement(11)=address_Beta-address_in
+        displacement(12)=address_Omega-address_in
 
         block_lengths=1
 
         types=(/MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,&
-                MPI_INTEGER4,MPI_LOGICAL,MPI_REAL8,MPI_REAL8,MPI_REAL8,&
+                MPI_LOGICAL,MPI_REAL8,MPI_REAL8,MPI_REAL8,&
                 MPI_COMPLEX16,MPI_COMPLEX16,MPI_COMPLEX16/)
 
-        call MPI_Type_create_struct(13,block_lengths,displacement,types,pack_type,ierr)
+        call MPI_Type_create_struct(12,block_lengths,displacement,types,pack_type,ierr)
         call MPI_Type_commit(pack_type,ierr)
         call MPI_Bcast(in,1,pack_type,0,comm,ierr)
         call MPI_Barrier(comm,ierr)
@@ -140,7 +138,6 @@ module mod_loading ! 读入并分发数据
             call MPI_Pack(kn,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
             call MPI_Pack(ln,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
             call MPI_Pack(lns_mode,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
-            call MPI_Pack(differential_scheme,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
             call MPI_Pack(initial_guess,1,MPI_LOGICAL,packbuf,120,position,comm,ierr)
             call MPI_Pack(Ma,1,MPI_REAL8,packbuf,120,position,comm,ierr)
             call MPI_Pack(Re,1,MPI_REAL8,packbuf,120,position,comm,ierr)
@@ -158,7 +155,6 @@ module mod_loading ! 读入并分发数据
             call MPI_Unpack(packbuf,120,position,kn,1,MPI_INTEGER4,comm,ierr)
             call MPI_Unpack(packbuf,120,position,ln,1,MPI_INTEGER4,comm,ierr)
             call MPI_Unpack(packbuf,120,position,lns_mode,1,MPI_INTEGER4,comm,ierr)
-            call MPI_Unpack(packbuf,120,position,differential_scheme,1,MPI_INTEGER4,comm,ierr)
             call MPI_Unpack(packbuf,120,position,initial_guess,1,MPI_LOGICAL,comm,ierr)
             call MPI_Unpack(packbuf,120,position,Ma,1,MPI_REAL8,comm,ierr)
             call MPI_Unpack(packbuf,120,position,Re,1,MPI_REAL8,comm,ierr)

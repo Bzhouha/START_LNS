@@ -21,7 +21,6 @@ module mod_parameters
     character(len=256) :: flowfile  
     character(len=256) :: turbfile
     character(len=256) :: initfile
-    integer :: differential_scheme
     character(len=256) :: dir  
     logical :: initial_guess 
     PetscInt :: in,jn,kn,ln
@@ -30,9 +29,11 @@ module mod_parameters
     complex(R_P) :: Beta
     integer :: lns_mode
     integer :: BC_type 
+    Vec :: tinkle_bell ! the local vec variable using in matrix_free implementation
     integer :: rank   
     integer :: sink 
     Mat :: Dolphin
     Vec :: Turtle
-    Mat :: Shark      
+    Mat :: Shark    
+    Vec :: RHS  
 end module mod_parameters

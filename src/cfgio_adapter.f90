@@ -172,21 +172,5 @@ module mod_cfgio_adapter
         endif
         initfile=trim(init)
 
-        if(cfg%has_key("hlns", "differential scheme"))then
-            call cfg%get("hlns", "differential scheme", schm)
-            select case (trim(schm))
-            case('center','Center','central','Central')
-                differential_scheme = 0 
-            case('upwind','Upwind','up_wind','Up_wind','Up_Wind','up wind')
-                differential_scheme = 1
-            case default
-                write(*,*) "Confusing differential scheme input, upwind is selected."
-                differential_scheme = 1
-            end select
-        else
-            write(*,*) "No differential scheme detected, upwind is selected."
-            differential_scheme = 1
-        endif
-
     end subroutine cfg_hlns
 end module mod_cfgio_adapter

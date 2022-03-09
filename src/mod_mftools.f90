@@ -6,23 +6,23 @@ module mod_mftools
     contains
     subroutine f5d1(out_array,f)
         implicit none
-        complex(R_P), dimension(5), intent(out) :: out_array
+        complex(R_P),dimension(5),intent(out) :: out_array
         complex(R_P),dimension(5,5),intent(in) :: f
             out_array(:)=(1.0d0*f(:,1)-8.0d0*f(:,2)+8.0d0*f(:,4)-1.0d0*f(:,5))/12.0d0
     end subroutine f5d1
 
     subroutine f5d11(out_array,f)
         implicit none
-        complex(R_P), dimension(5), intent(out) :: out_array
+        complex(R_P),dimension(5),intent(out) :: out_array
         complex(R_P),dimension(5,5),intent(in) :: f
             out_array(:)=(-1.0d0*f(:,1)+16.0d0*f(:,2)-30.0d0*f(:,3)+16.0d0*f(:,4)-1.0d0*f(:,5))/12.0d0 
     end subroutine f5d11
 
     subroutine f5d12(out_array,f)
         implicit none
-        complex(R_P), dimension(5), intent(out) :: out_array
+        complex(R_P),dimension(5),intent(out) :: out_array
         complex(R_P),dimension(5,5,5),intent(in) :: f
-        complex(R_P), dimension(5,5) :: tmp
+        complex(R_P),dimension(5,5) :: tmp
             call f5d1(tmp(:,1),f(:,1,:))
             call f5d1(tmp(:,2),f(:,2,:))
             call f5d1(tmp(:,4),f(:,4,:))
