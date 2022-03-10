@@ -18,6 +18,9 @@ module mod_loading ! 读入并分发数据
         implicit none
         PetscInt, intent(in) :: comm
 
+        call mpi_comm_rank(comm,rank,ierr) 
+        call mpi_comm_size(comm,sink,ierr) 
+
         call read_argv_and_file(comm)
 
         call signal_mpiing(comm)
@@ -41,6 +44,7 @@ module mod_loading ! 读入并分发数据
         implicit none
         PetscInt,intent(in) :: comm
         character(len=256) :: cfg_file
+        logical :: ksp_flg,snes_flg
         PetscBool :: set
 
         call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-f',cfg_file,set,ierr)
@@ -48,6 +52,11 @@ module mod_loading ! 读入并分发数据
             write(*,*) 'should use -f option to determin the config file.'
             stop
         endif
+
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp',ksp_flg,ierr)
+        if(ksp_flg) solver=0 
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-snes',snes_flg,ierr)
+        if(snes_flg) solver=1 
 
         call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
         call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-sub_pc_factor_in_place",PETSC_NULL_CHARACTER,ierr)

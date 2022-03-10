@@ -127,6 +127,7 @@ $(OBJS_F90d5):
 clean ::
 	@rm -f $(OBJS_DIR)*.o
 	@rm -f $(OBJS_DIR)*.mod
+	@rm -f bin/START_LNS
 	@echo " -               Clean               -"
 	@echo " =      Objs have been deleted.      ="
 

@@ -9,9 +9,13 @@ module mod_cubes
 !
 !           1.call get_unadorned_cubes(i,j,k) 获得原本的系数小矩阵
 !
-!               call split(A,G,Aplus,Aminus) 矢通量分裂函数
+!           2.call split(A,G,A_p,A_m) 分裂函数
 !
-!           2.call colored_cubes(i,j,k) 获得对应方程的系数小矩阵
+!               1).call split_upwind(i,j,k) 第一个分裂格式
+!
+!               2).call split_eigen(i,j,k) 第二个分裂格式
+!
+!           3.call colored_cubes(i,j,k) 获得对应方程的系数小矩阵
 !
 !               1).call teal_cubes(i,j,k) 水鸭色的小块儿，2D-HLNS对应的系数小矩阵disturbance=f(x,y)*e^i(bz-wt)
 !
@@ -21,7 +25,7 @@ module mod_cubes
 !
 !               4).call lilac_cubes(i,j,k) 浅紫色的小块儿，3D-HLNS对应的系数小矩阵,disturbance=f(x,y,z)*e^i(ax-wt)
 !
-!           3.call get_adorned_cubes(i,j,k) 获得坐标变换后的系数小矩阵
+!           4.call get_adorned_cubes(i,j,k) 获得坐标变换后的系数小矩阵
 !
 ! -----------------------------------------------------------
     use penf, only: R_P
@@ -30,14 +34,17 @@ module mod_cubes
     type,public :: lns_OP_point_type
         complex(R_P), dimension(5, 5) :: G=0.0d0
         complex(R_P), dimension(5, 5) :: A=0.0d0 
+        complex(R_P), dimension(5, 5) :: A_c=0.0d0 
         complex(R_P), dimension(5, 5) :: A_p=0.0d0 
         complex(R_P), dimension(5, 5) :: A_m=0.0d0 
         complex(R_P), dimension(5, 5) :: A_v=0.0d0  
         complex(R_P), dimension(5, 5) :: B=0.0d0  
+        complex(R_P), dimension(5, 5) :: B_c=0.0d0  
         complex(R_P), dimension(5, 5) :: B_p=0.0d0 
         complex(R_P), dimension(5, 5) :: B_m=0.0d0 
         complex(R_P), dimension(5, 5) :: B_v=0.0d0 
         complex(R_P), dimension(5, 5) :: C=0.0d0  
+        complex(R_P), dimension(5, 5) :: C_c=0.0d0  
         complex(R_P), dimension(5, 5) :: C_p=0.0d0 
         complex(R_P), dimension(5, 5) :: C_m=0.0d0 
         complex(R_P), dimension(5, 5) :: C_v=0.0d0  
@@ -363,17 +370,19 @@ module mod_cubes
             Vyz(4, 3) = d1d3*n_Miu/Re
         end associate
 
-        call split(A_c,G,A_p,A_m)
-        call split(B_c,G,B_p,B_m)
-        call split(C_c,G,C_p,C_m)
+        ! call split(A_c,G,A_p,A_m)
+        ! call split(B_c,G,B_p,B_m)
+        ! call split(C_c,G,C_p,C_m)
 
         this%G=G;     this%D=D
         this%A=A;     this%B=B;     this%C=C
-        this%A_p=A_p; this%A_m=A_m; this%A_v=A_v
-        this%B_p=B_p; this%B_m=B_m; this%B_v=B_v
-        this%C_p=C_p; this%C_m=C_m; this%C_v=C_v
+        this%A_c=A;   this%B_c=B;   this%C_c=C
+        this%A_v=A;   this%B_v=B;   this%C_v=C
         this%Vxx=Vxx; this%Vyy=Vyy; this%Vzz=Vzz
         this%Vxy=Vxy; this%Vxz=Vxz; this%Vyz=Vyz
+        ! this%A_p=A_p; this%A_m=A_m; this%A_v=A_v
+        ! this%B_p=B_p; this%B_m=B_m; this%B_v=B_v
+        ! this%C_p=C_p; this%C_m=C_m; this%C_v=C_v
     end subroutine get_unadorned_cubes
 
     subroutine colored_cubes(this,i,j,k)
@@ -563,9 +572,9 @@ module mod_cubes
         this%Vxy=Vxy; this%Vxz=Vxz; this%Vyz=Vyz 
     end subroutine get_adorned_cubes
 
-    subroutine split(A,G,Aplus,Aminus)
+    subroutine split(A,G,A_p,A_m)
         implicit none
-        real(R_P), dimension(5, 5), intent(out) :: Aplus,Aminus
+        real(R_P), dimension(5, 5), intent(out) :: A_p,A_m
         real(R_P), dimension(5, 5), intent(in) :: A, G
         real(R_P) :: diag_plus(5, 5),diag_minus(5, 5)
         real(R_P), dimension(5, 5) :: At, Gt, Ab
@@ -576,7 +585,7 @@ module mod_cubes
         real(R_P) :: work(100)
         complex(R_P) :: ZI=(0.0d0,1.0d0)
         integer :: i
-        Aplus=0.0d0; Aminus=0.0d0; work=0.0d0
+        A_p=0.0d0; A_m=0.0d0; work=0.0d0
         alfr=0.0d0; alfi=0.0d0; beta=0.0d0
         vl=0.0d0; vr=0.0d0; lambda_=0.0d0
         diag_plus=0.0d0; diag_minus=0.0d0
@@ -597,7 +606,7 @@ module mod_cubes
         Ab=matmul(G, vr)
         Ab=matmul(Ab, diag_minus)
         Ab=matmul(Ab, vl)
-        Aplus=At
-        Aminus=Ab
+        A_p=At
+        A_m=Ab
     end subroutine split
 end module mod_cubes
