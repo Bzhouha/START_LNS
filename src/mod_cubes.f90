@@ -388,7 +388,6 @@ module mod_cubes
 
         A_p=0.0d0;B_p=0.0d0;C_p=0.0d0
         A_m=0.0d0;B_m=0.0d0;C_m=0.0d0
-
         call Jor%get_unadorned_cubes(i,j,k)
         select case (split_mode)
             case(0)
@@ -418,11 +417,11 @@ module mod_cubes
         real(R_P) :: diag_plus(5, 5),diag_minus(5, 5)
         real(R_P), dimension(5, 5) :: At, Gt, Ab
         real(R_P) :: alfr(5), alfi(5), beta(5)
+        complex(R_P) :: ZI=(0.0d0,1.0d0)
         real(R_P) :: vl(5, 5), vr(5, 5)
         complex(R_P) :: lambda_(5)
         integer :: ipiv(5), info
         real(R_P) :: work(100)
-        complex(R_P) :: ZI=(0.0d0,1.0d0)
         integer :: i    
     
         diag_plus=0.0d0; diag_minus=0.0d0
@@ -509,15 +508,15 @@ module mod_cubes
         integer,intent(in) :: i,j,k
         call Jor%get_splited_cubes(i,j,k)
         this%G=Jor%G
+        this%D=Jor%D-Ci*Omega*Jor%G+Ci*Beta*Jor%C+Beta*Beta*Jor%Vzz
         this%A=Jor%A-Ci*Beta*Jor%Vxz
         this%B=Jor%B-Ci*Beta*Jor%Vyz
         this%C=0.0d0
-        this%A_p=Jor%A_p; this%A_m=Jor%A_m
+        this%A_p=Jor%A_p; this%B_p=Jor%B_p; this%C_p=0.0d0
+        this%A_m=Jor%A_m; this%B_m=Jor%B_m; this%C_m=0.0d0
         this%A_v=Jor%A_v-Ci*Beta*Jor%Vxz
-        this%B_p=Jor%B_p; this%B_m=Jor%B_m
         this%B_v=Jor%B_v-Ci*Beta*Jor%Vyz 
-        this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
-        this%D=Jor%D-Ci*Omega*Jor%G+Ci*Beta*Jor%C+Beta*Beta*Jor%Vzz
+        this%C_v=0.0d0
         this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
         this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
     end subroutine teal_cubes
@@ -530,16 +529,16 @@ module mod_cubes
         integer,intent(in) :: i,j,k
         call Jor%get_splited_cubes(i,j,k)
         this%G=Jor%G
+        this%D=Jor%D-Ci*Omega*Jor%G+Ci*Alpha*Jor%A &
+        +Ci*Beta*Jor%C+Alpha*Alpha*Jor%Vxx+Beta*Beta*Jor%Vzz+Alpha*Beta*Jor%Vxz
         this%A=Jor%A-2.0d0*Ci*Alpha*Jor%Vxx-Ci*Beta*Jor%Vxz
         this%B=Jor%B-Ci*Alpha*Jor%Vxy-Ci*Beta*Jor%Vyz 
         this%C=0.0d0
-        this%A_p=Jor%A_p; this%A_m=Jor%A_m
+        this%A_p=Jor%A_p; this%B_p=Jor%B_p; this%C_p=0.0d0
+        this%A_m=Jor%A_m; this%B_m=Jor%B_m; this%C_m=0.0d0
         this%A_v=Jor%A_v-2.0d0*Ci*Alpha*Jor%Vxx-Ci*Beta*Jor%Vxz
-        this%B_p=Jor%B_p; this%B_m=Jor%B_m
         this%B_v=Jor%B_v-Ci*Alpha*Jor%Vxy-Ci*Beta*Jor%Vyz 
-        this%C_p=0.0d0;   this%C_m=0.0d0;   this%C_v=0.0d0
-        this%D=Jor%D-Ci*Omega*Jor%G+Ci*Alpha*Jor%A &
-        +Ci*Beta*Jor%C+Alpha*Alpha*Jor%Vxx+Beta*Beta*Jor%Vzz+Alpha*Beta*Jor%Vxz
+        this%C_v=0.0d0
         this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
         this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0      
     end subroutine mint_cubes
@@ -552,11 +551,11 @@ module mod_cubes
         integer,intent(in) :: i,j,k
         call Jor%get_splited_cubes(i,j,k)
         this%G=Jor%G 
-        this%A=Jor%A;     this%B=Jor%B;     this%C=Jor%C
-        this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v
-        this%B_p=Jor%B_p; this%B_m=Jor%B_m; this%B_v=Jor%B_v
-        this%C_p=Jor%C_p; this%C_m=Jor%C_m; this%C_v=Jor%C_v
         this%D=Jor%D-Ci*Omega*Jor%G
+        this%A=Jor%A;     this%B=Jor%B;     this%C=Jor%C
+        this%A_p=Jor%A_p; this%B_p=Jor%B_p; this%C_p=Jor%C_p
+        this%A_m=Jor%A_m; this%B_m=Jor%B_m; this%C_m=Jor%C_m
+        this%A_v=Jor%A_v; this%B_v=Jor%B_v; this%C_v=Jor%C_v
         this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
         this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
     end subroutine skyblue_cubes
@@ -569,13 +568,15 @@ module mod_cubes
         integer,intent(in) :: i,j,k
         call Jor%get_splited_cubes(i,j,k)
         this%G=Jor%G 
+        this%D=Jor%D-Ci*Omega*Jor%G+Ci*Alpha*Jor%A+Alpha*Alpha*Jor%Vxx
         this%A=Jor%A-2*Ci*Alpha*Jor%Vxx
         this%B=Jor%B-Ci*Alpha*Jor%Vxy
         this%C=Jor%C-Ci*Alpha*Jor%Vxz
-        this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v-2*Ci*Alpha*Jor%Vxx
-        this%B_p=Jor%B_p; this%B_m=Jor%B_m; this%B_v=Jor%B_v-Ci*Alpha*Jor%Vxy
-        this%C_p=Jor%C_p; this%C_m=Jor%C_m; this%C_v=Jor%C_v-Ci*Alpha*Jor%Vxz
-        this%D=Jor%D-Ci*Omega*Jor%G+Ci*Alpha*Jor%A+Alpha*Alpha*Jor%Vxx
+        this%A_p=Jor%A_p; this%B_p=Jor%B_p; this%C_p=Jor%C_p
+        this%A_m=Jor%A_m; this%B_m=Jor%B_m; this%C_m=Jor%C_m
+        this%A_v=Jor%A_v-2*Ci*Alpha*Jor%Vxx
+        this%B_v=Jor%B_v-Ci*Alpha*Jor%Vxy
+        this%C_v=Jor%C_v-Ci*Alpha*Jor%Vxz
         this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
         this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
     end subroutine lilac_cubes
@@ -586,20 +587,6 @@ module mod_cubes
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
-        complex(R_P) :: G(5, 5), D(5, 5)
-        complex(R_P) :: A(5,5), B(5,5), C(5,5)
-        complex(R_P) :: A_p(5, 5), A_m(5, 5), A_v(5, 5)
-        complex(R_P) :: B_p(5, 5), B_m(5, 5), B_v(5, 5)
-        complex(R_P) :: C_p(5, 5), C_m(5, 5), C_v(5, 5)
-        complex(R_P) :: Vxx(5, 5), Vyy(5, 5), Vzz(5, 5), Vxy(5, 5), Vxz(5, 5), Vyz(5, 5)
-        ! 初始化矩阵
-        G=0.0d0;D=0.0d0
-        A=0.0d0;B=0.0d0;C=0.0d0
-        A_p=0.0d0;A_m=0.0d0;A_v=0.0d0
-        B_p=0.0d0;B_m=0.0d0;B_v=0.0d0
-        C_p=0.0d0;C_m=0.0d0;C_v=0.0d0
-        Vxx=0.0d0;Vyy=0.0d0;Vzz=0.0d0
-        Vxy=0.0d0;Vxz=0.0d0;Vyz=0.0d0
         call Jor%get_colored_cubes(i,j,k)
         associate( &
             xi_x => xi_x(i,j,k), &
@@ -630,25 +617,25 @@ module mod_cubes
             phi_xz => phi_xz(i,j,k), &
             phi_yz => phi_yz(i,j,k) )
             this%G   = Jor%G
+            this%D   = Jor%D
             this%A   = xi_x*Jor%A+xi_y*Jor%B+xi_z*Jor%C-xi_xx*Jor%Vxx-xi_yy*Jor%Vyy-xi_zz*Jor%Vzz &
-            -xi_xy*Jor%Vxy-xi_xz*Jor%Vxz-xi_yz*Jor%Vyz
-            this%A_p = xi_x*Jor%A_p+xi_y*Jor%B_p+xi_z*Jor%C_p
-            this%A_m = xi_x*Jor%A_m+xi_y*Jor%B_m+xi_z*Jor%C_m
-            this%A_v = xi_x*Jor%A_v+xi_y*Jor%B_v+xi_z*Jor%C_v-xi_xx*Jor%Vxx-xi_yy*Jor%Vyy-xi_zz*Jor%Vzz &
             -xi_xy*Jor%Vxy-xi_xz*Jor%Vxz-xi_yz*Jor%Vyz
             this%B   = eta_x*Jor%A+eta_y*Jor%B+eta_z*Jor%C-eta_xx*Jor%Vxx-eta_yy*Jor%Vyy-eta_zz*Jor%Vzz &
             -eta_xy*Jor%Vxy-eta_xz*Jor%Vxz-eta_yz*Jor%Vyz
-            this%B_p = eta_x*Jor%A_p+eta_y*Jor%B_p+eta_z*Jor%C_p
-            this%B_m = eta_x*Jor%A_m+eta_y*Jor%B_m+eta_z*Jor%C_m
-            this%B_v = eta_x*Jor%A_v+eta_y*Jor%B_v+eta_z*Jor%C_v-eta_xx*Jor%Vxx-eta_yy*Jor%Vyy-eta_zz*Jor%Vzz &
-            -eta_xy*Jor%Vxy-eta_xz*Jor%Vxz-eta_yz*Jor%Vyz
             this%C   = phi_x*Jor%A+phi_y*Jor%B+phi_z*Jor%C-phi_xx*Jor%Vxx-phi_yy*Jor%Vyy-phi_zz*Jor%Vzz &
             -phi_xy*Jor%Vxy-phi_xz*Jor%Vxz-phi_yz*Jor%Vyz
+            this%A_p = xi_x*Jor%A_p+xi_y*Jor%B_p+xi_z*Jor%C_p
+            this%B_p = eta_x*Jor%A_p+eta_y*Jor%B_p+eta_z*Jor%C_p
             this%C_p = phi_x*Jor%A_p+phi_y*Jor%B_p+phi_z*Jor%C_p
+            this%A_m = xi_x*Jor%A_m+xi_y*Jor%B_m+xi_z*Jor%C_m
+            this%B_m = eta_x*Jor%A_m+eta_y*Jor%B_m+eta_z*Jor%C_m
             this%C_m = phi_x*Jor%A_m+phi_y*Jor%B_m+phi_z*Jor%C_m
+            this%A_v = xi_x*Jor%A_v+xi_y*Jor%B_v+xi_z*Jor%C_v-xi_xx*Jor%Vxx-xi_yy*Jor%Vyy-xi_zz*Jor%Vzz &
+            -xi_xy*Jor%Vxy-xi_xz*Jor%Vxz-xi_yz*Jor%Vyz
+            this%B_v = eta_x*Jor%A_v+eta_y*Jor%B_v+eta_z*Jor%C_v-eta_xx*Jor%Vxx-eta_yy*Jor%Vyy-eta_zz*Jor%Vzz &
+            -eta_xy*Jor%Vxy-eta_xz*Jor%Vxz-eta_yz*Jor%Vyz
             this%C_v = phi_x*Jor%A_v+phi_y*Jor%B_v+phi_z*Jor%C_v-phi_xx*Jor%Vxx-phi_yy*Jor%Vyy-phi_zz*Jor%Vzz &
             -phi_xy*Jor%Vxy-phi_xz*Jor%Vxz-phi_yz*Jor%Vyz
-            this%D   = Jor%D
             this%Vxx = xi_x*xi_x*Jor%Vxx+xi_y*xi_y*Jor%Vyy+xi_z*xi_z*Jor%Vzz+xi_x*xi_y*Jor%Vxy &
             +xi_x*xi_z*Jor%Vxz+xi_y*xi_z*Jor%Vyz
             this%Vyy = eta_x*eta_x*Jor%Vxx+eta_y*eta_y*Jor%Vyy+eta_z*eta_z*Jor%Vzz+eta_x*eta_y*Jor%Vxy &
