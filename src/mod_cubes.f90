@@ -9,13 +9,13 @@ module mod_cubes
 !
 !           1.call get_unadorned_cubes(i,j,k) 获得原本的系数小矩阵
 !
-!           2.call split(A,G,A_p,A_m) 分裂函数
+!           2.call get_splited_cubes(i,j,k) 分裂函数
 !
-!               1).call split_upwind(i,j,k) 第一个分裂格式
+!               1).call split_upwin(A,G,A_p,A_m) 第一个分裂格式
 !
-!               2).call split_eigen(i,j,k) 第二个分裂格式
+!               2).call split_eigen(A,G,A_p,A_m) 第二个分裂格式
 !
-!           3.call colored_cubes(i,j,k) 获得对应方程的系数小矩阵
+!           3.call get_colored_cubes(i,j,k) 获得对应方程的系数小矩阵
 !
 !               1).call teal_cubes(i,j,k) 水鸭色的小块儿，2D-HLNS对应的系数小矩阵disturbance=f(x,y)*e^i(bz-wt)
 !
@@ -33,31 +33,32 @@ module mod_cubes
     private
     type,public :: lns_OP_point_type
         complex(R_P), dimension(5, 5) :: G=0.0d0
-        complex(R_P), dimension(5, 5) :: A=0.0d0 
-        complex(R_P), dimension(5, 5) :: A_c=0.0d0 
-        complex(R_P), dimension(5, 5) :: A_p=0.0d0 
-        complex(R_P), dimension(5, 5) :: A_m=0.0d0 
-        complex(R_P), dimension(5, 5) :: A_v=0.0d0  
-        complex(R_P), dimension(5, 5) :: B=0.0d0  
-        complex(R_P), dimension(5, 5) :: B_c=0.0d0  
-        complex(R_P), dimension(5, 5) :: B_p=0.0d0 
-        complex(R_P), dimension(5, 5) :: B_m=0.0d0 
-        complex(R_P), dimension(5, 5) :: B_v=0.0d0 
-        complex(R_P), dimension(5, 5) :: C=0.0d0  
-        complex(R_P), dimension(5, 5) :: C_c=0.0d0  
-        complex(R_P), dimension(5, 5) :: C_p=0.0d0 
-        complex(R_P), dimension(5, 5) :: C_m=0.0d0 
-        complex(R_P), dimension(5, 5) :: C_v=0.0d0  
         complex(R_P), dimension(5, 5) :: D=0.0d0 
+        complex(R_P), dimension(5, 5) :: A=0.0d0 
+        complex(R_P), dimension(5, 5) :: B=0.0d0  
+        complex(R_P), dimension(5, 5) :: C=0.0d0  
+        complex(R_P), dimension(5, 5) :: A_c=0.0d0 
+        complex(R_P), dimension(5, 5) :: B_c=0.0d0  
+        complex(R_P), dimension(5, 5) :: C_c=0.0d0  
+        complex(R_P), dimension(5, 5) :: A_p=0.0d0 
+        complex(R_P), dimension(5, 5) :: B_p=0.0d0 
+        complex(R_P), dimension(5, 5) :: C_p=0.0d0 
+        complex(R_P), dimension(5, 5) :: A_m=0.0d0 
+        complex(R_P), dimension(5, 5) :: B_m=0.0d0 
+        complex(R_P), dimension(5, 5) :: C_m=0.0d0 
+        complex(R_P), dimension(5, 5) :: A_v=0.0d0  
+        complex(R_P), dimension(5, 5) :: B_v=0.0d0 
+        complex(R_P), dimension(5, 5) :: C_v=0.0d0  
         complex(R_P), dimension(5, 5) :: Vxx=0.0d0 
         complex(R_P), dimension(5, 5) :: Vyy=0.0d0 
         complex(R_P), dimension(5, 5) :: Vzz=0.0d0 
         complex(R_P), dimension(5, 5) :: Vxy=0.0d0 
         complex(R_P), dimension(5, 5) :: Vxz=0.0d0 
         complex(R_P), dimension(5, 5) :: Vyz=0.0d0 
-        Contains
-            procedure::get_unadorned_cubes,get_adorned_cubes
-            procedure::colored_cubes,teal_cubes,mint_cubes,skyblue_cubes,lilac_cubes
+        contains
+            procedure,public  :: get_adorned_cubes
+            procedure,private :: get_unadorned_cubes,get_splited_cubes,get_colored_cubes
+            procedure,private :: teal_cubes,mint_cubes,skyblue_cubes,lilac_cubes
     end type lns_OP_point_type
     complex(R_P),parameter :: Ci = cmplx(0.0d0,1.0d0,R_P)
     contains
@@ -71,16 +72,14 @@ module mod_cubes
         real(R_P) :: n_Miu, n_MiuT, n_MiuTT, n_Miux, n_Miuy, n_Miuz
         real(R_P) :: d1d3=1.0d0/3.0d0, d2d3=2.0d0/3.0d0, d4d3=4.0d0/3.0d0
         real(R_P) :: G(5, 5), A(5, 5), B(5, 5), C(5, 5), D(5, 5)
-        real(R_P) :: A_p(5, 5), A_m(5, 5), A_c(5, 5), A_v(5, 5)
-        real(R_P) :: B_p(5, 5), B_m(5, 5), B_c(5, 5), B_v(5, 5)
-        real(R_P) :: C_p(5, 5), C_m(5, 5), C_c(5, 5), C_v(5, 5)
+        real(R_P) :: A_v(5, 5), B_v(5, 5), C_v(5, 5)
+        real(R_P) :: A_c(5, 5), B_c(5, 5), C_c(5, 5)
         real(R_P) :: Vxx(5, 5), Vyy(5, 5), Vzz(5, 5), Vxy(5, 5), Vxz(5, 5), Vyz(5, 5)
         real(R_P),parameter :: C1=110.4D0
         ! 初始化矩阵
         G=0.0d0;A=0.0d0;B=0.0d0;C=0.0d0;D=0.0d0
-        A_p=0.0d0;A_m=0.0d0;A_c=0.0d0;A_v=0.0d0
-        B_p=0.0d0;B_m=0.0d0;B_c=0.0d0;B_v=0.0d0
-        C_p=0.0d0;C_m=0.0d0;C_c=0.0d0;C_v=0.0d0
+        A_c=0.0d0;B_c=0.0d0;C_c=0.0d0
+        A_v=0.0d0;B_v=0.0d0;C_v=0.0d0
         Vxx=0.0d0;Vyy=0.0d0;Vzz=0.0d0
         Vxy=0.0d0;Vxz=0.0d0;Vyz=0.0d0
         ! 设定参数
@@ -370,22 +369,126 @@ module mod_cubes
             Vyz(4, 3) = d1d3*n_Miu/Re
         end associate
 
-        ! call split(A_c,G,A_p,A_m)
-        ! call split(B_c,G,B_p,B_m)
-        ! call split(C_c,G,C_p,C_m)
-
         this%G=G;     this%D=D
         this%A=A;     this%B=B;     this%C=C
         this%A_c=A;   this%B_c=B;   this%C_c=C
         this%A_v=A;   this%B_v=B;   this%C_v=C
         this%Vxx=Vxx; this%Vyy=Vyy; this%Vzz=Vzz
         this%Vxy=Vxy; this%Vxz=Vxz; this%Vyz=Vyz
-        ! this%A_p=A_p; this%A_m=A_m; this%A_v=A_v
-        ! this%B_p=B_p; this%B_m=B_m; this%B_v=B_v
-        ! this%C_p=C_p; this%C_m=C_m; this%C_v=C_v
     end subroutine get_unadorned_cubes
 
-    subroutine colored_cubes(this,i,j,k)
+    subroutine get_splited_cubes(this,i,j,k)
+        use mod_parameters,only : split_mode
+        implicit none
+        class(lns_OP_point_type),intent(inout) :: this
+        real(R_P) :: A_p(5, 5), B_p(5, 5), C_p(5, 5)
+        real(R_P) :: A_m(5, 5), B_m(5, 5), C_m(5, 5)
+        type(lns_OP_point_type) :: Jor
+        integer,intent(in) :: i,j,k
+
+        A_p=0.0d0;B_p=0.0d0;C_p=0.0d0
+        A_m=0.0d0;B_m=0.0d0;C_m=0.0d0
+
+        call Jor%get_unadorned_cubes(i,j,k)
+        select case (split_mode)
+            case(0)
+                    call split_upwin(Jor%A_c,Jor%G,A_p,A_m)
+                    call split_upwin(Jor%B_c,Jor%G,B_p,B_m)
+                    call split_upwin(Jor%C_c,Jor%G,C_p,C_m)
+
+            case(1)
+                    call split_eigen(Jor%A_c,Jor%G,A_p,A_m)
+                    call split_eigen(Jor%B_c,Jor%G,B_p,B_m)
+                    call split_eigen(Jor%C_c,Jor%G,C_p,C_m)
+        end select
+        this%G=Jor%G;     this%D=Jor%D
+        this%A=Jor%A;     this%B=Jor%B;     this%C=Jor%C
+        this%A_c=Jor%A_c; this%B_c=Jor%B_c; this%C_c=Jor%C_c
+        this%A_p=A_p;     this%B_p=B_p;     this%C_p=C_p
+        this%A_m=A_m;     this%B_m=B_m;     this%C_m=C_m
+        this%A_v=Jor%A_v; this%B_v=Jor%B_v; this%C_v=Jor%C_v
+        this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
+        this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
+    end subroutine get_splited_cubes
+
+    subroutine split_upwin(A,G,A_p,A_m)
+        implicit none
+        real(R_P), dimension(5, 5), intent(out) :: A_p,A_m
+        complex(R_P), dimension(5, 5), intent(in) :: A, G
+        real(R_P) :: diag_plus(5, 5),diag_minus(5, 5)
+        real(R_P), dimension(5, 5) :: At, Gt, Ab
+        real(R_P) :: alfr(5), alfi(5), beta(5)
+        real(R_P) :: vl(5, 5), vr(5, 5)
+        complex(R_P) :: lambda_(5)
+        integer :: ipiv(5), info
+        real(R_P) :: work(100)
+        complex(R_P) :: ZI=(0.0d0,1.0d0)
+        integer :: i    
+    
+        diag_plus=0.0d0; diag_minus=0.0d0
+        alfr=0.0d0; alfi=0.0d0
+        A_p=0.0d0; A_m=0.0d0
+        vl=0.0d0; vr=0.0d0
+        lambda_=0.0d0
+        work=0.0d0
+        beta=0.0d0
+
+        At=real(A); Gt=real(G)
+        call dggev('N', 'V', 5, At, 5, Gt, 5, alfr, alfi, &
+        beta, vl, 5, vr, 5, work, 100, info)
+        lambda_=(alfr+ZI*alfi)/beta
+        do i=1, 5
+            diag_plus(i, i)=max(0.0d0, lambda_(i)%re)
+            diag_minus(i, i)=min(0.0d0, lambda_(i)%re)
+        enddo
+        vl=vr !! vl is inv(vr)
+        call dgetrf(5, 5, vl, 5, ipiv, info)
+        call dgetri(5, vl, 5, ipiv, work, 5, info)
+
+        At=matmul(G, vr)
+        At=matmul(At, diag_plus)
+        At=matmul(At, vl)
+        Ab=matmul(G, vr)
+        Ab=matmul(Ab, diag_minus)
+        Ab=matmul(Ab, vl)
+
+        A_p=At; A_m=Ab
+
+    end subroutine split_upwin
+
+    subroutine split_eigen(A,G,A_p,A_m)
+        use mod_parameters,only:fk
+        implicit none
+        real(R_P), dimension(5, 5), intent(out) :: A_p,A_m
+        complex(R_P), dimension(5, 5), intent(in) :: A, G
+        real(R_P), dimension(5, 5) :: At, Gt
+        real(R_P) :: alfr(5), alfi(5), beta(5)
+        complex(R_P) :: ZI=(0.0d0,1.0d0)
+        real(R_P) :: vl(5, 5), vr(5, 5)
+        complex(R_P) :: lambda_(5)
+        real(R_P) :: work(100)
+        real(R_P) :: max_l
+        integer :: info
+
+        alfr=0.0d0; alfi=0.0d0
+        A_p=0.0d0; A_m=0.0d0
+        vl=0.0d0; vr=0.0d0
+        lambda_=0.0d0
+        work=0.0d0
+        beta=0.0d0
+
+        At=real(A); Gt=real(G)
+        call dggev('N', 'V', 5, At, 5, Gt, 5, alfr, alfi, &
+        beta, vl, 5, vr, 5, work, 100, info)
+        lambda_=(alfr+ZI*alfi)/beta
+        max_l = maxval(abs(lambda_))
+
+        A_p = 0.5d0*A + fk*max_l*G
+        A_m = 0.5d0*A - fk*max_l*G
+
+    end subroutine split_eigen
+
+    subroutine get_colored_cubes(this,i,j,k)
         use mod_parameters,only:lns_mode
         implicit none
         class(lns_OP_point_type),intent(inout) :: this
@@ -396,7 +499,7 @@ module mod_cubes
             case(1)
                 call this%lilac_cubes(i,j,k)
         end select
-    end subroutine colored_cubes
+    end subroutine get_colored_cubes
 
     subroutine teal_cubes(this,i,j,k)
         use mod_parameters,only:Beta,Omega 
@@ -404,7 +507,7 @@ module mod_cubes
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
-        call Jor%get_unadorned_cubes(i,j,k)
+        call Jor%get_splited_cubes(i,j,k)
         this%G=Jor%G
         this%A=Jor%A-Ci*Beta*Jor%Vxz
         this%B=Jor%B-Ci*Beta*Jor%Vyz
@@ -425,7 +528,7 @@ module mod_cubes
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
-        call Jor%get_unadorned_cubes(i,j,k)
+        call Jor%get_splited_cubes(i,j,k)
         this%G=Jor%G
         this%A=Jor%A-2.0d0*Ci*Alpha*Jor%Vxx-Ci*Beta*Jor%Vxz
         this%B=Jor%B-Ci*Alpha*Jor%Vxy-Ci*Beta*Jor%Vyz 
@@ -447,7 +550,7 @@ module mod_cubes
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
-        call Jor%get_unadorned_cubes(i,j,k)
+        call Jor%get_splited_cubes(i,j,k)
         this%G=Jor%G 
         this%A=Jor%A;     this%B=Jor%B;     this%C=Jor%C
         this%A_p=Jor%A_p; this%A_m=Jor%A_m; this%A_v=Jor%A_v
@@ -464,7 +567,7 @@ module mod_cubes
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
-        call Jor%get_unadorned_cubes(i,j,k)
+        call Jor%get_splited_cubes(i,j,k)
         this%G=Jor%G 
         this%A=Jor%A-2*Ci*Alpha*Jor%Vxx
         this%B=Jor%B-Ci*Alpha*Jor%Vxy
@@ -497,7 +600,7 @@ module mod_cubes
         C_p=0.0d0;C_m=0.0d0;C_v=0.0d0
         Vxx=0.0d0;Vyy=0.0d0;Vzz=0.0d0
         Vxy=0.0d0;Vxz=0.0d0;Vyz=0.0d0
-        call Jor%colored_cubes(i,j,k)
+        call Jor%get_colored_cubes(i,j,k)
         associate( &
             xi_x => xi_x(i,j,k), &
             xi_y => xi_y(i,j,k), &
@@ -526,87 +629,41 @@ module mod_cubes
             phi_xy => phi_xy(i,j,k), &
             phi_xz => phi_xz(i,j,k), &
             phi_yz => phi_yz(i,j,k) )
-            G   = Jor%G
-            A   = xi_x*Jor%A+xi_y*Jor%B+xi_z*Jor%C-xi_xx*Jor%Vxx-xi_yy*Jor%Vyy-xi_zz*Jor%Vzz &
+            this%G   = Jor%G
+            this%A   = xi_x*Jor%A+xi_y*Jor%B+xi_z*Jor%C-xi_xx*Jor%Vxx-xi_yy*Jor%Vyy-xi_zz*Jor%Vzz &
             -xi_xy*Jor%Vxy-xi_xz*Jor%Vxz-xi_yz*Jor%Vyz
-            A_p = xi_x*Jor%A_p+xi_y*Jor%B_p+xi_z*Jor%C_p
-            A_m = xi_x*Jor%A_m+xi_y*Jor%B_m+xi_z*Jor%C_m
-            A_v = xi_x*Jor%A_v+xi_y*Jor%B_v+xi_z*Jor%C_v-xi_xx*Jor%Vxx-xi_yy*Jor%Vyy-xi_zz*Jor%Vzz &
+            this%A_p = xi_x*Jor%A_p+xi_y*Jor%B_p+xi_z*Jor%C_p
+            this%A_m = xi_x*Jor%A_m+xi_y*Jor%B_m+xi_z*Jor%C_m
+            this%A_v = xi_x*Jor%A_v+xi_y*Jor%B_v+xi_z*Jor%C_v-xi_xx*Jor%Vxx-xi_yy*Jor%Vyy-xi_zz*Jor%Vzz &
             -xi_xy*Jor%Vxy-xi_xz*Jor%Vxz-xi_yz*Jor%Vyz
-            B   = eta_x*Jor%A+eta_y*Jor%B+eta_z*Jor%C-eta_xx*Jor%Vxx-eta_yy*Jor%Vyy-eta_zz*Jor%Vzz &
+            this%B   = eta_x*Jor%A+eta_y*Jor%B+eta_z*Jor%C-eta_xx*Jor%Vxx-eta_yy*Jor%Vyy-eta_zz*Jor%Vzz &
             -eta_xy*Jor%Vxy-eta_xz*Jor%Vxz-eta_yz*Jor%Vyz
-            B_p = eta_x*Jor%A_p+eta_y*Jor%B_p+eta_z*Jor%C_p
-            B_m = eta_x*Jor%A_m+eta_y*Jor%B_m+eta_z*Jor%C_m
-            B_v = eta_x*Jor%A_v+eta_y*Jor%B_v+eta_z*Jor%C_v-eta_xx*Jor%Vxx-eta_yy*Jor%Vyy-eta_zz*Jor%Vzz &
+            this%B_p = eta_x*Jor%A_p+eta_y*Jor%B_p+eta_z*Jor%C_p
+            this%B_m = eta_x*Jor%A_m+eta_y*Jor%B_m+eta_z*Jor%C_m
+            this%B_v = eta_x*Jor%A_v+eta_y*Jor%B_v+eta_z*Jor%C_v-eta_xx*Jor%Vxx-eta_yy*Jor%Vyy-eta_zz*Jor%Vzz &
             -eta_xy*Jor%Vxy-eta_xz*Jor%Vxz-eta_yz*Jor%Vyz
-            C   = phi_x*Jor%A+phi_y*Jor%B+phi_z*Jor%C-phi_xx*Jor%Vxx-phi_yy*Jor%Vyy-phi_zz*Jor%Vzz &
+            this%C   = phi_x*Jor%A+phi_y*Jor%B+phi_z*Jor%C-phi_xx*Jor%Vxx-phi_yy*Jor%Vyy-phi_zz*Jor%Vzz &
             -phi_xy*Jor%Vxy-phi_xz*Jor%Vxz-phi_yz*Jor%Vyz
-            C_p = phi_x*Jor%A_p+phi_y*Jor%B_p+phi_z*Jor%C_p
-            C_m = phi_x*Jor%A_m+phi_y*Jor%B_m+phi_z*Jor%C_m
-            C_v = phi_x*Jor%A_v+phi_y*Jor%B_v+phi_z*Jor%C_v-phi_xx*Jor%Vxx-phi_yy*Jor%Vyy-phi_zz*Jor%Vzz &
+            this%C_p = phi_x*Jor%A_p+phi_y*Jor%B_p+phi_z*Jor%C_p
+            this%C_m = phi_x*Jor%A_m+phi_y*Jor%B_m+phi_z*Jor%C_m
+            this%C_v = phi_x*Jor%A_v+phi_y*Jor%B_v+phi_z*Jor%C_v-phi_xx*Jor%Vxx-phi_yy*Jor%Vyy-phi_zz*Jor%Vzz &
             -phi_xy*Jor%Vxy-phi_xz*Jor%Vxz-phi_yz*Jor%Vyz
-            D   = Jor%D
-            Vxx = xi_x*xi_x*Jor%Vxx+xi_y*xi_y*Jor%Vyy+xi_z*xi_z*Jor%Vzz+xi_x*xi_y*Jor%Vxy &
+            this%D   = Jor%D
+            this%Vxx = xi_x*xi_x*Jor%Vxx+xi_y*xi_y*Jor%Vyy+xi_z*xi_z*Jor%Vzz+xi_x*xi_y*Jor%Vxy &
             +xi_x*xi_z*Jor%Vxz+xi_y*xi_z*Jor%Vyz
-            Vyy = eta_x*eta_x*Jor%Vxx+eta_y*eta_y*Jor%Vyy+eta_z*eta_z*Jor%Vzz+eta_x*eta_y*Jor%Vxy &
+            this%Vyy = eta_x*eta_x*Jor%Vxx+eta_y*eta_y*Jor%Vyy+eta_z*eta_z*Jor%Vzz+eta_x*eta_y*Jor%Vxy &
             +eta_x*eta_z*Jor%Vxz+eta_y*eta_z*Jor%Vyz
-            Vzz = phi_x*phi_x*Jor%Vxx+phi_y*phi_y*Jor%Vyy+phi_z*phi_z*Jor%Vzz+phi_x*phi_y*Jor%Vxy &
+            this%Vzz = phi_x*phi_x*Jor%Vxx+phi_y*phi_y*Jor%Vyy+phi_z*phi_z*Jor%Vzz+phi_x*phi_y*Jor%Vxy &
             +phi_x*phi_z*Jor%Vxz+phi_y*phi_z*Jor%Vyz
-            Vxy = 2.0d0*xi_x*eta_x*Jor%Vxx+2.0d0*xi_y*eta_y*Jor%Vyy+2.0d0*xi_z*eta_z*Jor%Vzz &
+            this%Vxy = 2.0d0*xi_x*eta_x*Jor%Vxx+2.0d0*xi_y*eta_y*Jor%Vyy+2.0d0*xi_z*eta_z*Jor%Vzz &
             +(xi_x*eta_y+eta_x*xi_y)*Jor%Vxy+(xi_x*eta_z+eta_x*xi_z)*Jor%Vxz &
             +(xi_y*eta_z+eta_y*xi_z)*Jor%Vyz
-            Vxz = 2.0d0*xi_x*phi_x*Jor%Vxx+2.0d0*xi_y*phi_y*Jor%Vyy+2.0d0*xi_z*phi_z*Jor%Vzz &
+            this%Vxz = 2.0d0*xi_x*phi_x*Jor%Vxx+2.0d0*xi_y*phi_y*Jor%Vyy+2.0d0*xi_z*phi_z*Jor%Vzz &
             +(xi_x*phi_y+phi_x*xi_y)*Jor%Vxy+(xi_x*phi_z+phi_x*xi_z)*Jor%Vxz &
             +(xi_y*phi_z+phi_y*xi_z)*Jor%Vyz
-            Vyz = 2.0d0*eta_x*phi_x*Jor%Vxx+2.0d0*eta_y*phi_y*Jor%Vyy+2.0d0*eta_z*phi_z*Jor%Vzz &
+            this%Vyz = 2.0d0*eta_x*phi_x*Jor%Vxx+2.0d0*eta_y*phi_y*Jor%Vyy+2.0d0*eta_z*phi_z*Jor%Vzz &
             +(eta_x*phi_y+phi_x*eta_y)*Jor%Vxy+(eta_x*phi_z+phi_x*eta_z)*Jor%Vxz &
             +(eta_y*phi_z+phi_y*eta_z)*Jor%Vyz
         end associate
-
-        this%G=G;     this%D=D
-        this%A=A;     this%B=B;     this%C=C
-        this%A_p=A_p; this%A_m=A_m; this%A_v=A_v
-        this%B_p=B_p; this%B_m=B_m; this%B_v=B_v
-        this%C_p=C_p; this%C_m=C_m; this%C_v=C_v
-        this%Vxx=Vxx; this%Vyy=Vyy; this%Vzz=Vzz 
-        this%Vxy=Vxy; this%Vxz=Vxz; this%Vyz=Vyz 
     end subroutine get_adorned_cubes
-
-    subroutine split(A,G,A_p,A_m)
-        implicit none
-        real(R_P), dimension(5, 5), intent(out) :: A_p,A_m
-        real(R_P), dimension(5, 5), intent(in) :: A, G
-        real(R_P) :: diag_plus(5, 5),diag_minus(5, 5)
-        real(R_P), dimension(5, 5) :: At, Gt, Ab
-        real(R_P) :: alfr(5), alfi(5), beta(5)
-        real(R_P) :: vl(5, 5), vr(5, 5)
-        complex(R_P) :: lambda_(5)
-        integer :: ipiv(5), info
-        real(R_P) :: work(100)
-        complex(R_P) :: ZI=(0.0d0,1.0d0)
-        integer :: i
-        A_p=0.0d0; A_m=0.0d0; work=0.0d0
-        alfr=0.0d0; alfi=0.0d0; beta=0.0d0
-        vl=0.0d0; vr=0.0d0; lambda_=0.0d0
-        diag_plus=0.0d0; diag_minus=0.0d0
-        At=A; Gt=G
-        call dggev('N', 'V', 5, At, 5, Gt, 5, alfr, alfi, &
-        beta, vl, 5, vr, 5, work, 100, info)
-        lambda_=(alfr+ZI*alfi)/beta
-        do i=1, 5
-            diag_plus(i, i)=max(0.0d0, lambda_(i)%re)
-            diag_minus(i, i)=min(0.0d0, lambda_(i)%re)
-        enddo
-        vl=vr !! vl is inv(vr)
-        call dgetrf(5, 5, vl, 5, ipiv, info)
-        call dgetri(5, vl, 5, ipiv, work, 5, info)
-        At=matmul(G, vr)
-        At=matmul(At, diag_plus)
-        At=matmul(At, vl)
-        Ab=matmul(G, vr)
-        Ab=matmul(Ab, diag_minus)
-        Ab=matmul(Ab, vl)
-        A_p=At
-        A_m=Ab
-    end subroutine split
 end module mod_cubes

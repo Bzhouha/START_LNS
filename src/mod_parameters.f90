@@ -23,6 +23,7 @@ module mod_parameters
     character(len=256) :: initfile
     character(len=256) :: dir  
     logical :: initial_guess 
+    integer :: split_mode=0
     PetscInt :: in,jn,kn,ln
     PetscScalar :: fk=1.0d0 ! 松弛系数
     complex(R_P) :: Alpha
