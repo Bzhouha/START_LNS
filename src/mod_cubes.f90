@@ -371,8 +371,8 @@ module mod_cubes
 
         this%G=G;     this%D=D
         this%A=A;     this%B=B;     this%C=C
-        this%A_c=A;   this%B_c=B;   this%C_c=C
-        this%A_v=A;   this%B_v=B;   this%C_v=C
+        this%A_c=A_c; this%B_c=B_c; this%C_c=C_c
+        this%A_v=A_v; this%B_v=B_v; this%C_v=C_v
         this%Vxx=Vxx; this%Vyy=Vyy; this%Vzz=Vzz
         this%Vxy=Vxy; this%Vxz=Vxz; this%Vyz=Vyz
     end subroutine get_unadorned_cubes
