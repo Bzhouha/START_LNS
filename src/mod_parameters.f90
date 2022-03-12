@@ -35,9 +35,9 @@ module mod_parameters
     Vec :: tinkle_bell ! the local vec variable using in matrix_free implementation
     integer :: rank   
     integer :: sink 
-    Mat :: Dolphin
-    Mat :: SeaLion
+    Mat :: Dolphin ! KSP: 免矩阵形式的线性系统
     Vec :: Turtle
-    Mat :: Shark    
-    Vec :: RHS  
+    Mat :: Whale ! KSP: 显式矩阵形式的线性系统
+    Mat :: Shark ! SNES: 牛顿法框架下的雅各比矩阵
+    Vec :: RHS ! KSP: 右端项 
 end module mod_parameters

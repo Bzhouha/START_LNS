@@ -13,7 +13,7 @@ module mod_solving
 !
 !               a).call dolphin_ready(comm,level) 设置免矩阵求解方法。
 !
-!               b).call shark_ready(comm,level) 设置显式矩阵求解方法。
+!               b).call whale_ready(comm,level) 设置显式矩阵求解方法。
 !
 !           3).call deallocate_memory() 释放内存。
 ! 
@@ -53,12 +53,12 @@ module mod_solving
                 call dolphin_coming(comm)
                 !call dolphin_ready(comm,0)
             case (.False.)
-                call shark_coming(comm)
-                call shark_ready(comm,0)
+                call whale_coming(comm)
+                call whale_ready(comm,0)
         end select
     end subroutine linear_equations
 
-    subroutine shark_ready(comm,level)
+    subroutine whale_ready(comm,level)
         implicit none
         integer,intent(in) :: level
         PetscInt,intent(in) :: comm
@@ -68,7 +68,7 @@ module mod_solving
         rtol = 1e-8
         if(level==0)then ! 如果level是0，那么不使用多重网格
             call KSPCreate(comm,ksp,ierr)
-            call KSPSetOperators(ksp,Shark,Shark,ierr)
+            call KSPSetOperators(ksp,Whale,Whale,ierr)
             call KSPSetType(ksp,KSPFGMRES,ierr)
             call KSPSetInitialGuessNonzero(ksp,initial_guess,ierr)
             call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
@@ -99,7 +99,7 @@ module mod_solving
             call KSPView(ksp,PETSC_VIEWER_STDOUT_WORLD,ierr)
         elseif(level>0)then
             call KSPCreate(comm,ksp,ierr)
-            call KSPSetOperators(ksp,Shark,Shark,ierr)
+            call KSPSetOperators(ksp,Whale,Whale,ierr)
             call KSPSetType(ksp,KSPFGMRES,ierr)
             call KSPGetPC(ksp,pc,ierr)
             call PCSetType(pc,PCMG,ierr)
@@ -114,7 +114,7 @@ module mod_solving
             ! #####设置每层迭代矩阵
         endif
         call KSPDestroy(ksp,ierr)
-    end subroutine shark_ready
+    end subroutine whale_ready
 
     subroutine deallocate_memory()
         implicit none

@@ -14,20 +14,30 @@ module mod_forming
 !
 !       1.call dolphin_coming(comm) 免矩阵形式的矩阵生成函数
 !       
-!           call dolphin_growing_up(A, X, F, ierr) 免矩阵需要的矩阵向量乘法函数
+!           1).call dolphin_growing_up(A, X, F, ierr) 免矩阵需要的矩阵向量乘法函数
 !
-!       2.call shark_coming(comm) 矩阵形式的矩阵生成函数
+!           2).call dolphin_say_hi(comm) 进度标记：免矩阵生效中
 !
-!           call shark_growing_up() 填充数据函数
+!       2.call whale_coming(comm) 显式矩阵形式的矩阵生成函数
 !
-!               1).call shark_eat_shrimps(i,j,k) 边界部分的填充数据函数
+!           1).call we_hear_a_sound(comm) 进度标记：前绪开始生成矩阵
 !
-!               2).call shark_eat_sardine(i,j,k) 内部部分的填充数据函数
+!           2).call whale_growing_up() 填充数据函数
+!
+!               (1).call whale_eat_shrimps(i,j,k) 边界部分的填充数据函数
+!
+!               (2).call whale_eat_sardine(i,j,k) 内部部分的填充数据函数
+!
+!           3).call whale_say_hi(comm)
 !
 !       3.call set_right_hand_side(comm) 设置右边量，即边界。
 !
 !
 !   for SNES :: Nonlinear Solvers  
+!
+!       1.call Jacobi(snes,x,jac,B,null_int,ierr) 雅各比矩阵函数
+!
+!       2.call RHS_with_BC(snes,x,f,null_int,ierr) 右端项函数
 !
 ! ------------------------------------------------------------------
     use penf, only: R_P
@@ -36,7 +46,7 @@ module mod_forming
     use mod_cubes
     use petsc
     implicit none
-    public :: dolphin_coming, shark_coming, set_right_hand_side
+    public :: dolphin_coming, whale_coming, set_right_hand_side
     private
     type(lns_OP_point_type) :: Jor
     ! 注：这里是列优先，存储在内存中的样子是下面形式的转置，所以实际使用时需要将行列调换，如C1(li,c_index)。
@@ -184,16 +194,26 @@ module mod_forming
         call DMDAVecRestoreArrayF90(meshDA,F,F_r,ierr)
     end subroutine dolphin_growing_up
 
-    subroutine shark_coming(comm)
+    subroutine dolphin_say_hi(comm)
+        implicit none
+        PetscInt,intent(in) :: comm
+        PetscErrorCode :: ierr
+        call PetscPrintf(comm," -----------------------------------\n",ierr)
+        call PetscPrintf(comm,"             免矩阵生效中             \n",ierr)
+        call PetscPrintf(comm," -----------------------------------\n",ierr)
+    end subroutine dolphin_say_hi
+
+    subroutine whale_coming(comm)
         implicit none
         PetscInt,intent(in) :: comm
         PetscErrorCode :: ierr 
         call we_hear_a_sound(comm)
-        call DMCreateMatrix(meshDA, Shark, ierr)
-        call MatZeroEntries(Shark,ierr)
-        call shark_growing_up()
+        ! call DMSetMatType(meshDA, MATBAIJ, ierr)
+        call DMCreateMatrix(meshDA, Whale, ierr)
+        call MatZeroEntries(Whale,ierr)
+        call whale_growing_up()
         call whale_say_hi(comm)
-    end subroutine shark_coming
+    end subroutine whale_coming
 
     subroutine we_hear_a_sound(comm)
         implicit none
@@ -204,7 +224,7 @@ module mod_forming
         call PetscPrintf(comm," -----------------------------------\n",ierr)
     end subroutine we_hear_a_sound
  
-    subroutine shark_growing_up()
+    subroutine whale_growing_up()
         implicit none
         PetscErrorCode :: ierr
         integer :: i,j,k
@@ -212,18 +232,18 @@ module mod_forming
             do j=js,je
                 do i=is,ie
                     if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
-                        call shark_eat_shrimps(i,j,k)
+                        call whale_eat_shrimps(i,j,k)
                     else
-                        call shark_eat_sardine(i,j,k)
+                        call whale_eat_sardine(i,j,k)
                     endif
                 enddo
             enddo
         enddo
-        call MatAssemblyBegin(Shark,MAT_FINAL_ASSEMBLY,ierr)
-        call MatAssemblyEnd(Shark,MAT_FINAL_ASSEMBLY,ierr)
-    end subroutine shark_growing_up
+        call MatAssemblyBegin(Whale,MAT_FINAL_ASSEMBLY,ierr)
+        call MatAssemblyEnd(Whale,MAT_FINAL_ASSEMBLY,ierr)
+    end subroutine whale_growing_up
 
-    subroutine shark_eat_shrimps(i,j,k)
+    subroutine whale_eat_shrimps(i,j,k)
         implicit none
         PetscScalar :: box(5,5),trans(5,5)
         MatStencil :: idxm(4,1),idxn(4,1)
@@ -241,7 +261,7 @@ module mod_forming
             box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
             idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
             idxn(MatStencil_i, 1)=i; idxn(MatStencil_j, 1)=j; idxn(MatStencil_k, 1)=k
-            call MatSetValuesBlockedStencil(Shark, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+            call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
         elseif(j==0 .and. i/=0)then
             ljb=0;lje=1
             jc_index=1
@@ -262,7 +282,7 @@ module mod_forming
                 box=0.0d0;trans=0.0d0
                 box=delta_j(lj)*Jor%D+coef_c1f(lj,jc_index)*Jor%B
                 trans=transpose(box)
-                call MatSetValuesBlockedStencil(Shark, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+                call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
             enddo
         elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
             lib=-2;lie=0
@@ -275,13 +295,13 @@ module mod_forming
                 box=0.0d0
                 box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
                 box=coef_c1b(li,ic_index)*box
-                call MatSetValuesBlockedStencil(Shark, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+                call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
             enddo
         endif
         end associate
-    end subroutine shark_eat_shrimps
+    end subroutine whale_eat_shrimps
 
-    subroutine shark_eat_sardine(i,j,k)
+    subroutine whale_eat_sardine(i,j,k)
         implicit none
         integer :: ic_index, jc_index, kc_index
         integer :: lib, lie, ljb, lje, lkb, lke
@@ -368,12 +388,21 @@ module mod_forming
                         delta_j(lj)*Vxz*coef_c1(li,ic_index)*coef_c1(lk,kc_index)- &
                         delta_i(li)*Vyz*coef_c1(lj,jc_index)*coef_c1(lk,kc_index)
                     trans=transpose(box)
-                    call MatSetValuesBlockedStencil(Shark, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+                    call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
                 end do
             end do
         end do
         end associate
-    end subroutine shark_eat_sardine
+    end subroutine whale_eat_sardine
+
+    subroutine whale_say_hi(comm)
+        implicit none
+        PetscInt,intent(in) :: comm
+        PetscErrorCode :: ierr
+        call PetscPrintf(comm," -----------------------------------\n",ierr)
+        call PetscPrintf(comm,"             矩阵生成结束             \n",ierr)
+        call PetscPrintf(comm," -----------------------------------\n",ierr)
+    end subroutine whale_say_hi
 
     subroutine set_right_hand_side(comm)
         implicit none 
@@ -393,24 +422,6 @@ module mod_forming
         call MPI_Barrier(comm,ierr)
         deallocate(disturb)
     end subroutine set_right_hand_side
-
-    subroutine whale_say_hi(comm)
-        implicit none
-        PetscInt,intent(in) :: comm
-        PetscErrorCode :: ierr
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm,"             矩阵生成结束             \n",ierr)
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-    end subroutine whale_say_hi
-
-    subroutine dolphin_say_hi(comm)
-        implicit none
-        PetscInt,intent(in) :: comm
-        PetscErrorCode :: ierr
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm,"             免矩阵生效中             \n",ierr)
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-    end subroutine dolphin_say_hi
 
     !   SNES :: Nonlinear Solvers
 
