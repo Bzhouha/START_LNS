@@ -62,7 +62,7 @@ module mod_solving
     end subroutine nonlinear_equations
 
     subroutine whale_ready(comm,level)
-        use mod_parameters,only : Whale,Turtle,RHS,init_guess_flg,bf
+        use mod_parameters,only : whale,turtle,RHS,init_guess_flg
         implicit none
         integer,intent(in) :: level
         PetscInt,intent(in) :: comm
@@ -72,7 +72,7 @@ module mod_solving
         rtol = 1e-8
         if(level==0)then ! 如果level是0，那么不使用多重网格
             call KSPCreate(comm,ksp,ierr)
-            call KSPSetOperators(ksp,Whale,Whale,ierr)
+            call KSPSetOperators(ksp,whale,whale,ierr)
             call KSPSetType(ksp,KSPFGMRES,ierr)
             call KSPSetInitialGuessNonzero(ksp,init_guess_flg,ierr)
             call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
@@ -103,7 +103,7 @@ module mod_solving
             call KSPView(ksp,PETSC_VIEWER_STDOUT_WORLD,ierr)
         elseif(level>0)then
             call KSPCreate(comm,ksp,ierr)
-            call KSPSetOperators(ksp,Whale,Whale,ierr)
+            call KSPSetOperators(ksp,whale,whale,ierr)
             call KSPSetType(ksp,KSPFGMRES,ierr)
             call KSPGetPC(ksp,pc,ierr)
             call PCSetType(pc,PCMG,ierr)
@@ -119,21 +119,20 @@ module mod_solving
         endif
         call VecDestroy(RHS,ierr)
         call KSPDestroy(ksp,ierr)
-        deallocate(bf)
     end subroutine whale_ready
 
     subroutine dolphin_ready(comm,level)
-        use mod_parameters,only : Turtle,RHS,meshDA,tinkle_bell,bf
+        use mod_parameters,only : turtle,RHS,meshDA,tinkle_bell
         implicit none
         integer,intent(in) :: level
         PetscInt,intent(in) :: comm
         call DMRestoreLocalVector(meshDA,tinkle_bell,ierr)
+        call deallocate_bfinfo_and_metrics()
         call VecDestroy(RHS,ierr)
-        deallocate(bf)
     end subroutine dolphin_ready
 
     subroutine shark_ready(comm)
-        use mod_parameters,only : Shark,Turtle,meshDA,tinkle_bell,bf
+        use mod_parameters,only : shark,turtle,meshDA,tinkle_bell
         implicit none
         integer, intent(in) :: comm
         real(8) :: rtol
@@ -143,7 +142,7 @@ module mod_solving
         rtol = 1e-8
         call SNESCreate(comm,snes,ierr)
         call SNESSetFunction(snes,PETSC_NULL_VEC,RHS_with_BC,0,ierr)
-        call SNESSetJacobian(snes,Shark,Shark,shark_growing_up,0,ierr)
+        call SNESSetJacobian(snes,shark,shark,shark_growing_up,0,ierr)
         call SNESGetKSP(snes,ksp,ierr)
         call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)    
         call KSPGetPC(ksp,pc,ierr)
@@ -155,10 +154,10 @@ module mod_solving
         call SNESSetType(snes,SNESNEWTONLS,ierr)
         call SNESSetFromOptions(snes,ierr)
         call SNESSetUp(snes,ierr)
-        call SNESSolve(snes,PETSC_NULL_VEC,Turtle,ierr)
+        call SNESSolve(snes,PETSC_NULL_VEC,turtle,ierr)
         call SNESDestroy(snes,ierr)
+        call deallocate_bfinfo_and_metrics()
         call DMRestoreLocalVector(meshDA,tinkle_bell,ierr)
-        deallocate(bf)
     end subroutine shark_ready
 
 end module mod_solving

@@ -245,15 +245,15 @@ module mod_loading ! 读入并分发数据
         call VecLoad(Multi_disturb, Viewer, ierr)
         call PetscViewerDestroy(Viewer, ierr)
 
-        call DMGetGlobalVector(meshDA, Turtle, ierr)
+        call DMGetGlobalVector(meshDA, turtle, ierr)
         select case (init_guess_flg)
         case(.True.)
-            call VecZeroEntries(Turtle,ierr)
+            call VecZeroEntries(turtle,ierr)
             call PetscViewerBinaryOpen(comm, trim(initfile),FILE_MODE_READ, Viewer, ierr)
-            call VecLoad(Turtle, Viewer, ierr)
+            call VecLoad(turtle, Viewer, ierr)
             call PetscViewerDestroy(Viewer, ierr)
         case(.False.)
-            call VecZeroEntries(Turtle,ierr)
+            call VecZeroEntries(turtle,ierr)
         end select
 
     end subroutine load_petsc_file

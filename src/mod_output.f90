@@ -28,7 +28,7 @@ module mod_output
         implicit none
         PetscInt,intent(in) :: comm
         call PetscViewerBinaryOpen(comm, "out/Turtle.petsc", FILE_MODE_WRITE, Viewer, ierr)
-        call VecView(Turtle, Viewer, ierr)
+        call VecView(turtle, Viewer, ierr)
         call PetscViewerDestroy(Viewer, ierr)
     end subroutine petsc_file
 

@@ -9,7 +9,6 @@ module mod_forming
 !   在线性求解系统 KSP 框架下，生成最终的大矩阵；
 !   在非线性求解系统 SNES 框架下，生成雅各比矩阵和右端项函数。
 !
-!
 !   for KSP :: Linear System Solvers
 !
 !       1.call dolphin_coming(comm) 免矩阵形式的矩阵生成函数
@@ -32,7 +31,6 @@ module mod_forming
 !
 !       3.call set_right_hand_side(comm) 设置右边量，即边界。
 !
-!
 !   for SNES :: Nonlinear Solvers  
 !
 !       1.call Jacobi(snes,x,jac,B,null_int,ierr) 雅各比矩阵函数
@@ -47,7 +45,7 @@ module mod_forming
     use petsc
     implicit none
     public :: dolphin_coming, whale_coming, shark_coming
-    public :: shark_growing_up, RHS_with_BC
+    public :: shark_growing_up, RHS_with_BC, deallocate_bfinfo_and_metrics
     private
     type(lns_OP_point_type) :: Jor
     ! 注：这里是列优先，存储在内存中的样子是下面形式的转置，所以实际使用时需要将行列调换，如C1(li,c_index)。
@@ -108,11 +106,11 @@ module mod_forming
         call DMGetLocalVector(meshDA,tinkle_bell,ierr)
         call VecZeroEntries(tinkle_bell,ierr)
         call VecGetLocalSize(turtle,ls,ierr)
-        call MatCreateShell(comm,ls,ls,PETSC_DETERMINE,PETSC_DETERMINE,PETSC_NULL_INTEGER,Dolphin,ierr)
-        call MatShellSetOperation(Dolphin,MATOP_MULT,dolphin_growing_up,ierr)
-        call MatAssemblyBegin(Dolphin,MAT_FINAL_ASSEMBLY,ierr)
-        call MatAssemblyEnd(Dolphin,MAT_FINAL_ASSEMBLY,ierr)
-        call VecDuplicate(Turtle,RHS,ierr)
+        call MatCreateShell(comm,ls,ls,PETSC_DETERMINE,PETSC_DETERMINE,PETSC_NULL_INTEGER,dolphin,ierr)
+        call MatShellSetOperation(dolphin,MATOP_MULT,dolphin_growing_up,ierr)
+        call MatAssemblyBegin(dolphin,MAT_FINAL_ASSEMBLY,ierr)
+        call MatAssemblyEnd(dolphin,MAT_FINAL_ASSEMBLY,ierr)
+        call VecDuplicate(turtle,RHS,ierr)
         call VecZeroEntries(RHS,ierr)
         call set_right_hand_side(comm)
         call dolphin_say_hi(comm)
@@ -225,12 +223,13 @@ module mod_forming
         PetscInt,intent(in) :: comm
         PetscErrorCode :: ierr 
         call whale_is_born(comm)
-        call DMCreateMatrix(meshDA, Whale, ierr)
-        call MatZeroEntries(Whale,ierr)
+        call DMCreateMatrix(meshDA, whale, ierr)
+        call MatZeroEntries(whale,ierr)
         call whale_growing_up()
-        call VecDuplicate(Turtle,RHS,ierr)
+        call VecDuplicate(turtle,RHS,ierr)
         call VecZeroEntries(RHS,ierr)
         call set_right_hand_side(comm)
+        call deallocate_bfinfo_and_metrics()
         call whale_say_hi(comm)
     end subroutine whale_coming
 
@@ -258,8 +257,8 @@ module mod_forming
                 enddo
             enddo
         enddo
-        call MatAssemblyBegin(Whale,MAT_FINAL_ASSEMBLY,ierr)
-        call MatAssemblyEnd(Whale,MAT_FINAL_ASSEMBLY,ierr)
+        call MatAssemblyBegin(whale,MAT_FINAL_ASSEMBLY,ierr)
+        call MatAssemblyEnd(whale,MAT_FINAL_ASSEMBLY,ierr)
     end subroutine whale_growing_up
 
     subroutine whale_eat_shrimps(i,j,k)
@@ -279,7 +278,7 @@ module mod_forming
             box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
             idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
             idxn(MatStencil_i, 1)=i; idxn(MatStencil_j, 1)=j; idxn(MatStencil_k, 1)=k
-            call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+            call MatSetValuesBlockedStencil(whale, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
         elseif(j==0 .and. i/=0)then
             ljb=0;lje=1
             jc_index=1
@@ -300,7 +299,7 @@ module mod_forming
                 box=0.0d0;trans=0.0d0
                 box=delta_j(lj)*Jor%D+coef_c4f(lj,jc_index)*Jor%B
                 trans=transpose(box)
-                call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+                call MatSetValuesBlockedStencil(whale, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
             enddo
         elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
             lib=-2;lie=0
@@ -313,7 +312,7 @@ module mod_forming
                 box=0.0d0
                 box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
                 box=coef_c4b(li,ic_index)*box
-                call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+                call MatSetValuesBlockedStencil(whale, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
             enddo
         endif
         end associate
@@ -406,7 +405,7 @@ module mod_forming
                         delta_j(lj)*Vxz*coef_c4(li,ic_index)*coef_c4(lk,kc_index)- &
                         delta_i(li)*Vyz*coef_c4(lj,jc_index)*coef_c4(lk,kc_index)
                     trans=transpose(box)
-                    call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+                    call MatSetValuesBlockedStencil(whale, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
                 end do
             end do
         end do
@@ -450,8 +449,8 @@ module mod_forming
         call shark_is_born(comm)
         call DMGetLocalVector(meshDA,tinkle_bell,ierr)
         call VecZeroEntries(tinkle_bell,ierr)
-        call DMCreateMatrix(meshDA,Shark,ierr)
-        call MatZeroEntries(Shark,ierr)
+        call DMCreateMatrix(meshDA,shark,ierr)
+        call MatZeroEntries(shark,ierr)
         call shark_say_hi(comm)
     end subroutine shark_coming
 
@@ -727,7 +726,20 @@ module mod_forming
 
         call DMDAVecRestoreArrayReadF90(meshDA,tinkle_bell,x_local,ierr)
         call DMDAVecRestoreArrayF90(meshDA,f,f_local,ierr)
-
     end subroutine RHS_with_BC
 
+    subroutine deallocate_bfinfo_and_metrics()
+        ! 免矩阵版本需在全部计算结束之后才可释放内存
+        implicit none 
+        deallocate(bf)
+        deallocate(xi_x,xi_y,xi_z)
+        deallocate(eta_x,eta_y,eta_z)
+        deallocate(phi_x,phi_y,phi_z)
+        deallocate(xi_xx,xi_yy,xi_zz)
+        deallocate(eta_xx,eta_yy,eta_zz)
+        deallocate(phi_xx,phi_yy,phi_zz)
+        deallocate(xi_xy,xi_xz,xi_yz)
+        deallocate(eta_xy,eta_yz,eta_xz)
+        deallocate(phi_xy,phi_yz,phi_xz)
+    end subroutine deallocate_bfinfo_and_metrics
 end module mod_forming
