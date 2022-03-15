@@ -159,5 +159,4 @@ module mod_solving
         call deallocate_bfinfo_and_metrics()
         call DMRestoreLocalVector(meshDA,tinkle_bell,ierr)
     end subroutine shark_ready
-
 end module mod_solving

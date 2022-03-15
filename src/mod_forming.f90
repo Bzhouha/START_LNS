@@ -4,9 +4,9 @@
 module mod_forming
 ! ------------------------------------------------------------------
 !
-!  这个模块:
+!  这个模块包含调用xxxSolve前的所有准备步骤，包括矩阵、右端量的生成函数，清理函数等。
 !
-!   在线性求解系统 KSP 框架下，生成最终的大矩阵；
+!   在线性求解系统 KSP 框架下，生成左端矩阵；
 !   在非线性求解系统 SNES 框架下，生成雅各比矩阵和右端项函数。
 !
 !   for KSP :: Linear System Solvers
@@ -33,9 +33,13 @@ module mod_forming
 !
 !   for SNES :: Nonlinear Solvers  
 !
-!       1.call Jacobi(snes,x,jac,B,null_int,ierr) 雅各比矩阵函数
+!       1.call shark_coming(comm) SNES所需的矩阵、数组分配
 !
-!       2.call RHS_with_BC(snes,x,f,null_int,ierr) 右端项函数
+!       2.call Jacobi(snes,x,jac,B,null_int,ierr) 雅各比矩阵函数
+!
+!       3.call RHS_with_BC(snes,x,f,null_int,ierr) 右端项函数
+!
+!   call deallocate_bfinfo_and_metrics() 释放基本流类和度量系数数组内存
 !
 ! ------------------------------------------------------------------
     use penf, only: R_P
