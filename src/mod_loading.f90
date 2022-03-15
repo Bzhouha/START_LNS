@@ -62,6 +62,8 @@ module mod_loading ! 读入并分发数据
             solver_mode=1;split_mode=1
         endif 
 
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp_mf',ksp_mat_free_flg,ierr)
+
         call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
         call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-sub_pc_factor_in_place",PETSC_NULL_CHARACTER,ierr)
         call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-pc_asm_sub_mat_type","baij",ierr)
@@ -103,7 +105,7 @@ module mod_loading ! 读入并分发数据
         call MPI_Get_address(kn,address_kn,ierr)
         call MPI_Get_address(ln,address_ln,ierr)
         call MPI_Get_address(lns_mode,address_mode,ierr)
-        call MPI_Get_address(initial_guess,address_initguess,ierr)
+        call MPI_Get_address(init_guess_flg,address_initguess,ierr)
         call MPI_Get_address(Ma,address_Ma,ierr)
         call MPI_Get_address(Re,address_Re,ierr)
         call MPI_Get_address(Te,address_Te,ierr)
@@ -151,7 +153,7 @@ module mod_loading ! 读入并分发数据
             call MPI_Pack(kn,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
             call MPI_Pack(ln,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
             call MPI_Pack(lns_mode,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
-            call MPI_Pack(initial_guess,1,MPI_LOGICAL,packbuf,120,position,comm,ierr)
+            call MPI_Pack(init_guess_flg,1,MPI_LOGICAL,packbuf,120,position,comm,ierr)
             call MPI_Pack(Ma,1,MPI_REAL8,packbuf,120,position,comm,ierr)
             call MPI_Pack(Re,1,MPI_REAL8,packbuf,120,position,comm,ierr)
             call MPI_Pack(Te,1,MPI_REAL8,packbuf,120,position,comm,ierr)
@@ -168,7 +170,7 @@ module mod_loading ! 读入并分发数据
             call MPI_Unpack(packbuf,120,position,kn,1,MPI_INTEGER4,comm,ierr)
             call MPI_Unpack(packbuf,120,position,ln,1,MPI_INTEGER4,comm,ierr)
             call MPI_Unpack(packbuf,120,position,lns_mode,1,MPI_INTEGER4,comm,ierr)
-            call MPI_Unpack(packbuf,120,position,initial_guess,1,MPI_LOGICAL,comm,ierr)
+            call MPI_Unpack(packbuf,120,position,init_guess_flg,1,MPI_LOGICAL,comm,ierr)
             call MPI_Unpack(packbuf,120,position,Ma,1,MPI_REAL8,comm,ierr)
             call MPI_Unpack(packbuf,120,position,Re,1,MPI_REAL8,comm,ierr)
             call MPI_Unpack(packbuf,120,position,Te,1,MPI_REAL8,comm,ierr)
@@ -244,7 +246,7 @@ module mod_loading ! 读入并分发数据
         call PetscViewerDestroy(Viewer, ierr)
 
         call DMGetGlobalVector(meshDA, Turtle, ierr)
-        select case (initial_guess)
+        select case (init_guess_flg)
         case(.True.)
             call VecZeroEntries(Turtle,ierr)
             call PetscViewerBinaryOpen(comm, trim(initfile),FILE_MODE_READ, Viewer, ierr)

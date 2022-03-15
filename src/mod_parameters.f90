@@ -21,8 +21,9 @@ module mod_parameters
     character(len=256) :: flowfile  
     character(len=256) :: turbfile
     character(len=256) :: initfile
+    logical :: ksp_mat_free_flg
+    logical :: init_guess_flg
     character(len=256) :: dir  
-    logical :: initial_guess 
     integer :: solver_mode=0
     integer :: split_mode=0
     PetscInt :: in,jn,kn,ln

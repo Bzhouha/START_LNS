@@ -150,8 +150,8 @@ contains
         write(*,*) ""
 
         write(*,*) "检查是否存在初值..."
-        inquire(file=trim(initfile),exist=initial_guess)
-        select case (initial_guess)
+        inquire(file=trim(initfile),exist=init_guess_flg)
+        select case (init_guess_flg)
         case(.True.)
             write(*,*) '  True。'
         case(.False.)

@@ -46,8 +46,8 @@ module mod_forming
     use mod_cubes
     use petsc
     implicit none
-    public :: dolphin_coming, whale_coming, set_right_hand_side
-    public :: shark_coming, shark_growing_up, RHS_with_BC
+    public :: dolphin_coming, whale_coming, shark_coming
+    public :: shark_growing_up, RHS_with_BC
     private
     type(lns_OP_point_type) :: Jor
     ! 注：这里是列优先，存储在内存中的样子是下面形式的转置，所以实际使用时需要将行列调换，如C1(li,c_index)。
@@ -105,11 +105,16 @@ module mod_forming
         PetscInt,intent(in) :: comm
         PetscErrorCode :: ierr
         PetscInt :: ls
+        call DMGetLocalVector(meshDA,tinkle_bell,ierr)
+        call VecZeroEntries(tinkle_bell,ierr)
         call VecGetLocalSize(turtle,ls,ierr)
         call MatCreateShell(comm,ls,ls,PETSC_DETERMINE,PETSC_DETERMINE,PETSC_NULL_INTEGER,Dolphin,ierr)
         call MatShellSetOperation(Dolphin,MATOP_MULT,dolphin_growing_up,ierr)
         call MatAssemblyBegin(Dolphin,MAT_FINAL_ASSEMBLY,ierr)
         call MatAssemblyEnd(Dolphin,MAT_FINAL_ASSEMBLY,ierr)
+        call VecDuplicate(Turtle,RHS,ierr)
+        call VecZeroEntries(RHS,ierr)
+        call set_right_hand_side(comm)
         call dolphin_say_hi(comm)
     end subroutine dolphin_coming
 
@@ -122,14 +127,11 @@ module mod_forming
         integer :: i1,i2,j1,j2
         PetscErrorCode :: ierr
         integer :: i,j,k
-        Vec :: Clams
         Vec :: X, F
         Mat :: A 
-        call DMGetLocalVector(meshDA,Clams,ierr)
-        call VecZeroEntries(Clams,ierr)
-        call DMGlobalToLocalBegin(meshDA,X,INSERT_VALUES,Clams,ierr)
-        call DMGlobalToLocalEnd(meshDA,X,INSERT_VALUES,Clams,ierr)
-        call DMDAVecGetArrayReadF90(meshDA,Clams,X_r,ierr)
+        call DMGlobalToLocalBegin(meshDA,X,INSERT_VALUES,tinkle_bell,ierr)
+        call DMGlobalToLocalEnd(meshDA,X,INSERT_VALUES,tinkle_bell,ierr)
+        call DMDAVecGetArrayReadF90(meshDA,tinkle_bell,X_r,ierr)
         call DMDAVecGetArrayF90(meshDA,F,F_r,ierr)
         associate ( F => F_r, x => X_r, &
             G   => Jor%G, D => Jor%D, &
@@ -205,9 +207,8 @@ module mod_forming
             enddo
         enddo
         end associate
-        call DMDAVecRestoreArrayReadF90(meshDA,Clams,X_r,ierr)
+        call DMDAVecRestoreArrayReadF90(meshDA,tinkle_bell,X_r,ierr)
         call DMDAVecRestoreArrayF90(meshDA,F,F_r,ierr)
-        call DMRestoreLocalVector(meshDA,Clams,ierr)
     end subroutine dolphin_growing_up
 
     subroutine dolphin_say_hi(comm)
@@ -227,6 +228,9 @@ module mod_forming
         call DMCreateMatrix(meshDA, Whale, ierr)
         call MatZeroEntries(Whale,ierr)
         call whale_growing_up()
+        call VecDuplicate(Turtle,RHS,ierr)
+        call VecZeroEntries(RHS,ierr)
+        call set_right_hand_side(comm)
         call whale_say_hi(comm)
     end subroutine whale_coming
 
@@ -444,10 +448,10 @@ module mod_forming
         PetscInt,intent(in) :: comm
         PetscErrorCode :: ierr 
         call shark_is_born(comm)
-        call DMCreateMatrix(meshDA, Shark, ierr)
-        call MatZeroEntries(Shark,ierr)
         call DMGetLocalVector(meshDA,tinkle_bell,ierr)
         call VecZeroEntries(tinkle_bell,ierr)
+        call DMCreateMatrix(meshDA,Shark,ierr)
+        call MatZeroEntries(Shark,ierr)
         call shark_say_hi(comm)
     end subroutine shark_coming
 

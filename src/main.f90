@@ -18,6 +18,6 @@ program main
     call loading_data(PETSC_COMM_WORLD)
     call working(PETSC_COMM_WORLD)              
     call result_to_file(PETSC_COMM_WORLD)
-     
+
     call PetscFinalize(ierr)
 end program main

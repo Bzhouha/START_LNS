@@ -5,20 +5,19 @@ module mod_solving
 ! 
 !  这个模块是主工作流。
 ! 
-!       1.call working(comm) 主工作流。
-! 
-!           1).call allocate_memory() 分配内存。
+!       call working(comm) 主工作流。
 !
-!           2).call linear_equations(comm) 求解线性系统。
+!           1.call linear_equations(comm) 基于KSP求解方程。
 !
-!               a).call dolphin_ready(comm,level) 设置免矩阵求解方法。
+!               1).call dolphin_ready(comm,level) 设置KSP免矩阵求解方法。
 !
-!               b).call whale_ready(comm,level) 设置显式矩阵求解方法。
+!               2).call whale_ready(comm,level) 设置KSP显式矩阵求解方法。
 !
-!           3).call deallocate_memory() 释放内存。
+!           2.call nonlinear_equations(comm) 基于SNES求解方程。
+!
+!               call shark_ready(comm) 设置SNES求解参数。
 ! 
 ! ----------------------------------------------------
-    use mod_parameters
     use mod_metrics
     use mod_forming
     use mod_points
@@ -28,6 +27,8 @@ module mod_solving
     PetscErrorCode :: ierr
     contains
     subroutine working(comm)
+        use mod_parameters,only : solver_mode
+        implicit none
         PetscInt,intent(in) :: comm
         call metric_coefficient(comm)
         call partial_derivatives(comm)
@@ -37,29 +38,31 @@ module mod_solving
             case(1)
                 call nonlinear_equations(comm)
         end select
-        deallocate(bf)
     end subroutine working
 
     subroutine linear_equations(comm)
+        use mod_parameters,only : ksp_mat_free_flg
         implicit none
         integer,intent(in) :: comm
-        logical :: Matrix_Free
-        Matrix_Free=.False.
-        call VecDuplicate(Turtle,RHS,ierr)
-        call VecZeroEntries(RHS,ierr)
-        call set_right_hand_side(comm)
-        select case (Matrix_Free)
+        select case (ksp_mat_free_flg)
             case (.True.)
                 call dolphin_coming(comm)
-                !call dolphin_ready(comm,0)
+                call dolphin_ready(comm,0)
             case (.False.)
                 call whale_coming(comm)
                 call whale_ready(comm,0)
         end select
-        call VecDestroy(RHS,ierr)
     end subroutine linear_equations
 
+    subroutine nonlinear_equations(comm)
+        implicit none 
+        integer, intent(in) :: comm
+        call shark_coming(comm)
+        call shark_ready(comm)
+    end subroutine nonlinear_equations
+
     subroutine whale_ready(comm,level)
+        use mod_parameters,only : Whale,Turtle,RHS,init_guess_flg,bf
         implicit none
         integer,intent(in) :: level
         PetscInt,intent(in) :: comm
@@ -71,7 +74,7 @@ module mod_solving
             call KSPCreate(comm,ksp,ierr)
             call KSPSetOperators(ksp,Whale,Whale,ierr)
             call KSPSetType(ksp,KSPFGMRES,ierr)
-            call KSPSetInitialGuessNonzero(ksp,initial_guess,ierr)
+            call KSPSetInitialGuessNonzero(ksp,init_guess_flg,ierr)
             call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
             call KSPGMRESSetRestart(ksp,40,ierr)
             call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
@@ -114,17 +117,23 @@ module mod_solving
             ! #####设置光滑子 
             ! #####设置每层迭代矩阵
         endif
+        call VecDestroy(RHS,ierr)
         call KSPDestroy(ksp,ierr)
+        deallocate(bf)
     end subroutine whale_ready
 
-    subroutine nonlinear_equations(comm)
-        implicit none 
-        integer, intent(in) :: comm
-        call shark_coming(comm)
-        call shark_ready(comm)
-    end subroutine nonlinear_equations
+    subroutine dolphin_ready(comm,level)
+        use mod_parameters,only : Turtle,RHS,meshDA,tinkle_bell,bf
+        implicit none
+        integer,intent(in) :: level
+        PetscInt,intent(in) :: comm
+        call DMRestoreLocalVector(meshDA,tinkle_bell,ierr)
+        call VecDestroy(RHS,ierr)
+        deallocate(bf)
+    end subroutine dolphin_ready
 
     subroutine shark_ready(comm)
+        use mod_parameters,only : Shark,Turtle,meshDA,tinkle_bell,bf
         implicit none
         integer, intent(in) :: comm
         real(8) :: rtol
@@ -148,6 +157,8 @@ module mod_solving
         call SNESSetUp(snes,ierr)
         call SNESSolve(snes,PETSC_NULL_VEC,Turtle,ierr)
         call SNESDestroy(snes,ierr)
+        call DMRestoreLocalVector(meshDA,tinkle_bell,ierr)
+        deallocate(bf)
     end subroutine shark_ready
 
 end module mod_solving
