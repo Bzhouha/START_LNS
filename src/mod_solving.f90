@@ -29,24 +29,24 @@ module mod_solving
     contains
     subroutine working(comm)
         PetscInt,intent(in) :: comm
-        call allocate_memory()
         call metric_coefficient(comm)
         call partial_derivatives(comm)
-        call linear_equations(comm)
-        call deallocate_memory()
+        select case (solver_mode)
+            case(0)
+                call linear_equations(comm)
+            case(1)
+                call nonlinear_equations(comm)
+        end select
+        deallocate(bf)
     end subroutine working
-
-    subroutine allocate_memory()
-        implicit none 
-        call VecDuplicate(Turtle,RHS,ierr)
-        call VecZeroEntries(RHS,ierr)
-    end subroutine allocate_memory
 
     subroutine linear_equations(comm)
         implicit none
         integer,intent(in) :: comm
         logical :: Matrix_Free
         Matrix_Free=.False.
+        call VecDuplicate(Turtle,RHS,ierr)
+        call VecZeroEntries(RHS,ierr)
         call set_right_hand_side(comm)
         select case (Matrix_Free)
             case (.True.)
@@ -56,6 +56,7 @@ module mod_solving
                 call whale_coming(comm)
                 call whale_ready(comm,0)
         end select
+        call VecDestroy(RHS,ierr)
     end subroutine linear_equations
 
     subroutine whale_ready(comm,level)
@@ -116,10 +117,37 @@ module mod_solving
         call KSPDestroy(ksp,ierr)
     end subroutine whale_ready
 
-    subroutine deallocate_memory()
+    subroutine nonlinear_equations(comm)
+        implicit none 
+        integer, intent(in) :: comm
+        call shark_coming(comm)
+        call shark_ready(comm)
+    end subroutine nonlinear_equations
+
+    subroutine shark_ready(comm)
         implicit none
-        deallocate(bf)
-        call VecDestroy(RHS,ierr)
-    end subroutine deallocate_memory
+        integer, intent(in) :: comm
+        real(8) :: rtol
+        SNES :: snes 
+        KSP :: ksp 
+        PC :: pc
+        rtol = 1e-8
+        call SNESCreate(comm,snes,ierr)
+        call SNESSetFunction(snes,PETSC_NULL_VEC,RHS_with_BC,0,ierr)
+        call SNESSetJacobian(snes,Shark,Shark,shark_growing_up,0,ierr)
+        call SNESGetKSP(snes,ksp,ierr)
+        call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)    
+        call KSPGetPC(ksp,pc,ierr)
+        ! call PCSetType(pc,PCASM,ierr)
+        call PCSetFromOptions(pc,ierr)
+        call PCSetUp(pc,ierr)
+        call KSPSetFromOptions(ksp,ierr)
+        call KSPSetUp(ksp,ierr)
+        call SNESSetType(snes,SNESNEWTONLS,ierr)
+        call SNESSetFromOptions(snes,ierr)
+        call SNESSetUp(snes,ierr)
+        call SNESSolve(snes,PETSC_NULL_VEC,Turtle,ierr)
+        call SNESDestroy(snes,ierr)
+    end subroutine shark_ready
 
 end module mod_solving

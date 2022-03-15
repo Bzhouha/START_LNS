@@ -20,7 +20,7 @@ module mod_forming
 !
 !       2.call whale_coming(comm) 显式矩阵形式的矩阵生成函数
 !
-!           1).call we_hear_a_sound(comm) 进度标记：前绪开始生成矩阵
+!           1).call whale_is_born(comm) 进度标记：前绪开始生成矩阵
 !
 !           2).call whale_growing_up() 填充数据函数
 !
@@ -47,6 +47,7 @@ module mod_forming
     use petsc
     implicit none
     public :: dolphin_coming, whale_coming, set_right_hand_side
+    public :: shark_coming, shark_growing_up, RHS_with_BC
     private
     type(lns_OP_point_type) :: Jor
     ! 注：这里是列优先，存储在内存中的样子是下面形式的转置，所以实际使用时需要将行列调换，如C1(li,c_index)。
@@ -75,6 +76,20 @@ module mod_forming
         0.0d0        ,       0.0d0,         0.0d0,       0.0d0,         0.0d0, &
         0.0d0        ,       0.0d0,        -1.0d0,       1.0d0,         0.0d0, &
         0.0d0        ,       0.0d0,  -3.0d0/2.0d0,       2.0d0,  -1.0d0/2.0d0, &
+        0.0d0        ,       0.0d0,        -1.0d0,       1.0d0,         0.0d0, &
+        0.0d0        ,       0.0d0,         0.0d0,       0.0d0,         0.0d0  &
+        ],[5,5])
+    real(R_P), parameter, dimension(-2:2,-2:2) :: FDM_1nd_1ORD_Backward=reshape( [&
+        0.0d0        ,       0.0d0,         0.0d0,       0.0d0,         0.0d0, &
+        0.0d0        ,      -1.0d0,         1.0d0,       0.0d0,         0.0d0, &
+        0.0d0        ,      -1.0d0,         1.0d0,       0.0d0,         0.0d0, &
+        0.0d0        ,      -1.0d0,         1.0d0,       0.0d0,         0.0d0, &
+        0.0d0        ,       0.0d0,         0.0d0,       0.0d0,         0.0d0  &
+        ],[5,5])
+    real(R_P), parameter, dimension(-2:2,-2:2) :: FDM_1nd_1ORD_Forward=reshape( [&
+        0.0d0        ,       0.0d0,         0.0d0,       0.0d0,         0.0d0, &
+        0.0d0        ,       0.0d0,        -1.0d0,       1.0d0,         0.0d0, &
+        0.0d0        ,       0.0d0,        -1.0d0,       1.0d0,         0.0d0, &
         0.0d0        ,       0.0d0,        -1.0d0,       1.0d0,         0.0d0, &
         0.0d0        ,       0.0d0,         0.0d0,       0.0d0,         0.0d0  &
         ],[5,5])
@@ -192,6 +207,7 @@ module mod_forming
         end associate
         call DMDAVecRestoreArrayReadF90(meshDA,Clams,X_r,ierr)
         call DMDAVecRestoreArrayF90(meshDA,F,F_r,ierr)
+        call DMRestoreLocalVector(meshDA,Clams,ierr)
     end subroutine dolphin_growing_up
 
     subroutine dolphin_say_hi(comm)
@@ -207,22 +223,21 @@ module mod_forming
         implicit none
         PetscInt,intent(in) :: comm
         PetscErrorCode :: ierr 
-        call we_hear_a_sound(comm)
-        ! call DMSetMatType(meshDA, MATBAIJ, ierr)
+        call whale_is_born(comm)
         call DMCreateMatrix(meshDA, Whale, ierr)
         call MatZeroEntries(Whale,ierr)
         call whale_growing_up()
         call whale_say_hi(comm)
     end subroutine whale_coming
 
-    subroutine we_hear_a_sound(comm)
+    subroutine whale_is_born(comm)
         implicit none
         PetscInt,intent(in) :: comm
         PetscErrorCode :: ierr
         call PetscPrintf(comm," -----------------------------------\n",ierr)
         call PetscPrintf(comm,"             开始生成矩阵             \n",ierr)
         call PetscPrintf(comm," -----------------------------------\n",ierr)
-    end subroutine we_hear_a_sound
+    end subroutine whale_is_born
  
     subroutine whale_growing_up()
         implicit none
@@ -250,12 +265,11 @@ module mod_forming
         integer :: ic_index, jc_index
         integer :: lib, lie, ljb, lje
         integer,intent(in) :: i,j,k
+        integer :: li,lj,ii,jj
         PetscErrorCode :: ierr
-        integer :: ii,jj
-        integer :: li,lj
         associate( &
-            coef_c1f=>FDM_1nd_4ORD_Forward, &
-            coef_c1b=>FDM_1nd_4ORD_Backward)
+            coef_c4f=>FDM_1nd_4ORD_Forward, &
+            coef_c4b=>FDM_1nd_4ORD_Backward)
         if(i==0 .or. j==(jn-1))then
             box=0.0d0
             box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
@@ -280,7 +294,7 @@ module mod_forming
                 idxn(MatStencil_j, 1)=j+lj
                 idxn(MatStencil_k, 1)=k
                 box=0.0d0;trans=0.0d0
-                box=delta_j(lj)*Jor%D+coef_c1f(lj,jc_index)*Jor%B
+                box=delta_j(lj)*Jor%D+coef_c4f(lj,jc_index)*Jor%B
                 trans=transpose(box)
                 call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
             enddo
@@ -294,7 +308,7 @@ module mod_forming
                 idxn(MatStencil_k, 1)=k
                 box=0.0d0
                 box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
-                box=coef_c1b(li,ic_index)*box
+                box=coef_c4b(li,ic_index)*box
                 call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
             enddo
         endif
@@ -352,11 +366,11 @@ module mod_forming
         idxm=0; 
         idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
         associate( &
-        coef_c1 =>FDM_1nd_4ORD_CENTER,   &
-        coef_d1 =>FDM_2nd_4ORD_CENTER,   &
-        coef_c1b=>FDM_1nd_4ORD_Backward, &
-        coef_c1f=>FDM_1nd_4ORD_Forward,  &
-          G => Jor%G,     D => Jor%D,    &
+        coef_c4 =>FDM_1nd_4ORD_CENTER,   &
+        coef_d4 =>FDM_2nd_4ORD_CENTER,   &
+        coef_c4f=>FDM_1nd_4ORD_Forward,  &
+        coef_c4b=>FDM_1nd_4ORD_Backward, &
+        G   => Jor%G,   D   => Jor%D,    &
         A_p => Jor%A_p, A_m => Jor%A_m, A_v => Jor%A_v, &
         B_p => Jor%B_p, B_m => Jor%B_m, B_v => Jor%B_v, &
         C_p => Jor%C_p, C_m => Jor%C_m, C_v => Jor%C_v, &
@@ -372,21 +386,21 @@ module mod_forming
                     !if(idxn(MatStencil_k, 1)>(kn-1)) idxn(MatStencil_k, 1)=idxn(MatStencil_k, 1)-kn
                     !if(idxn(MatStencil_k, 1)<0)  idxn(MatStencil_k, 1)=idxn(MatStencil_k, 1)+kn  !! kn为展向一个周期的点数
                     box=delta_i(li)*delta_j(lj)*delta_k(lk)*D + &
-                        delta_j(lj)*delta_k(lk)*A_v*coef_c1(li,ic_index)+ &
-                        delta_j(lj)*delta_k(lk)*A_m*coef_c1f(li,ic_index)+ &
-                        delta_j(lj)*delta_k(lk)*A_p*coef_c1b(li,ic_index)+ &
-                        delta_i(li)*delta_k(lk)*B_v*coef_c1(lj,jc_index)+ &
-                        delta_i(li)*delta_k(lk)*B_m*coef_c1f(lj,jc_index)+ &
-                        delta_i(li)*delta_k(lk)*B_p*coef_c1b(lj,jc_index)+ &
-                        delta_i(li)*delta_j(lj)*C_v*coef_c1(lk,kc_index)+ &
-                        delta_i(li)*delta_j(lj)*C_m*coef_c1f(lk,kc_index)+ &
-                        delta_i(li)*delta_j(lj)*C_p*coef_c1b(lk,kc_index)- &
-                        delta_j(lj)*delta_k(lk)*Vxx*coef_d1(li,ic_index)- &
-                        delta_i(li)*delta_k(lk)*Vyy*coef_d1(lj,jc_index)- &
-                        delta_i(li)*delta_j(lj)*Vzz*coef_d1(lk,kc_index)- &
-                        delta_k(lk)*Vxy*coef_c1(li,ic_index)*coef_c1(lj,jc_index)- &
-                        delta_j(lj)*Vxz*coef_c1(li,ic_index)*coef_c1(lk,kc_index)- &
-                        delta_i(li)*Vyz*coef_c1(lj,jc_index)*coef_c1(lk,kc_index)
+                        delta_j(lj)*delta_k(lk)*A_v*coef_c4(li,ic_index)+ &
+                        delta_j(lj)*delta_k(lk)*A_m*coef_c4f(li,ic_index)+ &
+                        delta_j(lj)*delta_k(lk)*A_p*coef_c4b(li,ic_index)+ &
+                        delta_i(li)*delta_k(lk)*B_v*coef_c4(lj,jc_index)+ &
+                        delta_i(li)*delta_k(lk)*B_m*coef_c4f(lj,jc_index)+ &
+                        delta_i(li)*delta_k(lk)*B_p*coef_c4b(lj,jc_index)+ &
+                        delta_i(li)*delta_j(lj)*C_v*coef_c4(lk,kc_index)+ &
+                        delta_i(li)*delta_j(lj)*C_m*coef_c4f(lk,kc_index)+ &
+                        delta_i(li)*delta_j(lj)*C_p*coef_c4b(lk,kc_index)- &
+                        delta_j(lj)*delta_k(lk)*Vxx*coef_d4(li,ic_index)- &
+                        delta_i(li)*delta_k(lk)*Vyy*coef_d4(lj,jc_index)- &
+                        delta_i(li)*delta_j(lj)*Vzz*coef_d4(lk,kc_index)- &
+                        delta_k(lk)*Vxy*coef_c4(li,ic_index)*coef_c4(lj,jc_index)- &
+                        delta_j(lj)*Vxz*coef_c4(li,ic_index)*coef_c4(lk,kc_index)- &
+                        delta_i(li)*Vyz*coef_c4(lj,jc_index)*coef_c4(lk,kc_index)
                     trans=transpose(box)
                     call MatSetValuesBlockedStencil(Whale, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
                 end do
@@ -425,16 +439,212 @@ module mod_forming
 
     !   SNES :: Nonlinear Solvers
 
-    subroutine Jacobi(snes,x,jac,B,null_int,ierr)
+    subroutine shark_coming(comm)
+        implicit none
+        PetscInt,intent(in) :: comm
+        PetscErrorCode :: ierr 
+        call shark_is_born(comm)
+        call DMCreateMatrix(meshDA, Shark, ierr)
+        call MatZeroEntries(Shark,ierr)
+        call DMGetLocalVector(meshDA,tinkle_bell,ierr)
+        call VecZeroEntries(tinkle_bell,ierr)
+        call shark_say_hi(comm)
+    end subroutine shark_coming
+
+    subroutine shark_is_born(comm)
+        implicit none
+        PetscInt,intent(in) :: comm
+        PetscErrorCode :: ierr
+        call PetscPrintf(comm," -----------------------------------\n",ierr)
+        call PetscPrintf(comm,"          Jacobi :: be born.\n",ierr)
+        call PetscPrintf(comm," -----------------------------------\n",ierr)
+    end subroutine shark_is_born
+
+    subroutine shark_growing_up(snes,x,jac,B,null_int,ierr)
         implicit none
         PetscErrorCode :: ierr
         integer :: null_int(*)
+        integer :: i,j,k
         Mat :: jac, B
         SNES :: snes  
         Vec :: x 
-    end subroutine Jacobi
+        do k=ks,ke
+            do j=js,je
+                do i=is,ie
+                    if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
+                        call shark_eat_shrimps(jac,i,j,k)
+                    else
+                        call shark_eat_sardine(jac,i,j,k)
+                    endif
+                enddo
+            enddo
+        enddo
+        call MatAssemblyBegin(jac,MAT_FINAL_ASSEMBLY,ierr)
+        call MatAssemblyEnd(jac,MAT_FINAL_ASSEMBLY,ierr)
+    end subroutine shark_growing_up
+
+    subroutine shark_eat_shrimps(jac,i,j,k)
+        implicit none
+        PetscScalar :: box(5,5),trans(5,5)
+        MatStencil :: idxm(4,1),idxn(4,1)
+        integer :: ic_index, jc_index
+        integer :: lib, lie, ljb, lje
+        integer,intent(in) :: i,j,k
+        integer :: li,lj,ii,jj
+        PetscErrorCode :: ierr
+        Mat :: jac
+        associate( &
+            coef_c4f=>FDM_1nd_4ORD_Forward, &
+            coef_c4b=>FDM_1nd_4ORD_Backward)
+        if(i==0 .or. j==(jn-1))then
+            box=0.0d0
+            box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
+            idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
+            idxn(MatStencil_i, 1)=i; idxn(MatStencil_j, 1)=j; idxn(MatStencil_k, 1)=k
+            call MatSetValuesBlockedStencil(jac, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+        elseif(j==0 .and. i/=0)then
+            ljb=0;lje=1
+            jc_index=1
+            idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
+            call Jor%get_adorned_cubes(i,j,k)
+            do jj=1,5
+                do ii=2,5
+                    Jor%D(ii,jj)=0.0d0
+                    Jor%B(ii,jj)=0.0d0
+                enddo
+            enddo
+            Jor%D(2,2)=1.0d0;Jor%D(3,3)=1.0d0 
+            Jor%D(4,4)=1.0d0;Jor%D(5,5)=1.0d0
+            do lj=ljb,lje
+                idxn(MatStencil_i, 1)=i
+                idxn(MatStencil_j, 1)=j+lj
+                idxn(MatStencil_k, 1)=k
+                box=0.0d0;trans=0.0d0
+                box=delta_j(lj)*Jor%D+coef_c4f(lj,jc_index)*Jor%B
+                trans=transpose(box)
+                call MatSetValuesBlockedStencil(jac, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+            enddo
+        elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
+            lib=-2;lie=0
+            ic_index=0
+            idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
+            do li=lib,lie
+                idxn(MatStencil_i, 1)=i+li
+                idxn(MatStencil_j, 1)=j
+                idxn(MatStencil_k, 1)=k
+                box=0.0d0
+                box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
+                box=coef_c4b(li,ic_index)*box
+                call MatSetValuesBlockedStencil(jac, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+            enddo
+        endif
+        end associate
+    end subroutine shark_eat_shrimps
+
+    subroutine shark_eat_sardine(jac,i,j,k)
+        implicit none
+        integer :: ic_index, jc_index, kc_index
+        integer :: lib, lie, ljb, lje, lkb, lke
+        PetscScalar :: box(5,5),trans(5,5)
+        MatStencil :: idxm(4,1),idxn(4,1)
+        integer,intent(in) :: i,j,k 
+        PetscErrorCode :: ierr
+        integer :: li,lj,lk
+        Mat :: jac
+        call Jor%get_adorned_cubes(i,j,k)
+        if(i==0)then
+            lib=0; lie=2
+            ic_index=-2
+        elseif(i==1)then
+            lib=-1; lie=2
+            ic_index=-1
+        elseif(i==(in-2))then
+            lib=-2; lie=1
+            ic_index=1
+        elseif(i==(in-1))then
+            lib=-2; lie=0
+            ic_index=2
+        else
+            lib=-2; lie=2
+            ic_index=0
+        endif
+        if(j==0)then
+            ljb=0; lje=2
+            jc_index=-2
+        elseif(j==1)then
+            ljb=-1; lje=2
+            jc_index=-1
+        elseif(j==(jn-2))then
+            ljb=-2; lje=1
+            jc_index=1
+        elseif(j==(jn-1))then
+            ljb=-2; lje=0
+            jc_index=2
+        else
+            ljb=-2; lje=2
+            jc_index=0
+        endif
+        select case (lns_mode)
+            case(0)
+                lkb=0; lke=0; kc_index=0
+            case(1)
+                lkb=-2; lke=2; kc_index=0
+        end select
+        idxm=0; 
+        idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
+        associate( &
+        coef_c4 =>FDM_1nd_4ORD_CENTER,   &
+        coef_d4 =>FDM_2nd_4ORD_CENTER,   &
+        coef_c1f=>FDM_1nd_1ORD_Forward,  &
+        coef_c1b=>FDM_1nd_1ORD_Backward, &
+        G   => Jor%G,   D   => Jor%D,    &
+        A_p => Jor%A_p, A_m => Jor%A_m, A_v => Jor%A_v, &
+        B_p => Jor%B_p, B_m => Jor%B_m, B_v => Jor%B_v, &
+        C_p => Jor%C_p, C_m => Jor%C_m, C_v => Jor%C_v, &
+        Vxx => Jor%Vxx, Vyy => Jor%Vyy, Vzz => Jor%Vzz, &
+        Vxy => Jor%Vxy, Vxz => Jor%Vxz, Vyz => Jor%Vyz)
+        do lk = lkb, lke
+            do lj = ljb, lje
+                do li = lib, lie
+                    idxn=0;box=0.0d0;trans=0.0d0
+                    idxn(MatStencil_i, 1)=i+li
+                    idxn(MatStencil_j, 1)=j+lj
+                    idxn(MatStencil_k, 1)=k+lk
+                    box=delta_i(li)*delta_j(lj)*delta_k(lk)*D + &
+                        delta_j(lj)*delta_k(lk)*A_v*coef_c4(li,ic_index)+ &
+                        delta_j(lj)*delta_k(lk)*A_m*coef_c1f(li,ic_index)+ &
+                        delta_j(lj)*delta_k(lk)*A_p*coef_c1b(li,ic_index)+ &
+                        delta_i(li)*delta_k(lk)*B_v*coef_c4(lj,jc_index)+ &
+                        delta_i(li)*delta_k(lk)*B_m*coef_c1f(lj,jc_index)+ &
+                        delta_i(li)*delta_k(lk)*B_p*coef_c1b(lj,jc_index)+ &
+                        delta_i(li)*delta_j(lj)*C_v*coef_c4(lk,kc_index)+ &
+                        delta_i(li)*delta_j(lj)*C_m*coef_c1f(lk,kc_index)+ &
+                        delta_i(li)*delta_j(lj)*C_p*coef_c1b(lk,kc_index)- &
+                        delta_j(lj)*delta_k(lk)*Vxx*coef_d4(li,ic_index)- &
+                        delta_i(li)*delta_k(lk)*Vyy*coef_d4(lj,jc_index)- &
+                        delta_i(li)*delta_j(lj)*Vzz*coef_d4(lk,kc_index)- &
+                        delta_k(lk)*Vxy*coef_c4(li,ic_index)*coef_c4(lj,jc_index)- &
+                        delta_j(lj)*Vxz*coef_c4(li,ic_index)*coef_c4(lk,kc_index)- &
+                        delta_i(li)*Vyz*coef_c4(lj,jc_index)*coef_c4(lk,kc_index)
+                    trans=transpose(box)
+                    call MatSetValuesBlockedStencil(jac, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+                end do
+            end do
+        end do
+        end associate
+    end subroutine shark_eat_sardine
+
+    subroutine shark_say_hi(comm)
+        implicit none
+        PetscInt,intent(in) :: comm
+        PetscErrorCode :: ierr
+        call PetscPrintf(comm," -----------------------------------\n",ierr)
+        call PetscPrintf(comm,"          Jacobi :: be grown.\n",ierr)
+        call PetscPrintf(comm," -----------------------------------\n",ierr)
+    end subroutine shark_say_hi
 
     subroutine RHS_with_BC(snes,x,f,null_int,ierr)
+        use mod_mftools
         implicit none
         PetscScalar,pointer :: f_local(:,:,:,:),x_local(:,:,:,:)
         complex(R_P), dimension(5,9) :: cab
@@ -445,8 +655,6 @@ module mod_forming
         integer :: i,j,k
         SNES :: snes  
         Vec :: x, f
-
-        ! tinkle_bell should be already allocated before calling this function
 
         call DMGlobalToLocalBegin(meshDA,x,INSERT_VALUES,tinkle_bell,ierr)
         call DMGlobalToLocalEnd(meshDA,x,INSERT_VALUES,tinkle_bell,ierr)

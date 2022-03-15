@@ -55,11 +55,11 @@ module mod_loading ! 读入并分发数据
 
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp',ksp_flg,ierr)
         if(ksp_flg)then
-            solver=0;split_mode=0
+            solver_mode=0;split_mode=0
         endif 
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-snes',snes_flg,ierr)
         if(snes_flg)then
-            solver=1;split_mode=1
+            solver_mode=1;split_mode=1
         endif 
 
         call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
