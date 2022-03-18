@@ -44,9 +44,8 @@ mod_difference.f90 \
 mod_forming.f90 \
 mod_mftools.f90 \
 mod_solving.f90 \
-mod_loading.f90 \
+mod_files.f90 \
 cfgio_adapter.f90 \
-mod_output.f90 \
 mod_metrics.f90 \
 mod_parameters.f90 \
 main.f90 \
@@ -78,9 +77,8 @@ mod_difference.o \
 mod_forming.o \
 mod_mftools.o \
 mod_solving.o \
-mod_loading.o \
+mod_files.o \
 cfgio_adapter.o \
-mod_output.o \
 mod_metrics.o \
 mod_parameters.o \
 main.o \
@@ -195,8 +193,8 @@ stringifor_string_t.o: \
 	stringifor_string_t.F90 \
 	befor64.o \
 	penf.o
-mod_loading.o: \
-	mod_loading.f90 \
+mod_files.o: \
+	mod_files.f90 \
 	cfgio_adapter.o \
 	mod_reading.o \
 	mod_parameters.o
@@ -204,10 +202,6 @@ cfgio_adapter.o: \
 	cfgio_adapter.f90 \
 	cfgio_mod.o \
 	mod_parameters.o
-mod_output.o: \
-	mod_output.f90 \
-	mod_parameters.o \
-	penf.o
 mod_metrics.o: \
 	mod_metrics.f90 \
 	mod_parameters.o \
@@ -222,9 +216,8 @@ mod_reading.o: \
 	mod_parameters.o
 main.o: \
 	main.f90 \
-	mod_loading.o \
-	mod_solving.o \
-	mod_output.o
+	mod_files.o \
+	mod_solving.o
 mod_cubes.o: \
 	mod_cubes.f90 \
 	mod_flowtype.o \

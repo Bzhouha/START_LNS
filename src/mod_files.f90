@@ -1,16 +1,16 @@
 !#include <petsc/finclude/petsc.h>
 #include <slepc/finclude/slepc.h>
 
-module mod_loading ! 读入并分发数据
+module mod_files ! 读入并分发数据
     use mod_parameters
     use mod_reading
     use petsc
-    public :: loading_data
+    public :: loading_data,result_to_file
     private
     PetscErrorCode  :: ierr
     Vec :: Flowfield_local
     Vec :: Coord,Flowfield  
-    PetscViewer :: Viewer
+    PetscViewer :: viewer
     Vec :: Multi_disturb
     Vec :: Coord_local
     contains
@@ -226,32 +226,32 @@ module mod_loading ! 读入并分发数据
 
         call DMGetGlobalVector(coordDA, Coord, ierr)
         call DMGetLocalVector(coordDA, Coord_local, ierr)
-        call PetscViewerBinaryOpen(comm, "in/grid.petsc",FILE_MODE_READ, Viewer, ierr)
-        call VecLoad(Coord, Viewer, ierr)
+        call PetscViewerBinaryOpen(comm, "in/grid.petsc",FILE_MODE_READ, viewer, ierr)
+        call VecLoad(Coord, viewer, ierr)
         call DMGlobalToLocalBegin(coordDA, Coord, INSERT_VALUES, Coord_local, ierr)
         call DMGlobalToLocalEnd(coordDA, Coord, INSERT_VALUES, Coord_local, ierr)
-        call PetscViewerDestroy(Viewer, ierr)
+        call PetscViewerDestroy(viewer, ierr)
 
         call DMGetGlobalVector(meshDA, Flowfield, ierr)
         call DMGetLocalVector(meshDA, Flowfield_local, ierr)
-        call PetscViewerBinaryOpen(comm, "in/flow.petsc",FILE_MODE_READ, Viewer, ierr)
-        call VecLoad(Flowfield, Viewer, ierr)
+        call PetscViewerBinaryOpen(comm, "in/flow.petsc",FILE_MODE_READ, viewer, ierr)
+        call VecLoad(Flowfield, viewer, ierr)
         call DMGlobalToLocalBegin(meshDA, Flowfield, INSERT_VALUES, Flowfield_local, ierr)
         call DMGlobalToLocalEnd(meshDA, Flowfield, INSERT_VALUES, Flowfield_local, ierr)
-        call PetscViewerDestroy(Viewer, ierr)
+        call PetscViewerDestroy(viewer, ierr)
 
         call DMGetGlobalVector(disturbDA, Multi_disturb, ierr)
-        call PetscViewerBinaryOpen(comm, "in/disturb.petsc",FILE_MODE_READ, Viewer, ierr)
-        call VecLoad(Multi_disturb, Viewer, ierr)
-        call PetscViewerDestroy(Viewer, ierr)
+        call PetscViewerBinaryOpen(comm, "in/disturb.petsc",FILE_MODE_READ, viewer, ierr)
+        call VecLoad(Multi_disturb, viewer, ierr)
+        call PetscViewerDestroy(viewer, ierr)
 
         call DMGetGlobalVector(meshDA, turtle, ierr)
         select case (init_guess_flg)
         case(.True.)
             call VecZeroEntries(turtle,ierr)
-            call PetscViewerBinaryOpen(comm, trim(initfile),FILE_MODE_READ, Viewer, ierr)
-            call VecLoad(turtle, Viewer, ierr)
-            call PetscViewerDestroy(Viewer, ierr)
+            call PetscViewerBinaryOpen(comm, trim(initfile),FILE_MODE_READ, viewer, ierr)
+            call VecLoad(turtle, viewer, ierr)
+            call PetscViewerDestroy(viewer, ierr)
         case(.False.)
             call VecZeroEntries(turtle,ierr)
         end select
@@ -375,4 +375,55 @@ module mod_loading ! 读入并分发数据
         endif
         call MPI_Barrier(comm,ierr)
     end subroutine print_info
-end module mod_loading
+
+    subroutine result_to_file(comm)
+        implicit none
+        PetscInt, INTENT(in) :: comm
+        call signal_ending(comm)
+        call petsc_file(comm)
+        call print_end(comm)
+    end subroutine result_to_file
+
+    subroutine petsc_file(comm)
+        use mod_parameters,only : turtle
+        implicit none
+        PetscInt,intent(in) :: comm
+        call PetscViewerBinaryOpen(comm, "out/Turtle.petsc", FILE_MODE_WRITE, viewer, ierr)
+        call VecView(turtle, viewer, ierr)
+        call PetscViewerDestroy(viewer, ierr)
+    end subroutine petsc_file
+
+    subroutine signal_ending(comm)
+        implicit none 
+        PetscInt,intent(in) :: comm 
+        call PetscPrintf(comm, "\n", ierr)
+        call PetscPrintf(comm, " ===========================================================================\n", ierr)
+        call PetscPrintf(comm, " =                                 输    出                                = \n", ierr)
+        call PetscPrintf(comm, " ===========================================================================\n", ierr)
+        call PetscPrintf(comm, " ----------------------------------\n", ierr)
+        call PetscPrintf(comm, "               输出结果              \n", ierr)
+        call PetscPrintf(comm, " ----------------------------------\n", ierr)
+    end subroutine signal_ending
+
+    subroutine print_end(comm)
+        implicit none
+        PetscInt,INTENT(in) :: comm
+        call PetscPrintf(comm," \n", ierr)
+        call PetscPrintf(comm," 输出解向量...                                     ooo    ooo\n", ierr)
+        call PetscPrintf(comm,"   输出结束。                                     o   o  o   o\n", ierr)
+        call PetscPrintf(comm,"                                            ooo   o   o  o   o   ooo\n", ierr)
+        call PetscPrintf(comm," =======================================   o   o   ooo    ooo   o   o\n", ierr)
+        call PetscPrintf(comm,"                                           o   o                o   o\n",ierr)
+        call PetscPrintf(comm,"                                            ooo    oooooooooo    ooo\n",ierr)
+        call PetscPrintf(comm,"               ooo    ooo                        o            o\n",ierr)
+        call PetscPrintf(comm,"              o   o  o   o                      o              o\n",ierr)
+        call PetscPrintf(comm,"        ooo   o   o  o   o   ooo                 o            o\n",ierr)
+        call PetscPrintf(comm,"       o   o   ooo    ooo   o   o                  oooooooooo\n",ierr)
+        call PetscPrintf(comm,"       o   o                o   o\n",ierr)
+        call PetscPrintf(comm,"        ooo    oooooooooo    ooo\n",ierr)
+        call PetscPrintf(comm,"             o            o\n",ierr)
+        call PetscPrintf(comm,"            o              o\n",ierr)
+        call PetscPrintf(comm,"             o            o\n",ierr)
+        call PetscPrintf(comm,"               oooooooooo\n",ierr)
+    end subroutine print_end
+end module mod_files

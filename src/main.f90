@@ -2,9 +2,8 @@
 #include <slepc/finclude/slepc.h>
 
 program main
-    use mod_loading
+    use mod_files
     use mod_solving
-    use mod_output
     use petsc
     implicit none
     PetscErrorCode :: ierr

@@ -14,7 +14,7 @@ module mod_reading
     public :: load
     private
     PetscErrorCode :: ierr
-    PetscViewer :: Viewer
+    PetscViewer :: viewer
     Vec :: Single_disturb
     Vec :: Multi_disturb
     Vec :: Flowfield
@@ -143,9 +143,9 @@ contains
 
         write(*,*) "开始读取来流数据..."
         call DMGetGlobalVector(singleDA, Single_disturb, ierr)
-        call PetscViewerBinaryOpen(comm, trim(turbfile), FILE_MODE_READ, Viewer, ierr)
-        call VecLoad(Single_disturb, Viewer, ierr)
-        call PetscViewerDestroy(Viewer, ierr)
+        call PetscViewerBinaryOpen(comm, trim(turbfile), FILE_MODE_READ, viewer, ierr)
+        call VecLoad(Single_disturb, viewer, ierr)
+        call PetscViewerDestroy(viewer, ierr)
         write(*,*) '  来流信息读取结束。'
         write(*,*) ""
 
@@ -234,19 +234,19 @@ contains
 
         write(*,*) "开始生成文件..."
 
-        call PetscViewerBinaryOpen(comm, "in/grid.petsc",FILE_MODE_WRITE, Viewer, ierr)
-        call VecView(Coord, Viewer, ierr)
-        call PetscViewerDestroy(Viewer, ierr)
+        call PetscViewerBinaryOpen(comm, "in/grid.petsc",FILE_MODE_WRITE, viewer, ierr)
+        call VecView(Coord, viewer, ierr)
+        call PetscViewerDestroy(viewer, ierr)
         write(*,*) '  网格文件已生成。'
 
-        call PetscViewerBinaryOpen(comm, "in/flow.petsc",FILE_MODE_WRITE, Viewer, ierr)
-        call VecView(Flowfield, Viewer, ierr)
-        call PetscViewerDestroy(Viewer, ierr)
+        call PetscViewerBinaryOpen(comm, "in/flow.petsc",FILE_MODE_WRITE, viewer, ierr)
+        call VecView(Flowfield, viewer, ierr)
+        call PetscViewerDestroy(viewer, ierr)
         write(*,*) '  流场文件已生成。'
 
-        call PetscViewerBinaryOpen(comm, "in/disturb.petsc",FILE_MODE_WRITE, Viewer, ierr)
-        call VecView(Multi_disturb, Viewer, ierr)
-        call PetscViewerDestroy(Viewer, ierr)
+        call PetscViewerBinaryOpen(comm, "in/disturb.petsc",FILE_MODE_WRITE, viewer, ierr)
+        call VecView(Multi_disturb, viewer, ierr)
+        call PetscViewerDestroy(viewer, ierr)
         write(*,*) '  来流文件已生成。'
 
         write(*,*) ""
