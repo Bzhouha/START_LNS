@@ -1,45 +1,37 @@
 !#include <petsc/finclude/petsc.h>
 #include <slepc/finclude/slepc.h>
 
-module mod_files ! 读入并分发数据
-    use mod_parameters
+module mod_files 
     use mod_reading
     use petsc
     public :: loading_data,result_to_file
     private
+    Vec :: Flowfield_local,Coord_local
     PetscErrorCode  :: ierr
-    Vec :: Flowfield_local
     Vec :: Coord,Flowfield  
     PetscViewer :: viewer
     Vec :: Multi_disturb
-    Vec :: Coord_local
     contains
     subroutine loading_data(comm)
         implicit none
         PetscInt, intent(in) :: comm
 
-        call mpi_comm_rank(comm,rank,ierr) 
-        call mpi_comm_size(comm,sink,ierr) 
-
         call read_argv_and_file(comm)
-
         call signal_mpiing(comm)
-        call bcast_parameters(comm)
-        ! call pack_parameters(comm)
+        call bcast_parameters(comm) ! call pack_parameters(comm)
         call set_mpi_da(comm)
-
         call signal_loading(comm)
         call load_petsc_file(comm)
         call get_layout()
         call load_disturb_mesh_flow()
         call deallocate_memory()
         call MPI_Barrier(comm,ierr)
-
         call signal_printing(comm)
         call print_info(comm)
     end subroutine loading_data
 
     subroutine read_argv_and_file(comm)
+        use mod_parameters,only:rank,sink,ksp_mat_free_flg,solver_mode,split_mode
         use mod_cfgio_adapter
         implicit none
         PetscInt,intent(in) :: comm
@@ -47,34 +39,31 @@ module mod_files ! 读入并分发数据
         logical :: ksp_flg,snes_flg
         PetscBool :: set
 
+        call mpi_comm_rank(comm,rank,ierr) 
+        call mpi_comm_size(comm,sink,ierr) 
         call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-f',cfg_file,set,ierr)
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp',ksp_flg,ierr)
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-snes',snes_flg,ierr)
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp_mf',ksp_mat_free_flg,ierr)
+        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
+        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-sub_pc_factor_in_place",PETSC_NULL_CHARACTER,ierr)
+        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-pc_asm_sub_mat_type","baij",ierr)
         if(.not. set) then
             write(*,*) 'should use -f option to determin the config file.'
             stop
         endif
-
-        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp',ksp_flg,ierr)
+        if(ksp_mat_free_flg) ksp_flg=.True.
         if(ksp_flg)then
             solver_mode=0;split_mode=0
         endif 
-        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-snes',snes_flg,ierr)
         if(snes_flg)then
             solver_mode=1;split_mode=1
         endif 
-
-        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp_mf',ksp_mat_free_flg,ierr)
-
-        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
-        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-sub_pc_factor_in_place",PETSC_NULL_CHARACTER,ierr)
-        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-pc_asm_sub_mat_type","baij",ierr)
-
         call cfg_loader(trim(cfg_file))
-
         if(rank==0)then
             call load(PETSC_COMM_SELF)
             call cfg_writer(trim(cfg_file))
         endif
-
         call MPI_Barrier(comm,ierr)
     end subroutine read_argv_and_file
 
@@ -84,11 +73,13 @@ module mod_files ! 读入并分发数据
         call PetscPrintf(comm, "\n", ierr)
         call PetscPrintf(comm, " ===========================================================================\n", ierr)
         call PetscPrintf(comm, " =                                 计    算                                = \n", ierr)
-        call PetscPrintf(comm, " ===========================================================================\n", ierr)
+        call PetscPrintf(comm, " - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n", ierr)
         call PetscPrintf(comm, " 「 M P I 」\n",ierr)
     end subroutine signal_mpiing
 
     subroutine bcast_parameters(comm)
+        use mod_parameters,only:in,jn,kn,ln,lns_mode,init_guess_flg, &
+                                & Ma,Re,Te,Alpha,Beta,Omega
         implicit none 
         integer(KIND=MPI_ADDRESS_KIND) :: address_in,address_jn,address_kn,address_ln
         integer(KIND=MPI_ADDRESS_KIND) :: address_mode,address_Ma,address_Re,address_Te
@@ -112,7 +103,6 @@ module mod_files ! 读入并分发数据
         call MPI_Get_address(Alpha,address_Alpha,ierr)
         call MPI_Get_address(Beta,address_Beta,ierr)
         call MPI_Get_address(Omega,address_Omega,ierr)
-
         displacement(1)=0
         displacement(2)=address_jn-address_in
         displacement(3)=address_kn-address_in
@@ -125,22 +115,20 @@ module mod_files ! 读入并分发数据
         displacement(10)=address_Alpha-address_in
         displacement(11)=address_Beta-address_in
         displacement(12)=address_Omega-address_in
-
         block_lengths=1
-
         types=(/MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,&
                 MPI_LOGICAL,MPI_REAL8,MPI_REAL8,MPI_REAL8,&
                 MPI_COMPLEX16,MPI_COMPLEX16,MPI_COMPLEX16/)
-
         call MPI_Type_create_struct(12,block_lengths,displacement,types,pack_type,ierr)
         call MPI_Type_commit(pack_type,ierr)
         call MPI_Bcast(in,1,pack_type,0,comm,ierr)
         call MPI_Barrier(comm,ierr)
         call MPI_Type_free(pack_type,ierr)
-
     end subroutine bcast_parameters
 
     subroutine pack_parameters(comm)
+        use mod_parameters,only:in,jn,kn,ln,lns_mode,init_guess_flg, &
+                                & Ma,Re,Te,Alpha,Beta,Omega,rank
         implicit none 
         character(len=120) :: packbuf
         integer :: packsize,position
@@ -162,7 +150,6 @@ module mod_files ! 读入并分发数据
             call MPI_Pack(Omega,1,MPI_COMPLEX16,packbuf,120,position,comm,ierr)
         endif 
         call MPI_Bcast(packbuf,120,MPI_PACKED,0,comm,ierr)
-
         if(rank/=0)then 
             position = 0
             call MPI_Unpack(packbuf,120,position,in,1,MPI_INTEGER4,comm,ierr)
@@ -179,10 +166,10 @@ module mod_files ! 读入并分发数据
             call MPI_Unpack(packbuf,120,position,Omega,1,MPI_COMPLEX16,comm,ierr)
         endif 
         call MPI_Barrier(comm,ierr)
-
     end subroutine pack_parameters
 
     subroutine set_mpi_da(comm)
+        use mod_parameters,only:sink,in,jn,kn,DA,coordDA,meshDA,disturbDA
         implicit none
         PetscInt, intent(in) :: comm
 
@@ -191,25 +178,21 @@ module mod_files ! 读入并分发数据
         &                 1, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, DA, ierr)
         call DMSetFromOptions(DA,ierr)
         call DMSetUp(DA, ierr)
-
         call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
         &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
         &                 3, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, coordDA, ierr)
         call DMSetFromOptions(coordDA,ierr)
         call DMSetUp(coordDA, ierr)
-
         call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_PERIODIC,&
         &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
         &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, meshDA, ierr)
         call DMSetMatType(meshDA,MATBAIJ,ierr)
         call DMSetFromOptions(meshDA,ierr)
         call DMSetUp(meshDA, ierr)
-
         call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
         &                 DMDA_STENCIL_BOX, sink, jn, kn, PETSC_DECIDE, 1, 1,&
         &                 5, 0, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, disturbDA, ierr)
         call DMSetUp(disturbDA, ierr)
-
     end subroutine set_mpi_da
 
     subroutine signal_loading(comm)
@@ -220,7 +203,9 @@ module mod_files ! 读入并分发数据
         call PetscPrintf(comm," -----------------------------------\n",ierr)
     end subroutine signal_loading
 
-    subroutine load_petsc_file(comm)
+    subroutine load_petsc_file(comm) ! 读入PETSc二进制文件
+        use mod_parameters,only:coordDA,meshDA,disturbDA, &
+                                & turtle,init_guess_flg,initfile
         implicit none 
         PetscInt, intent(in) :: comm
 
@@ -255,21 +240,22 @@ module mod_files ! 读入并分发数据
         case(.False.)
             call VecZeroEntries(turtle,ierr)
         end select
-
     end subroutine load_petsc_file
 
     subroutine get_layout()
+        use mod_parameters,only:DA,is,js,ks,il,jl,kl,ie,je,ke, &
+                                & igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge
         implicit none
 
         call DMDAGetGhostCorners(DA,igs,jgs,kgs,igl,jgl,kgl,ierr)
         call DMDAGetCorners(DA,is,js,ks,il,jl,kl,ierr)
-
         ige=igs+igl-1; jge=jgs+jgl-1; kge=kgs+kgl-1
         ie=is+il-1; je=js+jl-1; ke=ks+kl-1
-
     end subroutine get_layout
 
     subroutine load_disturb_mesh_flow()
+        use mod_parameters,only:disturbDA,coordDA,meshDA,disturb,qq, &
+                                & igs,ige,jgs,jge,kgs,kge,xx,yy,zz
         implicit none 
         integer :: xs,ys,zs,xl,yl,zl,xe,ye,ze
         PetscScalar, pointer :: multi(:,:,:,:)
@@ -340,6 +326,7 @@ module mod_files ! 读入并分发数据
     end subroutine signal_printing
 
     subroutine print_info(comm)
+        use mod_parameters,only:rank,sink,jn,Re,Alpha,Omega,qq,xx,yy,zz
         implicit none 
         PetscInt,intent(in) :: comm
         if(rank==0)then
@@ -399,7 +386,7 @@ module mod_files ! 读入并分发数据
         call PetscPrintf(comm, "\n", ierr)
         call PetscPrintf(comm, " ===========================================================================\n", ierr)
         call PetscPrintf(comm, " =                                 输    出                                = \n", ierr)
-        call PetscPrintf(comm, " ===========================================================================\n", ierr)
+        call PetscPrintf(comm, " - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n", ierr)
         call PetscPrintf(comm, " ----------------------------------\n", ierr)
         call PetscPrintf(comm, "               输出结果              \n", ierr)
         call PetscPrintf(comm, " ----------------------------------\n", ierr)

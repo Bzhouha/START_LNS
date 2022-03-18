@@ -49,7 +49,7 @@ contains
         call PetscPrintf(comm, "\n", ierr)
         call PetscPrintf(comm, " ===========================================================================\n", ierr)
         call PetscPrintf(comm, " =                                 读    取                                = \n", ierr)
-        call PetscPrintf(comm, " ===========================================================================\n", ierr)
+        call PetscPrintf(comm, " - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n", ierr)
         call PetscPrintf(comm, " 「 主 进 程 」\n",ierr)
         write(*,*) "-----------------------------------"
         write(*,*) "              读取数据              "
