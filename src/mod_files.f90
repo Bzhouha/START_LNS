@@ -390,7 +390,7 @@ module mod_files
 
 
 
-    subroutine set_disturb(comm) ! petsc
+    subroutine set_disturb(comm)
         implicit none
         PetscScalar, pointer :: disturbs(:,:,:,:)
         integer :: xs,ys,zs,xl,yl,zl,xe,ye,ze
@@ -464,9 +464,9 @@ module mod_files
         enddo
         call DMDAVecRestoreArrayReadF90(disturbDA, disturb_gather, disturbs, ierr)
 
+        if(rank==0) call system("rm -f "//trim(turbfiles)//"*")
         call DMRestoreGlobalVector(disturbDA,disturb_gather,ierr)
         call DMDestroy(disturbDA,ierr)
-        if(rank==0) call system("rm -f "//trim(turbfiles)//"*")
 
     end subroutine set_disturb
 
@@ -713,28 +713,97 @@ module mod_files
 
     subroutine ostream(comm)
         implicit none
-        character(len=256) :: result_file
+        character(len=256) :: resultfile
         PetscInt, intent(in) :: comm
 
-        call signal_ending(comm)
+        call signal_ostream_begin(comm)
+
         select case(io_type)
-            case("raw")
-                result_file = "data/turtle.pet"
-                call PetscViewerBinaryOpen(comm, trim(result_file), FILE_MODE_WRITE, viewer, ierr)
+            case("raw","binary")
+                resultfile = "data/turtle.pet"
+                call PetscViewerBinaryOpen(comm,trim(resultfile),FILE_MODE_WRITE,viewer,ierr)
                 call VecView(turtle, viewer, ierr)
                 call PetscViewerDestroy(viewer, ierr)
-            case("binary")
-                result_file = "data/turtle.pet"
-                call PetscViewerBinaryOpen(comm, trim(result_file), FILE_MODE_WRITE, viewer, ierr)
-                call VecView(turtle, viewer, ierr)
+                resultfile = "data/hlns.h5"
+                call preload_hdf5(comm,resultfile)
+                call PetscViewerHDF5Open(comm,trim(resultfile),FILE_MODE_UPDATE,viewer,ierr)
+                call PetscObjectSetName(turtle,"field",ierr)
+                call PetscViewerHDF5PushGroup(viewer,"Field",ierr)
+                call VecView(turtle,viewer,ierr)
+                call PetscViewerHDF5PopGroup(viewer,ierr)
                 call PetscViewerDestroy(viewer, ierr)
             case("hdf5")
-                result_file = hdf5file
+                resultfile = "data/hlns.h5"
+                call preload_hdf5(comm,resultfile)
+                call PetscViewerHDF5Open(comm,trim(resultfile),FILE_MODE_UPDATE,viewer,ierr)
+                call PetscObjectSetName(turtle,"field",ierr)
+                call PetscViewerHDF5PushGroup(viewer,"Field",ierr)
+                call VecView(turtle,viewer,ierr)
+                call PetscViewerHDF5PopGroup(viewer,ierr)
+                call PetscViewerDestroy(viewer,ierr)
         end select
-        call print_end(comm)
+
+        call signal_ostream_finish(comm)
+
     end subroutine ostream
 
-    subroutine signal_ending(comm)
+    subroutine preload_hdf5(comm,resultfile)
+        implicit none
+        character(len=256),intent(in) :: resultfile
+        DM :: uni_coordDA,uni_meshDA 
+        integer,intent(in) :: comm
+        Vec :: coord,flowfield 
+        PetscViewer :: Sviewer
+
+        if(rank==0)then
+            call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
+            &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
+            &                 3, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, uni_coordDA, ierr)
+            call DMSetUp(uni_coordDA, ierr)
+
+            call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
+            &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
+            &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, uni_meshDA, ierr)
+            call DMSetUp(uni_meshDA, ierr)
+            call DMGetGlobalVector(uni_coordDA,coord,ierr)
+            call DMGetGlobalVector(uni_meshDA,flowfield,ierr)
+
+            call PetscViewerHDF5Open(PETSC_COMM_SELF,trim(resultfile),FILE_MODE_WRITE,viewer,ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"grid.In",PETSC_INT,in,ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"grid.Jn",PETSC_INT,jn,ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"grid.Kn",PETSC_INT,kn,ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Alpha",PETSC_COMPLEX,Alpha,ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Beta",PETSC_COMPLEX,Beta,ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Omega",PETSC_COMPLEX,Omega,ierr)
+
+            call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(biflowfile),FILE_MODE_READ, Sviewer, ierr)
+            call VecLoad(flowfield, Sviewer, ierr)
+            call PetscViewerDestroy(Sviewer, ierr)
+            call PetscObjectSetName(flowfield,"baseflow",ierr)
+            call PetscViewerHDF5PushGroup(viewer,"Baseflow",ierr)
+            call VecView(flowfield,viewer,ierr)
+            call PetscViewerHDF5PopGroup(viewer,ierr)
+
+            call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(bigridfile),FILE_MODE_READ, Sviewer, ierr)
+            call VecLoad(coord, Sviewer, ierr)
+            call PetscViewerDestroy(Sviewer, ierr)
+            call PetscObjectSetName(coord,"grid",ierr)
+            call PetscViewerHDF5PushGroup(viewer,"Grid",ierr)
+            call VecView(coord,viewer,ierr)
+            call PetscViewerHDF5PopGroup(viewer,ierr)
+            call PetscViewerDestroy(viewer, ierr)
+
+            call DMRestoreGlobalVector(uni_meshDA,flowfield,ierr)
+            call DMRestoreGlobalVector(uni_coordDA,coord,ierr)
+            call DMDestroy(uni_coordDA,ierr)
+            call DMDestroy(uni_meshDA,ierr)
+        endif
+
+        call MPI_Barrier(comm,ierr)
+        
+    end subroutine preload_hdf5
+
+    subroutine signal_ostream_begin(comm)
         implicit none 
         PetscInt,intent(in) :: comm 
         call PetscPrintf(comm, "\n", ierr)
@@ -744,16 +813,16 @@ module mod_files
         call PetscPrintf(comm, " ----------------------------------\n", ierr)
         call PetscPrintf(comm, "               输出结果              \n", ierr)
         call PetscPrintf(comm, " ----------------------------------\n", ierr)
-    end subroutine signal_ending
+    end subroutine signal_ostream_begin
 
-    subroutine print_end(comm)
+    subroutine signal_ostream_finish(comm)
         implicit none
         PetscInt,INTENT(in) :: comm
         call PetscPrintf(comm," \n", ierr)
-        call PetscPrintf(comm," 输出解向量...                                     ooo    ooo\n", ierr)
-        call PetscPrintf(comm,"   输出结束。                                     o   o  o   o\n", ierr)
+        call PetscPrintf(comm,"                                                   ooo    ooo\n", ierr)
+        call PetscPrintf(comm,"                                                  o   o  o   o\n", ierr)
         call PetscPrintf(comm,"                                            ooo   o   o  o   o   ooo\n", ierr)
-        call PetscPrintf(comm," =======================================   o   o   ooo    ooo   o   o\n", ierr)
+        call PetscPrintf(comm,"                                           o   o   ooo    ooo   o   o\n", ierr)
         call PetscPrintf(comm,"                                           o   o                o   o\n",ierr)
         call PetscPrintf(comm,"                                            ooo    oooooooooo    ooo\n",ierr)
         call PetscPrintf(comm,"               ooo    ooo                        o            o\n",ierr)
@@ -766,5 +835,5 @@ module mod_files
         call PetscPrintf(comm,"            o              o\n",ierr)
         call PetscPrintf(comm,"             o            o\n",ierr)
         call PetscPrintf(comm,"               oooooooooo\n",ierr)
-    end subroutine print_end
+    end subroutine signal_ostream_finish
 end module mod_files
