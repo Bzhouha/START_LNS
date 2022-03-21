@@ -33,9 +33,9 @@ module mod_solving
         call metric_coefficient(comm)
         call partial_derivatives(comm)
         select case (solver_mode)
-            case(0)
+            case('ksp')
                 call linear_equations(comm)
-            case(1)
+            case('snes')
                 call nonlinear_equations(comm)
         end select
     end subroutine working

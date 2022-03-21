@@ -51,7 +51,6 @@ mod_parameters.f90 \
 main.f90 \
 mod_cubes.f90 \
 mod_flowtype.f90 \
-mod_reading.f90 \
 mod_points.f90 
 
 SRCS_F90d4 = \
@@ -84,7 +83,6 @@ mod_parameters.o \
 main.o \
 mod_cubes.o \
 mod_flowtype.o \
-mod_reading.o \
 mod_points.o 
 
 OBJS_F90d4 = \
@@ -196,7 +194,6 @@ stringifor_string_t.o: \
 mod_files.o: \
 	mod_files.f90 \
 	cfgio_adapter.o \
-	mod_reading.o \
 	mod_parameters.o
 cfgio_adapter.o: \
 	cfgio_adapter.f90 \
@@ -211,9 +208,6 @@ mod_parameters.o: \
 	mod_parameters.f90 \
 	mod_flowtype.o \
 	penf.o
-mod_reading.o: \
-	mod_reading.f90 \
-	mod_parameters.o
 main.o: \
 	main.f90 \
 	mod_files.o \

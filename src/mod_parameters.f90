@@ -17,15 +17,19 @@ module mod_parameters
     real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re ! 流场参数
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge ! MPI网格分块位置
     integer :: is,js,ks,il,jl,kl,ie,je,ke ! MPI网格分块位置
-    DM :: disturbDA,coordDA,meshDA,DA ! DM.Object
+    character(len=5) :: solver_mode='ksp' ! KSP.or.SNES
     character(len=256) :: gridfile ! 文件名：网格文件
     character(len=256) :: flowfile ! 文件名：流场文件
-    character(len=256) :: turbfile ! 文件名：边界文件
-    character(len=256) :: initfile ! 文件名：初值文件
+    character(len=256) :: bigridfile ! 文件名：流场文件
+    character(len=256) :: biflowfile ! 文件名：流场文件
+    character(len=256) :: hdf5file ! 文件名：HDF5文件
+    character(len=256) :: turbfile ! 文件名：边界文件 o
+    character(len=256) :: turbfiles ! 文件名：边界文件 o
+    character(len=256) :: initfile ! 文件名：初值文件 o
+    character(len=7) :: io_type ! file I/O type
     logical :: ksp_mat_free_flg ! KSP中是否使用免矩阵生成矩阵
     logical :: init_guess_flg ! 是否赋初值
-    character(len=256) :: dir ! 文件目录变量
-    integer :: solver_mode=0 ! KSP.or.SNES
+    DM :: coordDA,meshDA,DA ! DM.Object
     integer :: split_mode=0 ! 对流系数矩阵拆分方式选择
     PetscInt :: in,jn,kn,ln ! 流场网格数、自由度数
     PetscScalar :: fk=1.0d0 ! 松弛系数

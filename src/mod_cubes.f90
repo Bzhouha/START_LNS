@@ -493,9 +493,9 @@ module mod_cubes
         class(lns_OP_point_type),intent(inout) :: this
         integer,intent(in) :: i,j,k
         select case (lns_mode)
-            case(0)
+            case(2)
                 call this%mint_cubes(i,j,k)
-            case(1)
+            case(3)
                 call this%lilac_cubes(i,j,k)
         end select
     end subroutine get_colored_cubes

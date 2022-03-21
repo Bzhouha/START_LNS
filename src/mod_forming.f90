@@ -365,9 +365,9 @@ module mod_forming
             jc_index=0
         endif
         select case (lns_mode)
-            case(0)
+            case(2)
                 lkb=0; lke=0; kc_index=0
-            case(1)
+            case(3)
                 lkb=-2; lke=2; kc_index=0
         end select
         idxm=0; 
@@ -592,9 +592,9 @@ module mod_forming
             jc_index=0
         endif
         select case (lns_mode)
-            case(0)
+            case(2)
                 lkb=0; lke=0; kc_index=0
-            case(1)
+            case(3)
                 lkb=-2; lke=2; kc_index=0
         end select
         idxm=0; 

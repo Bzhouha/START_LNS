@@ -110,13 +110,13 @@ contains
         use mod_difference
         implicit none
         select case (lns_mode)
-        case(0)
+        case(2)
             call fd1(x_xi,is,ie,js,je,ks,ke,xx,igs,ige,jgs,jge,kgs,kge,1,1)
             call fd1(y_xi,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,1,1)
             call fd1(x_eta,is,ie,js,je,ks,ke,xx,igs,ige,jgs,jge,kgs,kge,2,1)
             call fd1(y_eta,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,2,1)
             x_phi=0.0d0;y_phi=0.0d0;z_xi=0.0d0;z_eta=0.0d0;z_phi=0.0d0
-        case(1)
+        case(3)
             call fd1(x_xi,is,ie,js,je,ks,ke,xx,igs,ige,jgs,jge,kgs,kge,1,1)
             call fd1(y_xi,is,ie,js,je,ks,ke,yy,igs,ige,jgs,jge,kgs,kge,1,1)
             call fd1(z_xi,is,ie,js,je,ks,ke,zz,igs,ige,jgs,jge,kgs,kge,1,1)
@@ -131,9 +131,9 @@ contains
 
     subroutine compute_convariant_metrics()
         select case (lns_mode)
-        case(0)
+        case(2)
             call compute_convariant_metrics_2d()
-        case(1)
+        case(3)
             call compute_convariant_metrics_3d()
         end select 
     end subroutine compute_convariant_metrics

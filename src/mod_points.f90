@@ -101,11 +101,11 @@ module mod_points
         use mod_difference,only:fd1
         implicit none 
         select case (lns_mode)
-        case(0)
+        case(2)
             call fd1(qqi,is,ie,js,je,ks,ke,qq,igs,ige,jgs,jge,kgs,kge,1,5)
             call fd1(qqj,is,ie,js,je,ks,ke,qq,igs,ige,jgs,jge,kgs,kge,2,5)
             qqk=0.0d0
-        case(1)
+        case(3)
             call fd1(qqi,is,ie,js,je,ks,ke,qq,igs,ige,jgs,jge,kgs,kge,1,5)
             call fd1(qqj,is,ie,js,je,ks,ke,qq,igs,ige,jgs,jge,kgs,kge,2,5)
             call fd1(qqk,is,ie,js,je,ks,ke,qq,igs,ige,jgs,jge,kgs,kge,3,5)
@@ -118,13 +118,13 @@ module mod_points
         PetscScalar,pointer :: tmp(:,:,:,:)
         integer :: l 
         select case (lns_mode)
-        case(0)
+        case(2)
             do l=1,5
                 call turnItoX(qqx(l,:,:,:),qqi(l,:,:,:),qqj(l,:,:,:),qqk(l,:,:,:),xi_x,eta_x,phi_x)
                 call turnItoX(qqy(l,:,:,:),qqi(l,:,:,:),qqj(l,:,:,:),qqk(l,:,:,:),xi_y,eta_y,phi_y)
             enddo
             qqz=0.0d0
-        case(1)
+        case(3)
             do l=1,5
                 call turnItoX(qqx(l,:,:,:),qqi(l,:,:,:),qqj(l,:,:,:),qqk(l,:,:,:),xi_x,eta_x,phi_x)
                 call turnItoX(qqy(l,:,:,:),qqi(l,:,:,:),qqj(l,:,:,:),qqk(l,:,:,:),xi_y,eta_y,phi_y)
@@ -156,7 +156,7 @@ module mod_points
         qq_z_local_array(:,igs:ige,jgs:jge,kgs:kge)=tmp(:,igs:ige,jgs:jge,kgs:kge)
         call DMDAVecRestoreArrayReadF90(meshDA, QQ_Z_local, tmp, ierr)
         select case (lns_mode)
-        case(0)
+        case(2)
             call fd1(qqxi,is,ie,js,je,ks,ke,qq_x_local_array,igs,ige,jgs,jge,kgs,kge,1,5)
             call fd1(qqxj,is,ie,js,je,ks,ke,qq_x_local_array,igs,ige,jgs,jge,kgs,kge,2,5)
             call fd1(qqyi,is,ie,js,je,ks,ke,qq_y_local_array,igs,ige,jgs,jge,kgs,kge,1,5)
@@ -170,7 +170,7 @@ module mod_points
                 call turnItoX(qqxy(l,:,:,:),qqxi(l,:,:,:),qqxj(l,:,:,:),qqxk(l,:,:,:),xi_y,eta_y,phi_y)
             enddo
             qqzz=0.0d0;qqxz=0.0d0;qqyz=0.0d0
-        case(1)
+        case(3)
             call fd1(qqxi,is,ie,js,je,ks,ke,qq_x_local_array,igs,ige,jgs,jge,kgs,kge,1,5)
             call fd1(qqxj,is,ie,js,je,ks,ke,qq_x_local_array,igs,ige,jgs,jge,kgs,kge,2,5)
             call fd1(qqxk,is,ie,js,je,ks,ke,qq_x_local_array,igs,ige,jgs,jge,kgs,kge,3,5)

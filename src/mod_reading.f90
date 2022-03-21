@@ -65,16 +65,16 @@ contains
 
         ! 读取网格信息
         write(*,*) "开始读取网格数据..."
-        if(lns_mode==0) kn=1
+        if(lns_mode==2) kn=1
         open(11, file=trim(gridfile),action='read',form='unformatted')
         read(11)
         select case (lns_mode)
-        case(0)
+        case(2)
             read(11) in,jn
             allocate(xx(in,jn,kn), yy(in,jn,kn), zz(in,jn,kn))
             read(11) xx,yy
             zz=0.0d0
-        case(1)
+        case(3)
             read(11) in,jn,kn
             allocate(xx(in,jn,kn), yy(in,jn,kn), zz(in,jn,kn))
             read(11) xx,yy,zz
@@ -88,9 +88,9 @@ contains
         open(12, file=trim(flowfile),action='read',form='unformatted')
         read(12)
         select case (lns_mode)
-        case(0)
+        case(2)
             read(12) in,jn,ln
-        case(1)
+        case(3)
             read(12) in,jn,kn,ln
         end select
         allocate(qq_0(in,jn,kn,5))
@@ -150,7 +150,7 @@ contains
         write(*,*) ""
 
         write(*,*) "检查是否存在初值..."
-        inquire(file=trim(initfile),exist=init_guess_flg)
+        ! inquire(file=trim(initfile),exist=init_guess_flg)
         select case (init_guess_flg)
         case(.True.)
             write(*,*) '  True。'
@@ -263,7 +263,7 @@ contains
     subroutine print_info()
         implicit none
         select case (lns_mode)
-        case(0)
+        case(2)
             write(*,*) "  HLNS = 2-D"
             write(*,"(A,I5)") '   流向的网格数in =',in
             write(*,"(A,I5)") '   法向的网格数jn =',jn
@@ -276,7 +276,7 @@ contains
             write(*,"(3X,A,2(F20.15))") "Omega =",Omega
             write(*,"(A,F10.5,' ->',F10.5)") "   流向起止位置: ",xx(1, 1, 1), xx(in, 1, 1)
             write(*,"(A,F10.5,' ->',F10.5)") "   法向起止位置: ",yy(1, 1, 1), yy(1, jn, 1)
-        case(1)
+        case(3)
             write(*,*) "  HLNS = 3-D"
             write(*,"(A,I5)") '   流向的网格数in =',in
             write(*,"(A,I5)") '   法向的网格数jn =',jn

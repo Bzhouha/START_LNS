@@ -2,36 +2,23 @@
 #include <slepc/finclude/slepc.h>
 
 module mod_files 
-    use mod_reading
+    use mod_parameters
     use petsc
-    public :: loading_data,result_to_file
+    public :: istream,ostream
     private
-    Vec :: Flowfield_local,Coord_local
     PetscErrorCode  :: ierr
-    Vec :: Coord,Flowfield  
     PetscViewer :: viewer
-    Vec :: Multi_disturb
     contains
-    subroutine loading_data(comm)
+    subroutine istream(comm)
         implicit none
         PetscInt, intent(in) :: comm
 
-        call read_argv_and_file(comm)
-        call signal_mpiing(comm)
-        call bcast_parameters(comm) ! call pack_parameters(comm)
-        call set_mpi_da(comm)
-        call signal_loading(comm)
-        call load_petsc_file(comm)
-        call get_layout()
-        call load_disturb_mesh_flow()
-        call deallocate_memory()
-        call MPI_Barrier(comm,ierr)
-        call signal_printing(comm)
-        call print_info(comm)
-    end subroutine loading_data
+        call config(comm)
+        call set_DM(comm)
+        call load(comm)
+    end subroutine istream
 
-    subroutine read_argv_and_file(comm)
-        use mod_parameters,only:rank,sink,ksp_mat_free_flg,solver_mode,split_mode
+    subroutine config(comm)
         use mod_cfgio_adapter
         implicit none
         PetscInt,intent(in) :: comm
@@ -42,44 +29,41 @@ module mod_files
         call mpi_comm_rank(comm,rank,ierr) 
         call mpi_comm_size(comm,sink,ierr) 
         call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-f',cfg_file,set,ierr)
-        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp',ksp_flg,ierr)
-        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-snes',snes_flg,ierr)
-        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp_mf',ksp_mat_free_flg,ierr)
-        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
-        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-sub_pc_factor_in_place",PETSC_NULL_CHARACTER,ierr)
-        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-pc_asm_sub_mat_type","baij",ierr)
         if(.not. set) then
             write(*,*) 'should use -f option to determin the config file.'
             stop
         endif
+
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp',ksp_flg,ierr)
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-snes',snes_flg,ierr)
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp_mf',ksp_mat_free_flg,ierr)
         if(ksp_mat_free_flg) ksp_flg=.True.
         if(ksp_flg)then
-            solver_mode=0;split_mode=0
+            solver_mode='ksp';split_mode=0
         endif 
         if(snes_flg)then
-            solver_mode=1;split_mode=1
+            solver_mode='snes';split_mode=1
         endif 
+
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-raw',set,ierr)
+        if(set) io_type="raw"
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-binary',set,ierr)
+        if(set) io_type="binary"
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-hdf5',set,ierr)
+        if(set) io_type="hdf5"
+
+        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
+        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-sub_pc_factor_in_place",PETSC_NULL_CHARACTER,ierr)
+        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-pc_asm_sub_mat_type","baij",ierr)
+
         call cfg_loader(trim(cfg_file))
-        if(rank==0)then
-            call load(PETSC_COMM_SELF)
-            call cfg_writer(trim(cfg_file))
-        endif
         call MPI_Barrier(comm,ierr)
-    end subroutine read_argv_and_file
 
-    subroutine signal_mpiing(comm)
-        implicit none
-        PetscInt,intent(in) :: comm 
-        call PetscPrintf(comm, "\n", ierr)
-        call PetscPrintf(comm, " ===========================================================================\n", ierr)
-        call PetscPrintf(comm, " =                                 计    算                                = \n", ierr)
-        call PetscPrintf(comm, " - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n", ierr)
-        call PetscPrintf(comm, " 「 M P I 」\n",ierr)
-    end subroutine signal_mpiing
+        call bcast(comm)
 
-    subroutine bcast_parameters(comm)
-        use mod_parameters,only:in,jn,kn,ln,lns_mode,init_guess_flg, &
-                                & Ma,Re,Te,Alpha,Beta,Omega
+    end subroutine config
+
+    subroutine bcast(comm)
         implicit none 
         integer(KIND=MPI_ADDRESS_KIND) :: address_in,address_jn,address_kn,address_ln
         integer(KIND=MPI_ADDRESS_KIND) :: address_mode,address_Ma,address_Re,address_Te
@@ -124,52 +108,9 @@ module mod_files
         call MPI_Bcast(in,1,pack_type,0,comm,ierr)
         call MPI_Barrier(comm,ierr)
         call MPI_Type_free(pack_type,ierr)
-    end subroutine bcast_parameters
+    end subroutine bcast
 
-    subroutine pack_parameters(comm)
-        use mod_parameters,only:in,jn,kn,ln,lns_mode,init_guess_flg, &
-                                & Ma,Re,Te,Alpha,Beta,Omega,rank
-        implicit none 
-        character(len=120) :: packbuf
-        integer :: packsize,position
-        integer,intent(in) :: comm 
-
-        if(rank==0)then 
-            position = 0
-            call MPI_Pack(in,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
-            call MPI_Pack(jn,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
-            call MPI_Pack(kn,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
-            call MPI_Pack(ln,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
-            call MPI_Pack(lns_mode,1,MPI_INTEGER4,packbuf,120,position,comm,ierr)
-            call MPI_Pack(init_guess_flg,1,MPI_LOGICAL,packbuf,120,position,comm,ierr)
-            call MPI_Pack(Ma,1,MPI_REAL8,packbuf,120,position,comm,ierr)
-            call MPI_Pack(Re,1,MPI_REAL8,packbuf,120,position,comm,ierr)
-            call MPI_Pack(Te,1,MPI_REAL8,packbuf,120,position,comm,ierr)
-            call MPI_Pack(Alpha,1,MPI_COMPLEX16,packbuf,120,position,comm,ierr)
-            call MPI_Pack(Beta,1,MPI_COMPLEX16,packbuf,120,position,comm,ierr)
-            call MPI_Pack(Omega,1,MPI_COMPLEX16,packbuf,120,position,comm,ierr)
-        endif 
-        call MPI_Bcast(packbuf,120,MPI_PACKED,0,comm,ierr)
-        if(rank/=0)then 
-            position = 0
-            call MPI_Unpack(packbuf,120,position,in,1,MPI_INTEGER4,comm,ierr)
-            call MPI_Unpack(packbuf,120,position,jn,1,MPI_INTEGER4,comm,ierr)
-            call MPI_Unpack(packbuf,120,position,kn,1,MPI_INTEGER4,comm,ierr)
-            call MPI_Unpack(packbuf,120,position,ln,1,MPI_INTEGER4,comm,ierr)
-            call MPI_Unpack(packbuf,120,position,lns_mode,1,MPI_INTEGER4,comm,ierr)
-            call MPI_Unpack(packbuf,120,position,init_guess_flg,1,MPI_LOGICAL,comm,ierr)
-            call MPI_Unpack(packbuf,120,position,Ma,1,MPI_REAL8,comm,ierr)
-            call MPI_Unpack(packbuf,120,position,Re,1,MPI_REAL8,comm,ierr)
-            call MPI_Unpack(packbuf,120,position,Te,1,MPI_REAL8,comm,ierr)
-            call MPI_Unpack(packbuf,120,position,Alpha,1,MPI_COMPLEX16,comm,ierr)
-            call MPI_Unpack(packbuf,120,position,Beta,1,MPI_COMPLEX16,comm,ierr)
-            call MPI_Unpack(packbuf,120,position,Omega,1,MPI_COMPLEX16,comm,ierr)
-        endif 
-        call MPI_Barrier(comm,ierr)
-    end subroutine pack_parameters
-
-    subroutine set_mpi_da(comm)
-        use mod_parameters,only:sink,in,jn,kn,DA,coordDA,meshDA,disturbDA
+    subroutine set_DM(comm)
         implicit none
         PetscInt, intent(in) :: comm
 
@@ -189,92 +130,194 @@ module mod_files
         call DMSetMatType(meshDA,MATBAIJ,ierr)
         call DMSetFromOptions(meshDA,ierr)
         call DMSetUp(meshDA, ierr)
-        call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
-        &                 DMDA_STENCIL_BOX, sink, jn, kn, PETSC_DECIDE, 1, 1,&
-        &                 5, 0, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, disturbDA, ierr)
-        call DMSetUp(disturbDA, ierr)
-    end subroutine set_mpi_da
-
-    subroutine signal_loading(comm)
-        implicit none 
-        PetscInt,intent(in) :: comm 
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm,"               开始分发              \n",ierr)
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-    end subroutine signal_loading
-
-    subroutine load_petsc_file(comm) ! 读入PETSc二进制文件
-        use mod_parameters,only:coordDA,meshDA,disturbDA, &
-                                & turtle,init_guess_flg,initfile
-        implicit none 
-        PetscInt, intent(in) :: comm
-
-        call DMGetGlobalVector(coordDA, Coord, ierr)
-        call DMGetLocalVector(coordDA, Coord_local, ierr)
-        call PetscViewerBinaryOpen(comm, "in/grid.petsc",FILE_MODE_READ, viewer, ierr)
-        call VecLoad(Coord, viewer, ierr)
-        call DMGlobalToLocalBegin(coordDA, Coord, INSERT_VALUES, Coord_local, ierr)
-        call DMGlobalToLocalEnd(coordDA, Coord, INSERT_VALUES, Coord_local, ierr)
-        call PetscViewerDestroy(viewer, ierr)
-
-        call DMGetGlobalVector(meshDA, Flowfield, ierr)
-        call DMGetLocalVector(meshDA, Flowfield_local, ierr)
-        call PetscViewerBinaryOpen(comm, "in/flow.petsc",FILE_MODE_READ, viewer, ierr)
-        call VecLoad(Flowfield, viewer, ierr)
-        call DMGlobalToLocalBegin(meshDA, Flowfield, INSERT_VALUES, Flowfield_local, ierr)
-        call DMGlobalToLocalEnd(meshDA, Flowfield, INSERT_VALUES, Flowfield_local, ierr)
-        call PetscViewerDestroy(viewer, ierr)
-
-        call DMGetGlobalVector(disturbDA, Multi_disturb, ierr)
-        call PetscViewerBinaryOpen(comm, "in/disturb.petsc",FILE_MODE_READ, viewer, ierr)
-        call VecLoad(Multi_disturb, viewer, ierr)
-        call PetscViewerDestroy(viewer, ierr)
 
         call DMGetGlobalVector(meshDA, turtle, ierr)
-        select case (init_guess_flg)
-        case(.True.)
-            call VecZeroEntries(turtle,ierr)
-            call PetscViewerBinaryOpen(comm, trim(initfile),FILE_MODE_READ, viewer, ierr)
-            call VecLoad(turtle, viewer, ierr)
-            call PetscViewerDestroy(viewer, ierr)
-        case(.False.)
-            call VecZeroEntries(turtle,ierr)
-        end select
-    end subroutine load_petsc_file
-
-    subroutine get_layout()
-        use mod_parameters,only:DA,is,js,ks,il,jl,kl,ie,je,ke, &
-                                & igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge
-        implicit none
-
         call DMDAGetGhostCorners(DA,igs,jgs,kgs,igl,jgl,kgl,ierr)
         call DMDAGetCorners(DA,is,js,ks,il,jl,kl,ierr)
         ige=igs+igl-1; jge=jgs+jgl-1; kge=kgs+kgl-1
         ie=is+il-1; je=js+jl-1; ke=ks+kl-1
-    end subroutine get_layout
+    end subroutine set_DM
 
-    subroutine load_disturb_mesh_flow()
-        use mod_parameters,only:disturbDA,coordDA,meshDA,disturb,qq, &
-                                & igs,ige,jgs,jge,kgs,kge,xx,yy,zz
+    subroutine load(comm)
         implicit none 
-        integer :: xs,ys,zs,xl,yl,zl,xe,ye,ze
-        PetscScalar, pointer :: multi(:,:,:,:)
+        integer,intent(in) :: comm
+
+        select case(io_type)
+            case("raw")
+                call load_raw_files(comm)
+            case("binary")
+                call load_binary_files(comm)
+            case("hdf5")
+                call load_hdf5_files(comm)
+        end select
+
+        call set_disturb(comm)
+        call set_init_guess(comm)
+    end subroutine load
+
+    subroutine load_raw_files(comm)
+        implicit none
+        integer,intent(in) :: comm
+
+        bigridfile = "./data/grid.pet"
+        biflowfile = "./data/flow.pet"
+
+        if(rank==0)then
+            call raw_to_binary()
+        endif
+
+        call MPI_Barrier(comm,ierr)
+        call load_binary_files(comm)
+    end subroutine load_raw_files
+
+    subroutine raw_to_binary()
+        implicit none
+        real(R_P),dimension(:,:,:,:),allocatable :: qq_0
+        PetscScalar, pointer :: disturbs(:,:,:,:)
         PetscScalar, pointer :: grid(:,:,:,:)
         PetscScalar, pointer :: flow(:,:,:,:)
+        PetscScalar, pointer :: slice(:,:,:)
+        integer :: xs,ys,zs,xl,yl,zl
+        DM :: uni_coordDA,uni_meshDA 
+        Vec :: coord,flowfield  
         integer :: l,i,j,k 
 
-        call DMDAGetCorners(disturbDA,xs,ys,zs,xl,yl,zl,ierr)
-        xe=xs+xl-1;ye=ys+yl-1;ze=zs+zl-1
-        allocate(disturb(0:4, ys:ye, zs:ze))
-        call DMDAVecGetArrayReadF90(disturbDA, Multi_disturb, multi, ierr)
-        do i=xs,xe
-            do j=ys,ye
-                do k=zs,ze
-                    disturb(:,j,k) = multi(:,i,j,k)
+        ! 读取网格信息
+        write(*,*) "开始读取网格数据..."
+        open(11, file=trim(gridfile),action='read',form='unformatted')
+        read(11)
+        select case (lns_mode)
+        case(2)
+            read(11) in,jn
+            allocate(xx(in,jn,kn), yy(in,jn,kn), zz(in,jn,kn))
+            read(11) xx,yy
+            zz=0.0d0
+        case(3)
+            read(11) in,jn,kn
+            allocate(xx(in,jn,kn), yy(in,jn,kn), zz(in,jn,kn))
+            read(11) xx,yy,zz
+        end select
+        close(11)
+        write(*,*) '  网格信息读取结束。'
+        write(*,*) ""
+
+        ! 读取基本流数据
+        write(*,*) "开始读取流场数据..."
+        open(12, file=trim(flowfile),action='read',form='unformatted')
+        read(12)
+        select case (lns_mode)
+        case(2)
+            read(12) in,jn,ln
+        case(3)
+            read(12) in,jn,kn,ln
+        end select
+        allocate(qq_0(in,jn,kn,5))
+        read(12)((((qq_0(i,j,k,l), i=1,in), j=1,jn), k=1,kn), l=1,5)
+        close(12)
+        ln=5
+        allocate(qq(5,in,jn,kn))
+        do k=1,kn
+            do j=1,jn 
+                do i=1,in 
+                    qq(:,i,j,k)=qq_0(i,j,k,:)
                 enddo
             enddo
         enddo
-        call DMDAVecRestoreArrayReadF90(disturbDA, Multi_disturb, multi, ierr)
+        deallocate(qq_0)
+        write(*,*) '  流场信息读取结束。'
+        write(*,*) ""
+
+        call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
+        &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
+        &                 3, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, uni_coordDA, ierr)
+        call DMSetUp(uni_coordDA, ierr)
+
+        call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
+        &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
+        &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, uni_meshDA, ierr)
+        call DMSetUp(uni_meshDA, ierr)
+
+        write(*,*) "开始转换为PetsC数据类型..."
+
+        call DMGetGlobalVector(uni_coordDA,coord,ierr)
+        call DMDAGetCorners(uni_coordDA,xs,ys,zs,xl,yl,zl,ierr)
+        call DMDAVecGetArrayF90(uni_coordDA,coord,grid,ierr)
+        do i=xs,xs+xl-1
+            do j=ys,ys+yl-1
+                do k=zs,zs+zl-1
+                    grid(0, i, j, k) = xx(i+1, j+1, k+1)
+                    grid(1, i, j, k) = yy(i+1, j+1, k+1)
+                    grid(2, i, j, k) = zz(i+1, j+1, k+1)
+                enddo
+            enddo
+        enddo
+        call DMDAVecRestoreArrayF90(uni_coordDA,coord,grid,ierr)
+        write(*,*) '  网格信息转换结束。'
+
+        call DMGetGlobalVector(uni_meshDA,flowfield,ierr)
+        call DMDAGetCorners(uni_meshDA,xs,ys,zs,xl,yl,zl,ierr)
+        call DMDAVecGetArrayF90(uni_meshDA,flowfield,flow,ierr)
+        do i=xs,xs+xl-1
+            do j=ys,ys+yl-1
+                do k=zs,zs+zl-1
+                    do l=0, 4
+                        flow(l,i,j,k) = qq(l+1, i+1, j+1, k+1)
+                    enddo
+                enddo
+            enddo
+        enddo
+        call DMDAVecRestoreArrayF90(uni_meshDA,flowfield,flow,ierr)
+        write(*,*) '  流场信息转换结束。'
+        write(*,*) ""
+
+        write(*,*) "开始生成文件..."
+
+        call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(bigridfile),FILE_MODE_WRITE, viewer, ierr)
+        call VecView(coord, viewer, ierr)
+        call PetscViewerDestroy(viewer, ierr)
+        write(*,*) '  网格文件已生成。'
+
+        call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(biflowfile),FILE_MODE_WRITE, viewer, ierr)
+        call VecView(flowfield, viewer, ierr)
+        call PetscViewerDestroy(viewer, ierr)
+        write(*,*) '  流场文件已生成。'
+        write(*,*) ""
+
+        deallocate(xx)
+        deallocate(yy)
+        deallocate(zz)
+        deallocate(qq)
+        call DMRestoreGlobalVector(uni_meshDA,flowfield,ierr)
+        call DMRestoreGlobalVector(uni_coordDA,coord,ierr)
+        call DMDestroy(uni_coordDA,ierr)
+        call DMDestroy(uni_meshDA,ierr)
+
+    end subroutine raw_to_binary
+
+    subroutine load_binary_files(comm) ! 读入PETSc二进制文件
+        implicit none 
+        PetscScalar, pointer :: grid(:,:,:,:)
+        PetscScalar, pointer :: flow(:,:,:,:)
+        Vec :: flowfield_local,coord_local
+        PetscInt, intent(in) :: comm
+        Vec :: coord,flowfield  
+        integer :: l,i,j,k 
+
+        call DMGetGlobalVector(coordDA, coord, ierr)
+        call DMGetLocalVector(coordDA, coord_local, ierr)
+        call PetscViewerBinaryOpen(comm, trim(bigridfile),FILE_MODE_READ, viewer, ierr)
+        call VecLoad(coord, viewer, ierr)
+        call DMGlobalToLocalBegin(coordDA, coord, INSERT_VALUES, coord_local, ierr)
+        call DMGlobalToLocalEnd(coordDA, coord, INSERT_VALUES, coord_local, ierr)
+        call PetscViewerDestroy(viewer, ierr)
+
+        call DMGetGlobalVector(meshDA, flowfield, ierr)
+        call DMGetLocalVector(meshDA, flowfield_local, ierr)
+        call PetscViewerBinaryOpen(comm, trim(biflowfile),FILE_MODE_READ, viewer, ierr)
+        call VecLoad(flowfield, viewer, ierr)
+        call DMGlobalToLocalBegin(meshDA, flowfield, INSERT_VALUES, flowfield_local, ierr)
+        call DMGlobalToLocalEnd(meshDA, flowfield, INSERT_VALUES, flowfield_local, ierr)
+        call PetscViewerDestroy(viewer, ierr)
 
         allocate(xx(igs:ige, jgs:jge, kgs:kge))
         allocate(yy(igs:ige, jgs:jge, kgs:kge))
@@ -292,7 +335,7 @@ module mod_files
         call DMDAVecRestoreArrayReadF90(coordDA, coord_local, grid, ierr)
 
         allocate(qq(5, igs:ige, jgs:jge, kgs:kge))
-        call DMDAVecGetArrayReadF90(meshDA, Flowfield_local, flow, ierr)
+        call DMDAVecGetArrayReadF90(meshDA, flowfield_local, flow, ierr)
         do k=kgs, kge
             do j=jgs, jge
                 do i=igs, ige
@@ -302,31 +345,253 @@ module mod_files
                 enddo
             enddo
         enddo
-        call DMDAVecRestoreArrayReadF90(meshDA, Flowfield_local, flow, ierr)
-    end subroutine load_disturb_mesh_flow
+        call DMDAVecRestoreArrayReadF90(meshDA, flowfield_local, flow, ierr)
 
-    subroutine deallocate_memory()
-        call VecDestroy(Flowfield_local,ierr)
-        call VecDestroy(Multi_disturb,ierr)
-        call VecDestroy(Coord_local,ierr)
-        call VecDestroy(Flowfield,ierr)
-        call VecDestroy(Coord,ierr)
-    end subroutine deallocate_memory
+        call DMRestoreLocalVector(meshDA,flowfield_local,ierr)
+        call DMRestoreLocalVector(coordDA,coord_local,ierr)
+        call DMRestoreGlobalVector(meshDA,flowfield,ierr)
+        call DMRestoreGlobalVector(coordDA,coord,ierr)
 
-    subroutine signal_printing(comm)
+    end subroutine load_binary_files
+
+    subroutine load_hdf5_files(comm)
+        implicit none
+        integer,intent(in) :: comm
+    end subroutine load_hdf5_files
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    subroutine set_disturb(comm) ! petsc
+        implicit none
+        PetscScalar, pointer :: disturbs(:,:,:,:)
+        integer :: xs,ys,zs,xl,yl,zl,xe,ye,ze
+        PetscScalar, pointer :: slice(:,:,:)
+        integer,intent(in) :: comm
+        Vec :: disturb_gather
+        Vec :: disturb_slice
+        DM :: disturbDA
+        integer :: i,j,k 
+        DM :: sliceDA 
+
+        turbfiles = "./data/disturbs.pet"
+        if(rank==0)then
+            call DMDACreate2d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
+            &                 DMDA_STENCIL_BOX, jn, kn, PETSC_DECIDE, PETSC_DECIDE, &
+            &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, sliceDA, ierr)
+            call DMSetUp(sliceDA, ierr)
+
+            call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
+            &                 DMDA_STENCIL_BOX, sink, jn, kn, PETSC_DECIDE, 1, 1,&
+            &                 5, 0, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, disturbDA, ierr)
+            call DMSetUp(disturbDA, ierr)
+
+            call DMGetGlobalVector(sliceDA, disturb_slice, ierr)
+            call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(turbfile), FILE_MODE_READ, viewer, ierr)
+            call VecLoad(disturb_slice, viewer, ierr)
+            call PetscViewerDestroy(viewer, ierr)
+
+            call DMDAGetCorners(disturbDA,xs,ys,zs,xl,yl,zl,ierr)
+            call DMGetGlobalVector(disturbDA, disturb_gather, ierr)
+            call DMDAVecGetArrayF90(disturbDA, disturb_gather, disturbs, ierr)
+            call DMDAVecGetArrayReadF90(sliceDA, disturb_slice, slice, ierr)
+            do i=xs,xs+xl-1
+                do j=ys,ys+yl-1
+                    do k=zs,zs+zl-1
+                        disturbs(:,i,j,k)=slice(:,j,k)
+                    enddo
+                enddo
+            enddo
+            call DMDAVecRestoreArrayReadF90(sliceDA, disturb_slice, slice, ierr)
+            call DMDAVecRestoreArrayF90(disturbDA, disturb_gather, disturbs, ierr)
+
+            call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(turbfiles),FILE_MODE_WRITE, viewer, ierr)
+            call VecView(disturb_gather, viewer, ierr)
+            call PetscViewerDestroy(viewer, ierr)
+
+            call DMRestoreGlobalVector(disturbDA,disturb_gather,ierr)
+            call DMRestoreGlobalVector(sliceDA,disturb_slice,ierr)
+            call DMDestroy(sliceDA,ierr)
+            call DMDestroy(disturbDA,ierr)
+        endif
+        call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
+        &                 DMDA_STENCIL_BOX, sink, jn, kn, PETSC_DECIDE, 1, 1,&
+        &                 5, 0, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, disturbDA, ierr)
+        call DMSetUp(disturbDA, ierr)
+        call DMGetGlobalVector(disturbDA, disturb_gather, ierr)
+        call PetscViewerBinaryOpen(comm, trim(turbfiles),FILE_MODE_READ, viewer, ierr)
+        call VecLoad(disturb_gather, viewer, ierr)
+        call PetscViewerDestroy(viewer, ierr)
+
+        call DMDAGetCorners(disturbDA,xs,ys,zs,xl,yl,zl,ierr)
+        xe=xs+xl-1;ye=ys+yl-1;ze=zs+zl-1
+        allocate(disturb(0:4, ys:ye, zs:ze))
+        call DMDAVecGetArrayReadF90(disturbDA, disturb_gather, disturbs, ierr)
+        do i=xs,xe
+            do j=ys,ye
+                do k=zs,ze
+                    disturb(:,j,k) = disturbs(:,i,j,k)
+                enddo
+            enddo
+        enddo
+        call DMDAVecRestoreArrayReadF90(disturbDA, disturb_gather, disturbs, ierr)
+
+        call DMRestoreGlobalVector(disturbDA,disturb_gather,ierr)
+        call DMDestroy(disturbDA,ierr)
+        if(rank==0) call system("rm -f "//trim(turbfiles)//"*")
+
+    end subroutine set_disturb
+
+    subroutine set_init_guess(comm) ! binary
         implicit none 
-        PetscInt,intent(in) :: comm 
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm,"               分发结束              \n",ierr)
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm,"               查对信息              \n",ierr)
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm,"\n",ierr)
-    end subroutine signal_printing
+        integer,intent(in) :: comm 
+        select case (init_guess_flg)
+            case(.True.)
+                call VecZeroEntries(turtle,ierr)
+                call PetscViewerBinaryOpen(comm, trim(initfile),FILE_MODE_READ,viewer,ierr)
+                call VecLoad(turtle, viewer, ierr)
+                call PetscViewerDestroy(viewer, ierr)
+            case(.False.)
+                call VecZeroEntries(turtle,ierr)
+        end select
+    end subroutine set_init_guess
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     subroutine print_info(comm)
-        use mod_parameters,only:rank,sink,jn,Re,Alpha,Omega,qq,xx,yy,zz
         implicit none 
         PetscInt,intent(in) :: comm
         if(rank==0)then
@@ -363,22 +628,111 @@ module mod_files
         call MPI_Barrier(comm,ierr)
     end subroutine print_info
 
-    subroutine result_to_file(comm)
-        implicit none
-        PetscInt, INTENT(in) :: comm
-        call signal_ending(comm)
-        call petsc_file(comm)
-        call print_end(comm)
-    end subroutine result_to_file
 
-    subroutine petsc_file(comm)
-        use mod_parameters,only : turtle
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    subroutine ostream(comm)
         implicit none
-        PetscInt,intent(in) :: comm
-        call PetscViewerBinaryOpen(comm, "out/Turtle.petsc", FILE_MODE_WRITE, viewer, ierr)
-        call VecView(turtle, viewer, ierr)
-        call PetscViewerDestroy(viewer, ierr)
-    end subroutine petsc_file
+        character(len=256) :: result_file
+        PetscInt, intent(in) :: comm
+
+        call signal_ending(comm)
+        select case(io_type)
+            case("raw")
+                result_file = "data/turtle.pet"
+                call PetscViewerBinaryOpen(comm, trim(result_file), FILE_MODE_WRITE, viewer, ierr)
+                call VecView(turtle, viewer, ierr)
+                call PetscViewerDestroy(viewer, ierr)
+            case("binary")
+                result_file = "data/turtle.pet"
+                call PetscViewerBinaryOpen(comm, trim(result_file), FILE_MODE_WRITE, viewer, ierr)
+                call VecView(turtle, viewer, ierr)
+                call PetscViewerDestroy(viewer, ierr)
+            case("hdf5")
+                result_file = hdf5file
+        end select
+        call print_end(comm)
+    end subroutine ostream
 
     subroutine signal_ending(comm)
         implicit none 
