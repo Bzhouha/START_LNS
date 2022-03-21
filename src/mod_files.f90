@@ -1,7 +1,7 @@
 !#include <petsc/finclude/petsc.h>
 #include <slepc/finclude/slepc.h>
 
-module mod_files 
+module mod_files
     use mod_parameters
     use petsc
     public :: istream,ostream
@@ -16,6 +16,7 @@ module mod_files
         call config(comm)
         call set_DM(comm)
         call load(comm)
+
     end subroutine istream
 
     subroutine config(comm)
@@ -26,8 +27,8 @@ module mod_files
         logical :: ksp_flg,snes_flg
         PetscBool :: set
 
-        call mpi_comm_rank(comm,rank,ierr) 
-        call mpi_comm_size(comm,sink,ierr) 
+        call mpi_comm_rank(comm,rank,ierr)
+        call mpi_comm_size(comm,sink,ierr)
         call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-f',cfg_file,set,ierr)
         if(.not. set) then
             write(*,*) 'should use -f option to determin the config file.'
@@ -40,10 +41,10 @@ module mod_files
         if(ksp_mat_free_flg) ksp_flg=.True.
         if(ksp_flg)then
             solver_mode='ksp';split_mode=0
-        endif 
+        endif
         if(snes_flg)then
             solver_mode='snes';split_mode=1
-        endif 
+        endif
 
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-raw',set,ierr)
         if(set) io_type="raw"
@@ -64,7 +65,7 @@ module mod_files
     end subroutine config
 
     subroutine bcast(comm)
-        implicit none 
+        implicit none
         integer(KIND=MPI_ADDRESS_KIND) :: address_in,address_jn,address_kn,address_ln
         integer(KIND=MPI_ADDRESS_KIND) :: address_mode,address_Ma,address_Re,address_Te
         integer(KIND=MPI_ADDRESS_KIND) :: address_Alpha,address_Omega,address_Beta
@@ -139,7 +140,7 @@ module mod_files
     end subroutine set_DM
 
     subroutine load(comm)
-        implicit none 
+        implicit none
         integer,intent(in) :: comm
 
         select case(io_type)
@@ -178,9 +179,9 @@ module mod_files
         PetscScalar, pointer :: flow(:,:,:,:)
         PetscScalar, pointer :: slice(:,:,:)
         integer :: xs,ys,zs,xl,yl,zl
-        DM :: uni_coordDA,uni_meshDA 
-        Vec :: coord,flowfield  
-        integer :: l,i,j,k 
+        DM :: uni_coordDA,uni_meshDA
+        Vec :: coord,flowfield
+        integer :: l,i,j,k
 
         ! 读取网格信息
         write(*,*) "开始读取网格数据..."
@@ -217,8 +218,8 @@ module mod_files
         ln=5
         allocate(qq(5,in,jn,kn))
         do k=1,kn
-            do j=1,jn 
-                do i=1,in 
+            do j=1,jn
+                do i=1,in
                     qq(:,i,j,k)=qq_0(i,j,k,:)
                 enddo
             enddo
@@ -295,13 +296,13 @@ module mod_files
     end subroutine raw_to_binary
 
     subroutine load_binary_files(comm) ! 读入PETSc二进制文件
-        implicit none 
+        implicit none
         PetscScalar, pointer :: grid(:,:,:,:)
         PetscScalar, pointer :: flow(:,:,:,:)
         Vec :: flowfield_local,coord_local
         PetscInt, intent(in) :: comm
-        Vec :: coord,flowfield  
-        integer :: l,i,j,k 
+        Vec :: coord,flowfield
+        integer :: l,i,j,k
 
         call DMGetGlobalVector(coordDA, coord, ierr)
         call DMGetLocalVector(coordDA, coord_local, ierr)
@@ -356,39 +357,71 @@ module mod_files
 
     subroutine load_hdf5_files(comm)
         implicit none
-        integer,intent(in) :: comm
+        PetscScalar, pointer :: grid(:,:,:,:)
+        PetscScalar, pointer :: flow(:,:,:,:)
+        Vec :: flowfield_local,coord_local
+        PetscInt, intent(in) :: comm
+        Vec :: coord,flowfield
+        integer :: l,i,j,k
+
+        call DMGetGlobalVector(meshDA, flowfield, ierr)
+        call PetscObjectSetName(flowfield,"baseflow",ierr)
+        call DMGetGlobalVector(coordDA, coord, ierr)
+        call PetscObjectSetName(coord,"grid",ierr)
+
+        call PetscViewerHDF5Open(comm,trim(hdf5file),FILE_MODE_READ,viewer,ierr)
+
+        call PetscViewerHDF5PushGroup(viewer,"Baseflow",ierr)
+        call VecLoad(flowfield,viewer,ierr)
+        call PetscViewerHDF5PopGroup(viewer,ierr)
+
+        call PetscViewerHDF5PushGroup(viewer,"Grid",ierr)
+        call VecLoad(coord,viewer,ierr)
+        call PetscViewerHDF5PopGroup(viewer,ierr)
+
+        call PetscViewerDestroy(viewer, ierr)
+
+        call DMGetLocalVector(coordDA, coord_local, ierr)
+        call DMGetLocalVector(meshDA, flowfield_local, ierr)
+        call DMGlobalToLocalBegin(coordDA, coord, INSERT_VALUES, coord_local, ierr)
+        call DMGlobalToLocalBegin(meshDA, flowfield, INSERT_VALUES, flowfield_local, ierr)
+        call DMGlobalToLocalEnd(coordDA, coord, INSERT_VALUES, coord_local, ierr)
+        call DMGlobalToLocalEnd(meshDA, flowfield, INSERT_VALUES, flowfield_local, ierr)
+
+        allocate(xx(igs:ige, jgs:jge, kgs:kge))
+        allocate(yy(igs:ige, jgs:jge, kgs:kge))
+        allocate(zz(igs:ige, jgs:jge, kgs:kge))
+        call DMDAVecGetArrayReadF90(coordDA, coord_local, grid, ierr)
+        do k=kgs, kge
+            do j=jgs, jge
+                do i=igs, ige
+                    xx(i, j, k)=real(grid(0, i, j, k))
+                    yy(i, j, k)=real(grid(1, i, j, k))
+                    zz(i, j, k)=real(grid(2, i, j, k))
+                enddo
+          enddo
+        enddo
+        call DMDAVecRestoreArrayReadF90(coordDA, coord_local, grid, ierr)
+
+        allocate(qq(5, igs:ige, jgs:jge, kgs:kge))
+        call DMDAVecGetArrayReadF90(meshDA, flowfield_local, flow, ierr)
+        do k=kgs, kge
+            do j=jgs, jge
+                do i=igs, ige
+                    do l=0,4
+                        qq(l+1, i, j, k)=real(flow(l, i, j, k))
+                    enddo
+                enddo
+            enddo
+        enddo
+        call DMDAVecRestoreArrayReadF90(meshDA, flowfield_local, flow, ierr)
+
+        call DMRestoreLocalVector(meshDA,flowfield_local,ierr)
+        call DMRestoreLocalVector(coordDA,coord_local,ierr)
+        call DMRestoreGlobalVector(meshDA,flowfield,ierr)
+        call DMRestoreGlobalVector(coordDA,coord,ierr)
+
     end subroutine load_hdf5_files
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     subroutine set_disturb(comm)
         implicit none
@@ -399,8 +432,8 @@ module mod_files
         Vec :: disturb_gather
         Vec :: disturb_slice
         DM :: disturbDA
-        integer :: i,j,k 
-        DM :: sliceDA 
+        integer :: i,j,k
+        DM :: sliceDA
 
         turbfiles = "./data/disturbs.pet"
         if(rank==0)then
@@ -471,8 +504,8 @@ module mod_files
     end subroutine set_disturb
 
     subroutine set_init_guess(comm) ! binary
-        implicit none 
-        integer,intent(in) :: comm 
+        implicit none
+        integer,intent(in) :: comm
         select case (init_guess_flg)
             case(.True.)
                 call VecZeroEntries(turtle,ierr)
@@ -484,115 +517,8 @@ module mod_files
         end select
     end subroutine set_init_guess
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     subroutine print_info(comm)
-        implicit none 
+        implicit none
         PetscInt,intent(in) :: comm
         if(rank==0)then
             write(*,"(3X,A,I5)") "进程数 =",sink
@@ -628,89 +554,6 @@ module mod_files
         call MPI_Barrier(comm,ierr)
     end subroutine print_info
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     subroutine ostream(comm)
         implicit none
         character(len=256) :: resultfile
@@ -729,6 +572,9 @@ module mod_files
                 call PetscViewerHDF5Open(comm,trim(resultfile),FILE_MODE_UPDATE,viewer,ierr)
                 call PetscObjectSetName(turtle,"field",ierr)
                 call PetscViewerHDF5PushGroup(viewer,"Field",ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Alpha",PETSC_COMPLEX,Alpha,ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Beta",PETSC_COMPLEX,Beta,ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Omega",PETSC_COMPLEX,Omega,ierr)
                 call VecView(turtle,viewer,ierr)
                 call PetscViewerHDF5PopGroup(viewer,ierr)
                 call PetscViewerDestroy(viewer, ierr)
@@ -738,6 +584,9 @@ module mod_files
                 call PetscViewerHDF5Open(comm,trim(resultfile),FILE_MODE_UPDATE,viewer,ierr)
                 call PetscObjectSetName(turtle,"field",ierr)
                 call PetscViewerHDF5PushGroup(viewer,"Field",ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Alpha",PETSC_COMPLEX,Alpha,ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Beta",PETSC_COMPLEX,Beta,ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Omega",PETSC_COMPLEX,Omega,ierr)
                 call VecView(turtle,viewer,ierr)
                 call PetscViewerHDF5PopGroup(viewer,ierr)
                 call PetscViewerDestroy(viewer,ierr)
@@ -750,9 +599,9 @@ module mod_files
     subroutine preload_hdf5(comm,resultfile)
         implicit none
         character(len=256),intent(in) :: resultfile
-        DM :: uni_coordDA,uni_meshDA 
+        DM :: uni_coordDA,uni_meshDA
         integer,intent(in) :: comm
-        Vec :: coord,flowfield 
+        Vec :: coord,flowfield
         PetscViewer :: Sviewer
 
         if(rank==0)then
@@ -772,10 +621,6 @@ module mod_files
             call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"grid.In",PETSC_INT,in,ierr)
             call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"grid.Jn",PETSC_INT,jn,ierr)
             call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"grid.Kn",PETSC_INT,kn,ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Alpha",PETSC_COMPLEX,Alpha,ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Beta",PETSC_COMPLEX,Beta,ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Omega",PETSC_COMPLEX,Omega,ierr)
-
             call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(biflowfile),FILE_MODE_READ, Sviewer, ierr)
             call VecLoad(flowfield, Sviewer, ierr)
             call PetscViewerDestroy(Sviewer, ierr)
@@ -791,6 +636,7 @@ module mod_files
             call PetscViewerHDF5PushGroup(viewer,"Grid",ierr)
             call VecView(coord,viewer,ierr)
             call PetscViewerHDF5PopGroup(viewer,ierr)
+            
             call PetscViewerDestroy(viewer, ierr)
 
             call DMRestoreGlobalVector(uni_meshDA,flowfield,ierr)
@@ -800,12 +646,12 @@ module mod_files
         endif
 
         call MPI_Barrier(comm,ierr)
-        
+
     end subroutine preload_hdf5
 
     subroutine signal_ostream_begin(comm)
-        implicit none 
-        PetscInt,intent(in) :: comm 
+        implicit none
+        PetscInt,intent(in) :: comm
         call PetscPrintf(comm, "\n", ierr)
         call PetscPrintf(comm, " ===========================================================================\n", ierr)
         call PetscPrintf(comm, " =                                 输    出                                = \n", ierr)
