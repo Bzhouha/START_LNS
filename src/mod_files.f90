@@ -2,6 +2,17 @@
 #include <slepc/finclude/slepc.h>
 
 module mod_files
+!
+! 这个模块处理文件流，包括:
+!
+!                 1).从config配置文件读入参数；
+!
+!                 2).支持 raw Plot3d格式、binary格式、hdf5格式文件的输入输出
+!
+!   call istream(comm)  读入配置文件，初始化PETSc以及从文件载入流场、网格、边界、初值等。
+!
+!   call ostream(comm) 将计算结果以Binary、HDF5格式输出。
+!
     use mod_parameters
     use petsc
     public :: istream,ostream
@@ -14,7 +25,9 @@ module mod_files
         PetscInt, intent(in) :: comm
 
         call config(comm)
+
         call set_DM(comm)
+        
         call load(comm)
 
     end subroutine istream
@@ -636,7 +649,7 @@ module mod_files
             call PetscViewerHDF5PushGroup(viewer,"Grid",ierr)
             call VecView(coord,viewer,ierr)
             call PetscViewerHDF5PopGroup(viewer,ierr)
-            
+
             call PetscViewerDestroy(viewer, ierr)
 
             call DMRestoreGlobalVector(uni_meshDA,flowfield,ierr)
