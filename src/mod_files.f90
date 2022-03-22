@@ -156,17 +156,24 @@ module mod_files
         implicit none
         integer,intent(in) :: comm
 
+        call PetscPrintf(comm, " ----------------------------------\n", ierr)
+        call PetscPrintf(comm, "              IStream            \n", ierr)
+
         select case(io_type)
             case("raw")
+                call PetscPrintf(comm, "\n   I/O type : raw\n\n", ierr)
                 call load_raw_files(comm)
             case("binary")
+                call PetscPrintf(comm, "\n   I/O type : binary\n\n", ierr)
                 call load_binary_files(comm)
             case("hdf5")
+                call PetscPrintf(comm, "\n   I/O type : hdf5\n\n", ierr)
                 call load_hdf5_files(comm)
         end select
 
         call set_disturb(comm)
         call set_init_guess(comm)
+        call check(comm)
     end subroutine load
 
     subroutine load_raw_files(comm)
@@ -175,11 +182,9 @@ module mod_files
 
         bigridfile = "./data/grid.pet"
         biflowfile = "./data/flow.pet"
-
         if(rank==0)then
             call raw_to_binary()
         endif
-
         call MPI_Barrier(comm,ierr)
         call load_binary_files(comm)
     end subroutine load_raw_files
@@ -197,7 +202,6 @@ module mod_files
         integer :: l,i,j,k
 
         ! 读取网格信息
-        write(*,*) "开始读取网格数据..."
         open(11, file=trim(gridfile),action='read',form='unformatted')
         read(11)
         select case (lns_mode)
@@ -212,11 +216,8 @@ module mod_files
             read(11) xx,yy,zz
         end select
         close(11)
-        write(*,*) '  网格信息读取结束。'
-        write(*,*) ""
 
         ! 读取基本流数据
-        write(*,*) "开始读取流场数据..."
         open(12, file=trim(flowfile),action='read',form='unformatted')
         read(12)
         select case (lns_mode)
@@ -238,8 +239,6 @@ module mod_files
             enddo
         enddo
         deallocate(qq_0)
-        write(*,*) '  流场信息读取结束。'
-        write(*,*) ""
 
         call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
         &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
@@ -250,8 +249,6 @@ module mod_files
         &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
         &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, uni_meshDA, ierr)
         call DMSetUp(uni_meshDA, ierr)
-
-        write(*,*) "开始转换为PetsC数据类型..."
 
         call DMGetGlobalVector(uni_coordDA,coord,ierr)
         call DMDAGetCorners(uni_coordDA,xs,ys,zs,xl,yl,zl,ierr)
@@ -266,7 +263,6 @@ module mod_files
             enddo
         enddo
         call DMDAVecRestoreArrayF90(uni_coordDA,coord,grid,ierr)
-        write(*,*) '  网格信息转换结束。'
 
         call DMGetGlobalVector(uni_meshDA,flowfield,ierr)
         call DMDAGetCorners(uni_meshDA,xs,ys,zs,xl,yl,zl,ierr)
@@ -281,21 +277,14 @@ module mod_files
             enddo
         enddo
         call DMDAVecRestoreArrayF90(uni_meshDA,flowfield,flow,ierr)
-        write(*,*) '  流场信息转换结束。'
-        write(*,*) ""
-
-        write(*,*) "开始生成文件..."
 
         call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(bigridfile),FILE_MODE_WRITE, viewer, ierr)
         call VecView(coord, viewer, ierr)
         call PetscViewerDestroy(viewer, ierr)
-        write(*,*) '  网格文件已生成。'
 
         call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(biflowfile),FILE_MODE_WRITE, viewer, ierr)
         call VecView(flowfield, viewer, ierr)
         call PetscViewerDestroy(viewer, ierr)
-        write(*,*) '  流场文件已生成。'
-        write(*,*) ""
 
         deallocate(xx)
         deallocate(yy)
@@ -308,7 +297,7 @@ module mod_files
 
     end subroutine raw_to_binary
 
-    subroutine load_binary_files(comm) ! 读入PETSc二进制文件
+    subroutine load_binary_files(comm)
         implicit none
         PetscScalar, pointer :: grid(:,:,:,:)
         PetscScalar, pointer :: flow(:,:,:,:)
@@ -523,82 +512,68 @@ module mod_files
         end select
     end subroutine set_init_guess
 
-    subroutine print_info(comm)
+    subroutine check(comm)
         implicit none
         PetscInt,intent(in) :: comm
         if(rank==0)then
-            write(*,"(3X,A,I5)") "进程数 =",sink
-            write(*,*)
-            write(*,"(3X,A)") "查对广播和部分数据"
+            write(*,"(3X,A,I5)") "Process Count :",sink
             write(*,*)
         endif
         call MPI_Barrier(comm,ierr)
         if(rank==(sink-1))then
-            write(*,"(5X,A,I5,1X,A,I5)") "Rank:",rank,"法向的网格数jn =",jn
-            write(*,"(5X,A,I5,1X,A,F20.10)") "Rank:",rank,"Re    =",Re
-            write(*,"(5X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Alpha =",Alpha
-            write(*,"(5X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Omega =",Omega
+            write(*,"(3X,A,I5,1X,A,I5)") "Rank:",rank,"jn =",jn
+            write(*,"(3X,A,I5,1X,A,F20.10)") "Rank:",rank,"Re    =",Re
+            write(*,"(3X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Alpha =",Alpha
+            write(*,"(3X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Omega =",Omega
         endif
         call MPI_Barrier(comm,ierr)
         if(rank==0)then
-            write(*,"(5X,A,I5,1X,A,I5)") "Rank:",rank,"法向的网格数jn =",jn
-            write(*,"(5X,A,I5,1X,A,F20.10)") "Rank:",rank,"Re    =",Re
-            write(*,"(5X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Alpha =",Alpha
-            write(*,"(5X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Omega =",Omega
+            write(*,"(3X,A,I5,1X,A,I5)") "Rank:",rank,"jn =",jn
+            write(*,"(3X,A,I5,1X,A,F20.10)") "Rank:",rank,"Re    =",Re
+            write(*,"(3X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Alpha =",Alpha
+            write(*,"(3X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Omega =",Omega
         endif
         call MPI_Barrier(comm,ierr)
         if(rank==0)then
-            write(*,113) "第一个数据是：",qq(1,0,0,0),qq(2,0,0,0),qq(3,0,0,0),qq(4,0,0,0),qq(5,0,0,0)
-            113 format (5X,A,5(F10.5))
-            write(*,113) "第二个数据是：",qq(1,1,0,0),qq(2,1,0,0),qq(3,1,0,0),qq(4,1,0,0),qq(5,1,0,0)
-            write(*,113) "第三个数据是：",qq(1,2,0,0),qq(2,2,0,0),qq(3,2,0,0),qq(4,2,0,0),qq(5,2,0,0)
-            write(*,114) "第一个坐标是：",xx(0,0,0),yy(0,0,0),zz(0,0,0)
-            114 format (5X,A,3(F10.5))
-            write(*,114) "第二个坐标是：",xx(1,0,0),yy(1,0,0),zz(1,0,0)
-            write(*,114) "第三个坐标是：",xx(2,0,0),yy(2,0,0),zz(2,0,0)
+            write(*,*)
+            write(*,113) "data[0,0,0]：",qq(1,0,0,0),qq(2,0,0,0),qq(3,0,0,0),qq(4,0,0,0),qq(5,0,0,0)
+            113 format (3X,A,5(F10.5))
+            write(*,113) "data[1,0,0]：",qq(1,1,0,0),qq(2,1,0,0),qq(3,1,0,0),qq(4,1,0,0),qq(5,1,0,0)
+            write(*,113) "data[2,0,0]：",qq(1,2,0,0),qq(2,2,0,0),qq(3,2,0,0),qq(4,2,0,0),qq(5,2,0,0)
+            write(*,114) "mesh[0,0,0]：",xx(0,0,0),yy(0,0,0),zz(0,0,0)
+            114 format (3X,A,3(F10.5))
+            write(*,114) "mesh[1,0,0]：",xx(1,0,0),yy(1,0,0),zz(1,0,0)
+            write(*,114) "mesh[2,0,0]：",xx(2,0,0),yy(2,0,0),zz(2,0,0)
         endif
         call MPI_Barrier(comm,ierr)
-    end subroutine print_info
+    end subroutine check
 
     subroutine ostream(comm)
         implicit none
         character(len=256) :: resultfile
         PetscInt, intent(in) :: comm
 
-        call signal_ostream_begin(comm)
+        call PetscPrintf(comm, "\n ----------------------------------\n", ierr)
+        call PetscPrintf(comm, "               Ostream              \n\n", ierr)
 
-        select case(io_type)
-            case("raw","binary")
-                resultfile = "data/turtle.pet"
-                call PetscViewerBinaryOpen(comm,trim(resultfile),FILE_MODE_WRITE,viewer,ierr)
-                call VecView(turtle, viewer, ierr)
-                call PetscViewerDestroy(viewer, ierr)
-                resultfile = "data/hlns.h5"
-                call preload_hdf5(comm,resultfile)
-                call PetscViewerHDF5Open(comm,trim(resultfile),FILE_MODE_UPDATE,viewer,ierr)
-                call PetscObjectSetName(turtle,"hlns",ierr)
-                call VecView(turtle,viewer,ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Alpha",PETSC_DOUBLE,real(Alpha),ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Alpha.i",PETSC_DOUBLE,aimag(Alpha),ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Beta",PETSC_DOUBLE,real(Beta),ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Beta.i",PETSC_DOUBLE,aimag(Beta),ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega",PETSC_DOUBLE,real(Omega),ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega.i",PETSC_DOUBLE,aimag(Omega),ierr)
-                call PetscViewerDestroy(viewer, ierr)
-            case("hdf5")
-                resultfile = "data/hlns.h5"
-                call preload_hdf5(comm,resultfile)
-                call PetscViewerHDF5Open(comm,trim(resultfile),FILE_MODE_UPDATE,viewer,ierr)
-                call PetscObjectSetName(turtle,"hlns",ierr)
-                call VecView(turtle,viewer,ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Alpha",PETSC_DOUBLE,real(Alpha),ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Alpha.i",PETSC_DOUBLE,aimag(Alpha),ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Beta",PETSC_DOUBLE,real(Beta),ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Beta.i",PETSC_DOUBLE,aimag(Beta),ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega",PETSC_DOUBLE,real(Omega),ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega.i",PETSC_DOUBLE,aimag(Omega),ierr)
-                call PetscViewerDestroy(viewer,ierr)
-        end select
+        resultfile = "data/turtle.pet"
+        call PetscViewerBinaryOpen(comm,trim(resultfile),FILE_MODE_WRITE,viewer,ierr)
+        call VecView(turtle, viewer, ierr)
+        call PetscViewerDestroy(viewer, ierr)
+        call PetscPrintf(comm, "   Binary Result: "//resultfile//"\n", ierr)
+        resultfile = "data/hlns.h5"
+        call preload_hdf5(comm,resultfile)
+        call PetscViewerHDF5Open(comm,trim(resultfile),FILE_MODE_UPDATE,viewer,ierr)
+        call PetscObjectSetName(turtle,"hlns",ierr)
+        call VecView(turtle,viewer,ierr)
+        call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Alpha",PETSC_DOUBLE,real(Alpha),ierr)
+        call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Alpha.i",PETSC_DOUBLE,aimag(Alpha),ierr)
+        call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Beta",PETSC_DOUBLE,real(Beta),ierr)
+        call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Beta.i",PETSC_DOUBLE,aimag(Beta),ierr)
+        call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega",PETSC_DOUBLE,real(Omega),ierr)
+        call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega.i",PETSC_DOUBLE,aimag(Omega),ierr)
+        call PetscViewerDestroy(viewer, ierr)
+        call PetscPrintf(comm, "   HDF5 Result: "//resultfile//"\n", ierr)
 
         call signal_ostream_finish(comm)
 
@@ -653,37 +628,20 @@ module mod_files
 
     end subroutine preload_hdf5
 
-    subroutine signal_ostream_begin(comm)
-        implicit none
-        PetscInt,intent(in) :: comm
-        call PetscPrintf(comm, "\n", ierr)
-        call PetscPrintf(comm, " ===========================================================================\n", ierr)
-        call PetscPrintf(comm, " =                                 输    出                                = \n", ierr)
-        call PetscPrintf(comm, " - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -\n", ierr)
-        call PetscPrintf(comm, " ----------------------------------\n", ierr)
-        call PetscPrintf(comm, "               输出结果              \n", ierr)
-        call PetscPrintf(comm, " ----------------------------------\n", ierr)
-    end subroutine signal_ostream_begin
-
     subroutine signal_ostream_finish(comm)
         implicit none
         PetscInt,INTENT(in) :: comm
-        call PetscPrintf(comm," \n", ierr)
-        call PetscPrintf(comm,"                                                   ooo    ooo\n", ierr)
-        call PetscPrintf(comm,"                                                  o   o  o   o\n", ierr)
-        call PetscPrintf(comm,"                                            ooo   o   o  o   o   ooo\n", ierr)
-        call PetscPrintf(comm,"                                           o   o   ooo    ooo   o   o\n", ierr)
-        call PetscPrintf(comm,"                                           o   o                o   o\n",ierr)
-        call PetscPrintf(comm,"                                            ooo    oooooooooo    ooo\n",ierr)
-        call PetscPrintf(comm,"               ooo    ooo                        o            o\n",ierr)
-        call PetscPrintf(comm,"              o   o  o   o                      o              o\n",ierr)
-        call PetscPrintf(comm,"        ooo   o   o  o   o   ooo                 o            o\n",ierr)
-        call PetscPrintf(comm,"       o   o   ooo    ooo   o   o                  oooooooooo\n",ierr)
-        call PetscPrintf(comm,"       o   o                o   o\n",ierr)
-        call PetscPrintf(comm,"        ooo    oooooooooo    ooo\n",ierr)
-        call PetscPrintf(comm,"             o            o\n",ierr)
-        call PetscPrintf(comm,"            o              o\n",ierr)
-        call PetscPrintf(comm,"             o            o\n",ierr)
-        call PetscPrintf(comm,"               oooooooooo\n",ierr)
+        call PetscPrintf(comm,"\n", ierr)
+        call PetscPrintf(comm,"                      ooo    ooo\n",ierr)
+        call PetscPrintf(comm,"                     o   o  o   o\n",ierr)
+        call PetscPrintf(comm,"               ooo   o   o  o   o   ooo\n",ierr)
+        call PetscPrintf(comm,"              o   o   ooo    ooo   o   o\n",ierr)
+        call PetscPrintf(comm,"              o   o                o   o\n",ierr)
+        call PetscPrintf(comm,"               ooo    oooooooooo    ooo\n",ierr)
+        call PetscPrintf(comm,"                    o            o\n",ierr)
+        call PetscPrintf(comm,"                   o              o\n",ierr)
+        call PetscPrintf(comm,"                    o            o\n",ierr)
+        call PetscPrintf(comm,"                      oooooooooo\n",ierr)
+        call PetscPrintf(comm,"\n", ierr)
     end subroutine signal_ostream_finish
 end module mod_files
