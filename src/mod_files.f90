@@ -27,7 +27,7 @@ module mod_files
         call config(comm)
 
         call set_DM(comm)
-        
+
         call load(comm)
 
     end subroutine istream
@@ -585,9 +585,12 @@ module mod_files
                 call PetscViewerHDF5Open(comm,trim(resultfile),FILE_MODE_UPDATE,viewer,ierr)
                 call PetscObjectSetName(turtle,"field",ierr)
                 call PetscViewerHDF5PushGroup(viewer,"Field",ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Alpha",PETSC_COMPLEX,Alpha,ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Beta",PETSC_COMPLEX,Beta,ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Omega",PETSC_COMPLEX,Omega,ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Alpha",PETSC_DOUBLE,real(Alpha),ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Alpha.i",PETSC_DOUBLE,aimag(Alpha),ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Beta",PETSC_DOUBLE,real(Beta),ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Beta.i",PETSC_DOUBLE,aimag(Beta),ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Omega",PETSC_DOUBLE,real(Omega),ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Omega.i",PETSC_DOUBLE,aimag(Omega),ierr)
                 call VecView(turtle,viewer,ierr)
                 call PetscViewerHDF5PopGroup(viewer,ierr)
                 call PetscViewerDestroy(viewer, ierr)
@@ -597,9 +600,12 @@ module mod_files
                 call PetscViewerHDF5Open(comm,trim(resultfile),FILE_MODE_UPDATE,viewer,ierr)
                 call PetscObjectSetName(turtle,"field",ierr)
                 call PetscViewerHDF5PushGroup(viewer,"Field",ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Alpha",PETSC_COMPLEX,Alpha,ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Beta",PETSC_COMPLEX,Beta,ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Omega",PETSC_COMPLEX,Omega,ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Alpha",PETSC_DOUBLE,real(Alpha),ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Alpha.i",PETSC_DOUBLE,aimag(Alpha),ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Beta",PETSC_DOUBLE,real(Beta),ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Beta.i",PETSC_DOUBLE,aimag(Beta),ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Omega",PETSC_DOUBLE,real(Omega),ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,PETSC_NULL_CHARACTER,"disturb.Omega.i",PETSC_DOUBLE,aimag(Omega),ierr)
                 call VecView(turtle,viewer,ierr)
                 call PetscViewerHDF5PopGroup(viewer,ierr)
                 call PetscViewerDestroy(viewer,ierr)
