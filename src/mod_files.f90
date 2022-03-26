@@ -566,16 +566,16 @@ module mod_files
         call PetscViewerHDF5Open(comm,trim(resultfile),FILE_MODE_UPDATE,viewer,ierr)
         call PetscObjectSetName(turtle,"hlns",ierr)
         call VecView(turtle,viewer,ierr)
-        call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Alpha",PETSC_DOUBLE,real(Alpha),ierr)
+        call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Alpha.r",PETSC_DOUBLE,real(Alpha),ierr)
         call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Alpha.i",PETSC_DOUBLE,aimag(Alpha),ierr)
-        call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Beta",PETSC_DOUBLE,real(Beta),ierr)
+        call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Beta.r",PETSC_DOUBLE,real(Beta),ierr)
         call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Beta.i",PETSC_DOUBLE,aimag(Beta),ierr)
-        call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega",PETSC_DOUBLE,real(Omega),ierr)
+        call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega.r",PETSC_DOUBLE,real(Omega),ierr)
         call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega.i",PETSC_DOUBLE,aimag(Omega),ierr)
         call PetscViewerDestroy(viewer, ierr)
         call PetscPrintf(comm, "   HDF5 Result: "//resultfile//"\n", ierr)
 
-        call signal_ostream_finish(comm)
+        ! call signal_ostream_finish(comm)
 
     end subroutine ostream
 
@@ -628,20 +628,20 @@ module mod_files
 
     end subroutine preload_hdf5
 
-    subroutine signal_ostream_finish(comm)
-        implicit none
-        PetscInt,INTENT(in) :: comm
-        call PetscPrintf(comm,"\n", ierr)
-        call PetscPrintf(comm,"                      ooo    ooo\n",ierr)
-        call PetscPrintf(comm,"                     o   o  o   o\n",ierr)
-        call PetscPrintf(comm,"               ooo   o   o  o   o   ooo\n",ierr)
-        call PetscPrintf(comm,"              o   o   ooo    ooo   o   o\n",ierr)
-        call PetscPrintf(comm,"              o   o                o   o\n",ierr)
-        call PetscPrintf(comm,"               ooo    oooooooooo    ooo\n",ierr)
-        call PetscPrintf(comm,"                    o            o\n",ierr)
-        call PetscPrintf(comm,"                   o              o\n",ierr)
-        call PetscPrintf(comm,"                    o            o\n",ierr)
-        call PetscPrintf(comm,"                      oooooooooo\n",ierr)
-        call PetscPrintf(comm,"\n", ierr)
-    end subroutine signal_ostream_finish
+    ! subroutine signal_ostream_finish(comm)
+    !     implicit none
+    !     PetscInt,INTENT(in) :: comm
+    !     call PetscPrintf(comm,"\n", ierr)
+    !     call PetscPrintf(comm,"                      ooo    ooo\n",ierr)
+    !     call PetscPrintf(comm,"                     o   o  o   o\n",ierr)
+    !     call PetscPrintf(comm,"               ooo   o   o  o   o   ooo\n",ierr)
+    !     call PetscPrintf(comm,"              o   o   ooo    ooo   o   o\n",ierr)
+    !     call PetscPrintf(comm,"              o   o                o   o\n",ierr)
+    !     call PetscPrintf(comm,"               ooo    oooooooooo    ooo\n",ierr)
+    !     call PetscPrintf(comm,"                    o            o\n",ierr)
+    !     call PetscPrintf(comm,"                   o              o\n",ierr)
+    !     call PetscPrintf(comm,"                    o            o\n",ierr)
+    !     call PetscPrintf(comm,"                      oooooooooo\n",ierr)
+    !     call PetscPrintf(comm,"\n", ierr)
+    ! end subroutine signal_ostream_finish
 end module mod_files
