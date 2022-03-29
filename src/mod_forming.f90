@@ -12,7 +12,7 @@ module mod_forming
 !   for KSP :: Linear System Solvers
 !
 !       1.call dolphin_coming(comm) 免矩阵形式的矩阵生成函数
-!       
+!
 !           1).call dolphin_growing_up(A, X, F, ierr) 免矩阵需要的矩阵向量乘法函数
 !
 !           2).call dolphin_say_hi(comm) 进度标记：免矩阵生效中
@@ -31,7 +31,7 @@ module mod_forming
 !
 !       3.call set_right_hand_side(comm) 设置右边量，即边界。
 !
-!   for SNES :: Nonlinear Solvers  
+!   for SNES :: Nonlinear Solvers
 !
 !       1.call shark_coming(comm) SNES所需的矩阵、数组分配
 !
@@ -117,116 +117,157 @@ module mod_forming
         call VecDuplicate(turtle,RHS,ierr)
         call VecZeroEntries(RHS,ierr)
         call set_right_hand_side(comm)
-        call dolphin_say_hi(comm)
+        call PetscPrintf(comm,"\n   KSP :: Matrix-Free\n",ierr)
     end subroutine dolphin_coming
 
     subroutine dolphin_growing_up(A, X, F, ierr)
-        use mod_mftools
         implicit none
-        PetscScalar,pointer :: F_r(:,:,:,:),X_r(:,:,:,:)
-        complex(R_P), dimension(5,15) :: cab
-        PetscScalar :: M1(5,5),M2(5,5)
-        integer :: i1,i2,j1,j2
+        PetscScalar,pointer :: fr(:,:,:,:),xr(:,:,:,:)
+        PetscScalar,dimension(5,16) :: liy
+        integer :: ic_index,jc_index,kc_index
+        integer :: lib,lie,ljb,lje,lkb,lke
         PetscErrorCode :: ierr
+        integer :: li,lj,lk
         integer :: i,j,k
         Vec :: X, F
-        Mat :: A 
+        Mat :: A
         call DMGlobalToLocalBegin(meshDA,X,INSERT_VALUES,tinkle_bell,ierr)
         call DMGlobalToLocalEnd(meshDA,X,INSERT_VALUES,tinkle_bell,ierr)
-        call DMDAVecGetArrayReadF90(meshDA,tinkle_bell,X_r,ierr)
-        call DMDAVecGetArrayF90(meshDA,F,F_r,ierr)
-        associate ( F => F_r, x => X_r, &
+        call DMDAVecGetArrayReadF90(meshDA,tinkle_bell,xr,ierr)
+        call DMDAVecGetArrayF90(meshDA,F,fr,ierr)
+        associate ( &
+            coef_c4 =>FDM_1nd_4ORD_CENTER,   &
+            coef_d4 =>FDM_2nd_4ORD_CENTER,   &
+            coef_c4f=>FDM_1nd_4ORD_Forward,  &
+            coef_c4b=>FDM_1nd_4ORD_Backward, &
+            f   => fr,    x => xr, &
             G   => Jor%G, D => Jor%D, &
+            A   => Jor%A, B => Jor%B, C => jor%C, &
             A_p => Jor%A_p, A_m => Jor%A_m, A_v => Jor%A_v, &
             B_p => Jor%B_p, B_m => Jor%B_m, B_v => Jor%B_v, &
             C_p => Jor%C_p, C_m => Jor%C_m, C_v => Jor%C_v, &
             Vxx => Jor%Vxx, Vyy => Jor%Vyy, Vzz => Jor%Vzz, &
-            Vxy => Jor%Vxy, Vxz => Jor%Vxz, Vyz => Jor%Vyz) 
+            Vxy => Jor%Vxy, Vxz => Jor%Vxz, Vyz => Jor%Vyz)
         do k=ks,ke
             do j=js,je
                 do i=is,ie
                     if(i==0 .or. j==(jn-1))then
-                        F(:,i,j,k)=x(:,i,j,k)
+                        f(:,i,j,k)=x(:,i,j,k)
                     elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
-                        F(:,i,j,k)=(x(:,i-2,j,k)-4*x(:,i-1,j,k)+3*x(:,i,j,k))/2.0d0
+                        f(:,i,j,k)=(x(:,i-2,j,k)-4*x(:,i-1,j,k)+3*x(:,i,j,k))/2.0d0
                     elseif(j==0 .and. i/=0)then
-                        M1=0.0d0;M2=0.0d0 
-                        M1(1,3)=bf(i,j,k)%BF%rho
-                        M2(1,1)=bf(i,j,k)%BFDy%y-cmplx(0.0d0,1.0d0,R_P)*Omega
-                        M2(2,2)=1.0d0;M2(3,3)=1.0d0;M2(4,4)=1.0d0;M2(5,5)=1.0d0
-                        F(:,i,j,k)=matmul(M2,x(:,i,j,k))+matmul(M1,x(:,i,j+1,k))-matmul(M1,x(:,i,j,k))
-                    elseif(i>1 .and. j>1 .and. i<(in-2) .and. j<(jn-2))then
-                        cab=0.0d0
                         call Jor%get_adorned_cubes(i,j,k)
-                        call f3d1r(cab(:,1),x(:,i-2:i,j,k)) ! A1p
-                        call f3d1f(cab(:,2),x(:,i:i+2,j,k)) ! A1m
-                        call f5d1(cab(:,3),x(:,i-2:i+2,j,k)) ! A2
-                        call f3d1r(cab(:,4),x(:,i,j-2:j,k)) ! B1p
-                        call f3d1f(cab(:,5),x(:,i,j:j+2,k)) ! B1m
-                        call f5d1(cab(:,6),x(:,i,j-2:j+2,k)) ! B2
-                        call f3d1r(cab(:,7),x(:,i,j,k-2:k)) ! C1p
-                        call f3d1f(cab(:,8),x(:,i,j,k:k+2)) ! C1m
-                        call f5d1(cab(:,9),x(:,i,j,k-2:k+2)) ! C2
-                        call f5d11(cab(:,10),x(:,i-2:i+2,j,k)) ! Vxx
-                        call f5d11(cab(:,11),x(:,i,j-2:j+2,k)) ! Vyy
-                        call f5d11(cab(:,12),x(:,i,j,k-2:k+2)) ! Vzz
-                        call f5d12(cab(:,13),x(:,i-2:i+2,j-2:j+2,k)) ! Vxy
-                        call f5d12(cab(:,14),x(:,i-2:i+2,j,k-2:k+2)) ! Vxz
-                        call f5d12(cab(:,15),x(:,i,j-2:j+2,k-2:k+2)) ! Vyz
-                        F(:,i,j,k) = matmul(A_p,cab(:,1))+matmul(A_m,cab(:,2))+matmul(A_v,cab(:,3)) &
-                                    +matmul(B_p,cab(:,4))+matmul(B_m,cab(:,5))+matmul(B_v,cab(:,6)) &
-                                    +matmul(C_p,cab(:,7))+matmul(C_m,cab(:,8))+matmul(C_v,cab(:,9)) &
-                                    +matmul(D,x(:,i,j,k)) &
-                                    -matmul(Vxx,cab(:,10))-matmul(Vyy,cab(:,11))-matmul(Vzz,cab(:,12)) &
-                                    -matmul(Vxy,cab(:,13))-matmul(Vxz,cab(:,14))-matmul(Vyz,cab(:,15))
-                    else 
-                        cab=0.0d0
+                        do lj=1,5
+                            do li=2,5
+                                D(li,lj)=0.0d0
+                                B(li,lj)=0.0d0
+                            enddo
+                        enddo
+                        D(2,2)=1.0d0;D(3,3)=1.0d0
+                        D(4,4)=1.0d0;D(5,5)=1.0d0
+                        f(:,i,j,k)=matmul(D,x(:,i,j,k))+matmul(B,x(:,i,j+1,k))-matmul(B,x(:,i,j,k))
+                    else
+                        liy=0.0d0
                         call Jor%get_adorned_cubes(i,j,k)
-                        call f4_index(i1,i2,j1,j2,i,j)
-                        call f2d1r(cab(:,1),x(:,i-1:i,j,k)) ! A1p
-                        call f2d1f(cab(:,2),x(:,i:i+1,j,k)) ! A1m
-                        call f4d1(cab(:,3),x(:,i1:i2,j,k),i,j,k,1) ! A2
-                        call f2d1r(cab(:,4),x(:,i,j-1:j,k)) ! B1p
-                        call f2d1f(cab(:,5),x(:,i,j:j+1,k)) ! B1m
-                        call f4d1(cab(:,6),x(:,i,j1:j2,k),i,j,k,2) ! B2
-                        call f3d1r(cab(:,7),x(:,i,j,k-2:k)) ! C1p
-                        call f3d1f(cab(:,8),x(:,i,j,k:k+2)) ! C1m
-                        call f5d1(cab(:,9),x(:,i,j,k-2:k+2)) ! C2
-                        call f4d11(cab(:,10),x(:,i-1:i+1,j,k)) ! Vxx
-                        call f4d11(cab(:,11),x(:,i,j-1:j+1,k)) ! Vyy
-                        call f5d11(cab(:,12),x(:,i,j,k-2:k+2)) ! Vzz
-                        call f4d12(cab(:,13),x(:,i1:i2,j1:j2,k),i,j,k,12) ! Vxy
-                        call f45d12(cab(:,14),x(:,i1:i2,j,k-2:k+2),i,j,k,1) ! Vxz
-                        call f45d12(cab(:,15),x(:,i,j1:j2,k-2:k+2),i,j,k,2) ! Vyz
-                        F(:,i,j,k) = matmul(A_p,cab(:,1))+matmul(A_m,cab(:,2))+matmul(A_v,cab(:,3)) &
-                                    +matmul(B_p,cab(:,4))+matmul(B_m,cab(:,5))+matmul(B_v,cab(:,6)) &
-                                    +matmul(C_p,cab(:,7))+matmul(C_m,cab(:,8))+matmul(C_v,cab(:,9)) &
-                                    +matmul(D,x(:,i,j,k)) &
-                                    -matmul(Vxx,cab(:,10))-matmul(Vyy,cab(:,11))-matmul(Vzz,cab(:,12)) &
-                                    -matmul(Vxy,cab(:,13))-matmul(Vxz,cab(:,14))-matmul(Vyz,cab(:,15))
-                    endif 
+                        if(i==0)then
+                            lib=0; lie=2
+                            ic_index=-2
+                        elseif(i==1)then
+                            lib=-1; lie=2
+                            ic_index=-1
+                        elseif(i==(in-2))then
+                            lib=-2; lie=1
+                            ic_index=1
+                        elseif(i==(in-1))then
+                            lib=-2; lie=0
+                            ic_index=2
+                        else
+                            lib=-2; lie=2
+                            ic_index=0
+                        endif
+                        if(j==0)then
+                            ljb=0; lje=2
+                            jc_index=-2
+                        elseif(j==1)then
+                            ljb=-1; lje=2
+                            jc_index=-1
+                        elseif(j==(jn-2))then
+                            ljb=-2; lje=1
+                            jc_index=1
+                        elseif(j==(jn-1))then
+                            ljb=-2; lje=0
+                            jc_index=2
+                        else
+                            ljb=-2; lje=2
+                            jc_index=0
+                        endif
+                        select case (lns_mode)
+                            case(2)
+                                lkb=0; lke=0; kc_index=0
+                            case(3)
+                                lkb=-2; lke=2; kc_index=0
+                        end select
+
+                        liy(:,1)=x(:,i,j,k) !D
+
+                        do li=lib,lie
+                            liy(:,2)  = liy(:,2)  + x(:,i+li,j,k)*coef_c4b(li,ic_index) ! A_p
+                            liy(:,3)  = liy(:,3)  + x(:,i+li,j,k)*coef_c4f(li,ic_index) ! A_m
+                            liy(:,4)  = liy(:,4)  + x(:,i+li,j,k)*coef_c4(li,ic_index)  ! A_v
+                            liy(:,11) = liy(:,11) + x(:,i+li,j,k)*coef_d4(li,ic_index)  ! Vxx
+                        enddo
+
+                        do lj=ljb,lje
+                            liy(:,5)  = liy(:,5)  + x(:,i,j+lj,k)*coef_c4b(lj,jc_index) ! B_p
+                            liy(:,6)  = liy(:,6)  + x(:,i,j+lj,k)*coef_c4f(lj,jc_index) ! B_m
+                            liy(:,7)  = liy(:,7)  + x(:,i,j+lj,k)*coef_c4(lj,jc_index)  ! B_v
+                            liy(:,12) = liy(:,12) + x(:,i,j+lj,k)*coef_d4(lj,jc_index)  ! Vxx
+                        enddo
+
+                        do lk=lkb,lke
+                            liy(:,8)  = liy(:,8)  + x(:,i,j,k+lk)*coef_c4b(lk,kc_index) ! C_p
+                            liy(:,9)  = liy(:,9)  + x(:,i,j,k+lk)*coef_c4f(lk,kc_index) ! C_m
+                            liy(:,10) = liy(:,10) + x(:,i,j,k+lk)*coef_c4(lk,kc_index)  ! C_v
+                            liy(:,13) = liy(:,13) + x(:,i,j,k+lk)*coef_d4(lk,kc_index)  ! Vxx
+                        enddo
+
+                        do lj=ljb,lje
+                            do li=lib,lie
+                                liy(:,14)=liy(:,14)+x(:,i+li,j+lj,k)*coef_c4(li,ic_index)*coef_c4(lj,jc_index) ! Vxy
+                            enddo
+                        enddo
+
+                        do lk=lkb,lke
+                            do li=lib,lie
+                                liy(:,15)=liy(:,15)+x(:,i+li,j,k+lk)*coef_c4(li,ic_index)*coef_c4(lk,kc_index) ! Vxz
+                            enddo
+                        enddo
+
+                        do lk=lkb,lke
+                            do lj=ljb,lje
+                                liy(:,16)=liy(:,16)+x(:,i,j+lj,k+lk)*coef_c4(lj,jc_index)*coef_c4(lk,kc_index) ! Vyz
+                            enddo
+                        enddo
+
+                        f(:,i,j,k)=matmul(D,liy(:,1)) &
+                                & +matmul(A_p,liy(:,2))+matmul(A_m,liy(:,3))+matmul(A_v,liy(:,4)) &
+                                & +matmul(B_p,liy(:,5))+matmul(B_m,liy(:,6))+matmul(B_v,liy(:,7)) &
+                                & +matmul(C_p,liy(:,8))+matmul(C_m,liy(:,9))+matmul(C_v,liy(:,10)) &
+                                & -matmul(Vxx,liy(:,11))-matmul(Vyy,liy(:,12))-matmul(Vzz,liy(:,13)) &
+                                & -matmul(Vxy,liy(:,14))-matmul(Vxz,liy(:,15))-matmul(Vyz,liy(:,16))
+                    endif
                 enddo
             enddo
         enddo
         end associate
-        call DMDAVecRestoreArrayReadF90(meshDA,tinkle_bell,X_r,ierr)
-        call DMDAVecRestoreArrayF90(meshDA,F,F_r,ierr)
+        call DMDAVecRestoreArrayReadF90(meshDA,tinkle_bell,xr,ierr)
+        call DMDAVecRestoreArrayF90(meshDA,F,fr,ierr)
     end subroutine dolphin_growing_up
-
-    subroutine dolphin_say_hi(comm)
-        implicit none
-        PetscInt,intent(in) :: comm
-        PetscErrorCode :: ierr
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm,"             免矩阵生效中             \n",ierr)
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-    end subroutine dolphin_say_hi
 
     subroutine whale_coming(comm)
         implicit none
         PetscInt,intent(in) :: comm
-        PetscErrorCode :: ierr 
-        call whale_is_born(comm)
+        PetscErrorCode :: ierr
         call DMCreateMatrix(meshDA, whale, ierr)
         call MatZeroEntries(whale,ierr)
         call whale_growing_up()
@@ -234,18 +275,9 @@ module mod_forming
         call VecZeroEntries(RHS,ierr)
         call set_right_hand_side(comm)
         call deallocate_bfinfo_and_metrics()
-        call whale_say_hi(comm)
+        call PetscPrintf(comm,"\n   KSP :: Matrix-Assembled\n",ierr)
     end subroutine whale_coming
 
-    subroutine whale_is_born(comm)
-        implicit none
-        PetscInt,intent(in) :: comm
-        PetscErrorCode :: ierr
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm,"             开始生成矩阵             \n",ierr)
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-    end subroutine whale_is_born
- 
     subroutine whale_growing_up()
         implicit none
         PetscErrorCode :: ierr
@@ -294,7 +326,7 @@ module mod_forming
                     Jor%B(ii,jj)=0.0d0
                 enddo
             enddo
-            Jor%D(2,2)=1.0d0;Jor%D(3,3)=1.0d0 
+            Jor%D(2,2)=1.0d0;Jor%D(3,3)=1.0d0
             Jor%D(4,4)=1.0d0;Jor%D(5,5)=1.0d0
             do lj=ljb,lje
                 idxn(MatStencil_i, 1)=i
@@ -328,7 +360,7 @@ module mod_forming
         integer :: lib, lie, ljb, lje, lkb, lke
         PetscScalar :: box(5,5),trans(5,5)
         MatStencil :: idxm(4,1),idxn(4,1)
-        integer,intent(in) :: i,j,k 
+        integer,intent(in) :: i,j,k
         PetscErrorCode :: ierr
         integer :: li, lj, lk
         call Jor%get_adorned_cubes(i,j,k)
@@ -370,7 +402,7 @@ module mod_forming
             case(3)
                 lkb=-2; lke=2; kc_index=0
         end select
-        idxm=0; 
+        idxm=0;
         idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
         associate( &
         coef_c4 =>FDM_1nd_4ORD_CENTER,   &
@@ -416,25 +448,16 @@ module mod_forming
         end associate
     end subroutine whale_eat_sardine
 
-    subroutine whale_say_hi(comm)
-        implicit none
-        PetscInt,intent(in) :: comm
-        PetscErrorCode :: ierr
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm,"             矩阵生成结束             \n",ierr)
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-    end subroutine whale_say_hi
-
     subroutine set_right_hand_side(comm)
-        implicit none 
+        implicit none
         PetscScalar,pointer :: RHS_array(:,:,:,:)
         PetscInt,intent(in) :: comm
         PetscErrorCode :: ierr
-        integer :: j,k 
+        integer :: j,k
         if (is==0) then
             call DMDAVecGetArrayF90(meshDA,RHS,RHS_array,ierr)
-                do k=ks,ke 
-                    do j=js,je 
+                do k=ks,ke
+                    do j=js,je
                         RHS_array(:,0,j,k)=disturb(:,j,k)
                     enddo
                 enddo
@@ -449,7 +472,7 @@ module mod_forming
     subroutine shark_coming(comm)
         implicit none
         PetscInt,intent(in) :: comm
-        PetscErrorCode :: ierr 
+        PetscErrorCode :: ierr
         call shark_is_born(comm)
         call DMGetLocalVector(meshDA,tinkle_bell,ierr)
         call VecZeroEntries(tinkle_bell,ierr)
@@ -473,8 +496,8 @@ module mod_forming
         integer :: null_int(*)
         integer :: i,j,k
         Mat :: jac, B
-        SNES :: snes  
-        Vec :: x 
+        SNES :: snes
+        Vec :: x
         do k=ks,ke
             do j=js,je
                 do i=is,ie
@@ -520,7 +543,7 @@ module mod_forming
                     Jor%B(ii,jj)=0.0d0
                 enddo
             enddo
-            Jor%D(2,2)=1.0d0;Jor%D(3,3)=1.0d0 
+            Jor%D(2,2)=1.0d0;Jor%D(3,3)=1.0d0
             Jor%D(4,4)=1.0d0;Jor%D(5,5)=1.0d0
             do lj=ljb,lje
                 idxn(MatStencil_i, 1)=i
@@ -554,7 +577,7 @@ module mod_forming
         integer :: lib, lie, ljb, lje, lkb, lke
         PetscScalar :: box(5,5),trans(5,5)
         MatStencil :: idxm(4,1),idxn(4,1)
-        integer,intent(in) :: i,j,k 
+        integer,intent(in) :: i,j,k
         PetscErrorCode :: ierr
         integer :: li,lj,lk
         Mat :: jac
@@ -597,7 +620,7 @@ module mod_forming
             case(3)
                 lkb=-2; lke=2; kc_index=0
         end select
-        idxm=0; 
+        idxm=0;
         idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
         associate( &
         coef_c4 =>FDM_1nd_4ORD_CENTER,   &
@@ -651,7 +674,6 @@ module mod_forming
     end subroutine shark_say_hi
 
     subroutine RHS_with_BC(snes,x,f,null_int,ierr)
-        use mod_mftools
         implicit none
         PetscScalar,pointer :: f_local(:,:,:,:),x_local(:,:,:,:)
         complex(R_P), dimension(5,9) :: cab
@@ -660,81 +682,13 @@ module mod_forming
         integer :: i1,i2,j1,j2
         integer :: null_int(*)
         integer :: i,j,k
-        SNES :: snes  
+        SNES :: snes
         Vec :: x, f
-
-        call DMGlobalToLocalBegin(meshDA,x,INSERT_VALUES,tinkle_bell,ierr)
-        call DMGlobalToLocalEnd(meshDA,x,INSERT_VALUES,tinkle_bell,ierr)
-
-        call DMDAVecGetArrayReadF90(meshDA,tinkle_bell,x_local,ierr)
-        call DMDAVecGetArrayF90(meshDA,f,f_local,ierr)
-
-        associate ( f => f_local, x => x_local, &
-            G   => Jor%G, D => Jor%D, &
-            A   => Jor%A, B => Jor%B, C => Jor%C, &
-            Vxx => Jor%Vxx, Vyy => Jor%Vyy, Vzz => Jor%Vzz, &
-            Vxy => Jor%Vxy, Vxz => Jor%Vxz, Vyz => Jor%Vyz) 
-            do k=ks,ke
-                do j=js,je
-                    do i=is,ie
-                        if(i==0)then
-                            f(:,i,j,k)=disturb(:,j,k)-x(:,i,j,k)
-                        elseif(j==(jn-1))then
-                            f(:,i,j,k)=(-1.0d0)*x(:,i,j,k)
-                        elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
-                            f(:,i,j,k)=(-1.0d0)*(x(:,i-2,j,k)-4*x(:,i-1,j,k)+3*x(:,i,j,k))/2.0d0
-                        elseif(j==0 .and. i/=0)then
-                            M1=0.0d0;M2=0.0d0 
-                            M1(1,3)=bf(i,j,k)%BF%rho
-                            M2(1,1)=bf(i,j,k)%BFDy%y-cmplx(0.0d0,1.0d0,R_P)*Omega
-                            M2(2,2)=1.0d0;M2(3,3)=1.0d0;M2(4,4)=1.0d0;M2(5,5)=1.0d0
-                            f(:,i,j,k)=(-1.0d0)*(matmul(M2,x(:,i,j,k))+matmul(M1,x(:,i,j+1,k))-matmul(M1,x(:,i,j,k)))
-                        elseif(i>1 .and. j>1 .and. i<(in-2) .and. j<(jn-2))then
-                            cab=0.0d0
-                            call Jor%get_adorned_cubes(i,j,k)
-                            call f5d1(cab(:,1),x(:,i-2:i+2,j,k)) ! A
-                            call f5d1(cab(:,2),x(:,i,j-2:j+2,k)) ! B
-                            call f5d1(cab(:,3),x(:,i,j,k-2:k+2)) ! C
-                            call f5d11(cab(:,4),x(:,i-2:i+2,j,k)) ! Vxx
-                            call f5d11(cab(:,5),x(:,i,j-2:j+2,k)) ! Vyy
-                            call f5d11(cab(:,6),x(:,i,j,k-2:k+2)) ! Vzz
-                            call f5d12(cab(:,7),x(:,i-2:i+2,j-2:j+2,k)) ! Vxy
-                            call f5d12(cab(:,8),x(:,i-2:i+2,j,k-2:k+2)) ! Vxz
-                            call f5d12(cab(:,9),x(:,i,j-2:j+2,k-2:k+2)) ! Vyz
-                            f(:,i,j,k) = (-1.0d0)*(matmul(A,cab(:,1))+matmul(B,cab(:,2))+matmul(C,cab(:,3)) &
-                                        +matmul(D,x(:,i,j,k)) &
-                                        -matmul(Vxx,cab(:,4))-matmul(Vyy,cab(:,5))-matmul(Vzz,cab(:,6)) &
-                                        -matmul(Vxy,cab(:,7))-matmul(Vxz,cab(:,8))-matmul(Vyz,cab(:,9)))
-                        else 
-                            cab=0.0d0
-                            call Jor%get_adorned_cubes(i,j,k)
-                            call f4_index(i1,i2,j1,j2,i,j)
-                            call f4d1(cab(:,1),x(:,i1:i2,j,k),i,j,k,1) ! A
-                            call f4d1(cab(:,2),x(:,i,j1:j2,k),i,j,k,2) ! B
-                            call f5d1(cab(:,3),x(:,i,j,k-2:k+2)) ! C
-                            call f4d11(cab(:,4),x(:,i-1:i+1,j,k)) ! Vxx
-                            call f4d11(cab(:,5),x(:,i,j-1:j+1,k)) ! Vyy
-                            call f5d11(cab(:,6),x(:,i,j,k-2:k+2)) ! Vzz
-                            call f4d12(cab(:,7),x(:,i1:i2,j1:j2,k),i,j,k,12) ! Vxy
-                            call f45d12(cab(:,8),x(:,i1:i2,j,k-2:k+2),i,j,k,1) ! Vxz
-                            call f45d12(cab(:,9),x(:,i,j1:j2,k-2:k+2),i,j,k,2) ! Vyz
-                            f(:,i,j,k) = (-1.0d0)*(matmul(A,cab(:,1))+matmul(B,cab(:,2))+matmul(C,cab(:,3)) &
-                                        +matmul(D,x(:,i,j,k)) &
-                                        -matmul(Vxx,cab(:,4))-matmul(Vyy,cab(:,5))-matmul(Vzz,cab(:,6)) &
-                                        -matmul(Vxy,cab(:,7))-matmul(Vxz,cab(:,8))-matmul(Vyz,cab(:,9)))
-                        endif
-                    enddo
-                enddo
-            enddo
-        end associate
-
-        call DMDAVecRestoreArrayReadF90(meshDA,tinkle_bell,x_local,ierr)
-        call DMDAVecRestoreArrayF90(meshDA,f,f_local,ierr)
     end subroutine RHS_with_BC
 
     subroutine deallocate_bfinfo_and_metrics()
         ! 免矩阵版本需在全部计算结束之后才可释放内存
-        implicit none 
+        implicit none
         deallocate(bf)
         deallocate(xi_x,xi_y,xi_z)
         deallocate(eta_x,eta_y,eta_z)

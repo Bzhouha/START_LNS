@@ -42,6 +42,7 @@ module mod_files
 
         call mpi_comm_rank(comm,rank,ierr)
         call mpi_comm_size(comm,sink,ierr)
+        call PetscPrintf(comm, "\n         S T A R T - L N S\n", ierr)
         call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-f',cfg_file,set,ierr)
         if(.not. set) then
             write(*,*) 'should use -f option to determin the config file.'
@@ -156,7 +157,7 @@ module mod_files
         implicit none
         integer,intent(in) :: comm
 
-        call PetscPrintf(comm, " ----------------------------------\n", ierr)
+        call PetscPrintf(comm, "\n ----------------------------------\n", ierr)
         call PetscPrintf(comm, "              IStream            \n", ierr)
 
         select case(io_type)
@@ -561,7 +562,7 @@ module mod_files
         call VecView(turtle, viewer, ierr)
         call PetscViewerDestroy(viewer, ierr)
         call PetscPrintf(comm, "   Binary Result: "//resultfile//"\n", ierr)
-        resultfile = "data/hlns.h5"
+        resultfile = trim(hdf5file)
         call preload_hdf5(comm,resultfile)
         call PetscViewerHDF5Open(comm,trim(resultfile),FILE_MODE_UPDATE,viewer,ierr)
         call PetscObjectSetName(turtle,"hlns",ierr)

@@ -1,6 +1,6 @@
 #include <slepc/finclude/slepc.h>
 
-module mod_points 
+module mod_points
 ! -----------------------------------------------------------
 !
 !   这个模块计算流场中基本流的物理量对坐标的导数
@@ -20,8 +20,6 @@ module mod_points
 !               call insert(obj,arr) 将数组形式的数据插入bf结构的函数
 !
 !           5).call deallocate_memoru() 释放内存
-!
-!           6).call print_info(comm) 输出本模块运行结束信息
 !
 ! -----------------------------------------------------------
     use penf, only: R_P
@@ -52,7 +50,6 @@ module mod_points
         call from_IJK_to_XYZ()
         call insert_to_BF()
         call deallocate_memory()
-        call print_info(comm)
         call MPI_Barrier(comm,ierr)
     end subroutine partial_derivatives
 
@@ -99,7 +96,7 @@ module mod_points
 
     subroutine partial_derivatives_on_IJK()
         use mod_difference,only:fd1
-        implicit none 
+        implicit none
         select case (lns_mode)
         case(2)
             call fd1(qqi,is,ie,js,je,ks,ke,qq,igs,ige,jgs,jge,kgs,kge,1,5)
@@ -109,14 +106,14 @@ module mod_points
             call fd1(qqi,is,ie,js,je,ks,ke,qq,igs,ige,jgs,jge,kgs,kge,1,5)
             call fd1(qqj,is,ie,js,je,ks,ke,qq,igs,ige,jgs,jge,kgs,kge,2,5)
             call fd1(qqk,is,ie,js,je,ks,ke,qq,igs,ige,jgs,jge,kgs,kge,3,5)
-        end select 
+        end select
     end subroutine partial_derivatives_on_IJK
 
     subroutine from_IJK_to_XYZ()
         use mod_difference,only:fd1
         implicit none
         PetscScalar,pointer :: tmp(:,:,:,:)
-        integer :: l 
+        integer :: l
         select case (lns_mode)
         case(2)
             do l=1,5
@@ -196,15 +193,15 @@ module mod_points
         real(R_P),intent(out) :: fx
         real(R_P),intent(in) :: fi,fj,fk
         real(R_P),intent(in) :: ix,jx,kx
-        fx = ix*fi+jx*fj+kx*fk 
+        fx = ix*fi+jx*fj+kx*fk
     end subroutine turnItoX
 
     subroutine insert_to_BF()
         implicit none
         integer :: i,j,k
         do k=ks,ke
-            do j=js,je 
-                do i=is,ie 
+            do j=js,je
+                do i=is,ie
                     call insert(bf(i,j,k)%BF,qq(:,i,j,k))
                     call insert(bf(i,j,k)%BFDx,qqx(:,i,j,k))
                     call insert(bf(i,j,k)%BFDy,qqy(:,i,j,k))
@@ -221,7 +218,7 @@ module mod_points
     end subroutine insert_to_BF
 
     subroutine insert(obj,arr)
-        use mod_flowtype 
+        use mod_flowtype
         implicit none
         real(R_P),dimension(5),intent(in) :: arr
         type(basetype),intent(out) :: obj
@@ -246,14 +243,5 @@ module mod_points
         deallocate(qq_y_local_array)
         deallocate(qq_z_local_array)
     end subroutine deallocate_memory
-
-    subroutine print_info(comm)
-        implicit none 
-        PetscInt,intent(in) :: comm 
-        PetscErrorCode :: ierr  
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm,"           导数信息计算结束       \n",ierr)
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-    end subroutine print_info
 
 end module mod_points

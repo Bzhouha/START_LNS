@@ -1,5 +1,5 @@
 module mod_mftools
-    use mod_parameters, only: in,jn,kn
+    use mod_parameters, only: in,jn,kn,lns_mode
     use penf, only: R_P
     implicit none
     public
@@ -15,7 +15,7 @@ module mod_mftools
         implicit none
         complex(R_P),dimension(5),intent(out) :: out_array
         complex(R_P),dimension(5,5),intent(in) :: f
-            out_array(:)=(-1.0d0*f(:,1)+16.0d0*f(:,2)-30.0d0*f(:,3)+16.0d0*f(:,4)-1.0d0*f(:,5))/12.0d0 
+            out_array(:)=(-1.0d0*f(:,1)+16.0d0*f(:,2)-30.0d0*f(:,3)+16.0d0*f(:,4)-1.0d0*f(:,5))/12.0d0
     end subroutine f5d11
 
     subroutine f5d12(out_array,f)
@@ -35,11 +35,11 @@ module mod_mftools
         complex(R_P),dimension(5),intent(out) :: out_array
         complex(R_P),dimension(5,4),intent(in) :: f
         integer,intent(in) :: i,j,k
-        integer,intent(in) :: flg 
-        integer :: l,ln 
-        select case (flg) 
+        integer,intent(in) :: flg
+        integer :: l,ln
+        select case (flg)
         case(1)
-            l=i;ln=in 
+            l=i;ln=in
         case(2)
             l=j;ln=jn
         case(3)
@@ -63,8 +63,8 @@ module mod_mftools
         implicit none
         complex(R_P),dimension(5),intent(out) :: out_array
         complex(R_P),dimension(5,4,4),intent(in) :: f
-        complex(R_P),dimension(5,4) :: tmp 
-        integer,intent(in) :: i,j,k 
+        complex(R_P),dimension(5,4) :: tmp
+        integer,intent(in) :: i,j,k
         integer,intent(in) :: flg
         integer :: flg1,flg2
         select case (flg)
@@ -80,50 +80,68 @@ module mod_mftools
         call f4d1(tmp(:,3),f(:,3,:),i,j,k,flg2)
         call f4d1(tmp(:,4),f(:,4,:),i,j,k,flg2)
         call f4d1(out_array(:),tmp(:,:),i,j,k,flg1)
-    end subroutine f4d12 
+    end subroutine f4d12
 
     subroutine f45d12(out_array,f,i,j,k,flg)
         implicit none
         complex(R_P),dimension(5),intent(out) :: out_array
         complex(R_P),dimension(5,4,5),intent(in) :: f
-        complex(R_P),dimension(5,4) :: tmp 
-        integer,intent(in) :: i,j,k 
+        complex(R_P),dimension(5,4) :: tmp
+        integer,intent(in) :: i,j,k
         integer,intent(in) :: flg
         call f5d1(tmp(:,1),f(:,1,:))
         call f5d1(tmp(:,2),f(:,2,:))
         call f5d1(tmp(:,3),f(:,3,:))
         call f5d1(tmp(:,4),f(:,4,:))
         call f4d1(out_array(:),tmp(:,:),i,j,k,flg)
-    end subroutine f45d12 
+    end subroutine f45d12
 
-    subroutine f4_index(i1,i2,j1,j2,i,j)
+    subroutine index(lib,lie,ljb,lje,lkb,lke,i,j,k)
         implicit none
-        integer,intent(out) :: i1,i2,j1,j2
-        integer,intent(in) :: i,j
-        if(i>=1 .and. i<=(in-3))then
-            i1=i-1;i2=i+2
-        else if(i==(in-2))then
-            i1=i-2;i2=i+1
+        integer,intent(out) :: lib,lie,ljb,lje,lkb,lke
+        integer,intent(in) :: i,j,k
+        if(i==0)then
+            lib=i; lie=i+2
+        elseif(i==1)then
+            lib=i-1; lie=i+2
+        elseif(i==(in-2))then
+            lib=i-2; lie=i+1
+        elseif(i==(in-1))then
+            lib=i-2; lie=i
+        else
+            lib=i-2; lie=i+2
         endif
-        if(j>=1 .and. j<=(jn-3))then
-            j1=j-1;j2=j+2
-        else if(j==(jn-2))then
-            j1=j-2;j2=j+1
+        if(j==0)then
+            ljb=j; lje=j+2
+        elseif(j==1)then
+            ljb=j-1; lje=j+2
+        elseif(j==(jn-2))then
+            ljb=j-2; lje=j+1
+        elseif(j==(jn-1))then
+            ljb=j-2; lje=j
+        else
+            ljb=j-2; lje=j+2
         endif
-    end subroutine f4_index
+        select case (lns_mode)
+            case(2)
+                lkb=k; lke=k
+            case(3)
+                lkb=k-2; lke=k+2
+        end select
+    end subroutine index
 
     subroutine f3d1f(out_array,f)
         implicit none
         complex(R_P), dimension(5), intent(out) :: out_array
         complex(R_P),dimension(5,3),intent(in) :: f
-        out_array(:)=(-3.0d0*f(:,1)+4.0d0*f(:,2)-1.0d0*f(:,3))/2.0d0 
+        out_array(:)=(-3.0d0*f(:,1)+4.0d0*f(:,2)-1.0d0*f(:,3))/2.0d0
     end subroutine f3d1f
 
     subroutine f3d1r(out_array,f)
         implicit none
         complex(R_P), dimension(5), intent(out) :: out_array
         complex(R_P),dimension(5,3),intent(in) :: f
-        out_array(:)=(1.0d0*f(:,1)-4.0d0*f(:,2)+3.0d0*f(:,3))/2.0d0 
+        out_array(:)=(1.0d0*f(:,1)-4.0d0*f(:,2)+3.0d0*f(:,3))/2.0d0
     end subroutine f3d1r
 
     subroutine f2d1f(out_array,f)

@@ -42,7 +42,6 @@ string_conv_mod.f90
 SRCS_f90d3 = \
 mod_difference.f90 \
 mod_forming.f90 \
-mod_mftools.f90 \
 mod_solving.f90 \
 mod_files.f90 \
 cfgio_adapter.f90 \
@@ -74,7 +73,6 @@ string_conv_mod.o
 OBJS_f90d3 = \
 mod_difference.o \
 mod_forming.o \
-mod_mftools.o \
 mod_solving.o \
 mod_files.o \
 cfgio_adapter.o \
@@ -166,16 +164,11 @@ mod_forming.o: \
 	mod_parameters.o \
 	mod_cubes.o \
 	mod_difference.o \
-	mod_mftools.o \
 	penf.o 
 penf_stringify.o: \
 	penf_stringify.F90 \
 	penf_b_size.o \
 	penf_global_parameters_variables.o
-mod_mftools.o: \
-	mod_mftools.f90 \
-	mod_parameters.o \
-	penf.o
 stringifor.o: \
 	stringifor.F90 \
 	penf.o \

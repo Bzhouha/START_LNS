@@ -16,8 +16,6 @@ module mod_metrics
 !
 !           4).call deallocate_memory() 释放内存
 !
-!           5).call print_info(comm) 输出本模块运行结束信息
-!
 ! ----------------------------------------------------------------
     use penf, only: R_P
     use mod_parameters
@@ -25,9 +23,9 @@ module mod_metrics
     implicit none
     public :: metric_coefficient
     private
-    Vec :: XIX_local, XIY_local, XIZ_local, ETAX_local, ETAY_local, ETAZ_local, PHIX_local, PHIY_local, PHIZ_local 
+    Vec :: XIX_local, XIY_local, XIZ_local, ETAX_local, ETAY_local, ETAZ_local, PHIX_local, PHIY_local, PHIZ_local
     real(R_P), dimension(:, :, :), allocatable :: x_xi,x_eta,x_phi,y_xi,y_eta,y_phi,z_xi,z_eta,z_phi
-    Vec :: XIX, XIY, XIZ, ETAX, ETAY, ETAZ, PHIX, PHIY, PHIZ 
+    Vec :: XIX, XIY, XIZ, ETAX, ETAY, ETAZ, PHIX, PHIY, PHIZ
     real(R_P), dimension(:, :, :), allocatable :: jacobi
     PetscErrorCode  :: ierr
 contains
@@ -38,7 +36,6 @@ contains
         call compute_contravariant_metrics()
         call compute_convariant_metrics()
         call deallocate_memory()
-        call print_info(comm)
         call MPI_Barrier(comm,ierr)
     end subroutine metric_coefficient
 
@@ -135,7 +132,7 @@ contains
             call compute_convariant_metrics_2d()
         case(3)
             call compute_convariant_metrics_3d()
-        end select 
+        end select
     end subroutine compute_convariant_metrics
 
     subroutine compute_convariant_metrics_2d()
@@ -155,17 +152,17 @@ contains
         real(R_P), allocatable, dimension(:,:,:) :: eta_x_eta
         real(R_P), allocatable, dimension(:,:,:) :: eta_y_xi
         real(R_P), allocatable, dimension(:,:,:) :: eta_y_eta
-        do k=ks,ke 
-            do j=js,je 
-                do i=is,ie 
+        do k=ks,ke
+            do j=js,je
+                do i=is,ie
                     jacobi(i,j,k)=1.0d0/(x_xi(i,j,k)*y_eta(i,j,k)-y_xi(i,j,k)*x_eta(i,j,k))
                 enddo
             enddo
         enddo
 
-        do k=ks,ke 
-            do j=js,je 
-                do i=is,ie 
+        do k=ks,ke
+            do j=js,je
+                do i=is,ie
                     xi_x(i,j,k) =y_eta(i,j,k)*jacobi(i,j,k)
                     xi_y(i,j,k) =-1.0d0*x_eta(i,j,k)*jacobi(i,j,k)
                     eta_x(i,j,k)=-1.0d0*y_xi(i,j,k)*jacobi(i,j,k)
@@ -236,9 +233,9 @@ contains
         call fd1(eta_x_eta,is,ie,js,je,ks,ke,eta_x_local,igs,ige,jgs,jge,kgs,kge,2,1)
         call fd1(eta_y_eta,is,ie,js,je,ks,ke,eta_y_local,igs,ige,jgs,jge,kgs,kge,2,1)
 
-        do k=ks,ke 
-            do j=js,je 
-                do i=is,ie 
+        do k=ks,ke
+            do j=js,je
+                do i=is,ie
                     xi_xx(i,j,k)=xi_x(i,j,k)*xi_x_xi(i,j,k)+eta_x(i,j,k)*xi_x_eta(i,j,k)
                     xi_yy(i,j,k)=xi_y(i,j,k)*xi_y_xi(i,j,k)+eta_y(i,j,k)*xi_y_eta(i,j,k)
                     xi_xy(i,j,k)=xi_y(i,j,k)*xi_x_xi(i,j,k)+eta_y(i,j,k)*xi_x_eta(i,j,k)
@@ -249,7 +246,7 @@ contains
             enddo
         enddo
 
-        xi_zz=0.0d0;xi_xz=0.0d0;xi_yz=0.0d0;eta_zz=0.0d0;eta_xz=0.0d0;eta_yz=0.0d0 
+        xi_zz=0.0d0;xi_xz=0.0d0;xi_yz=0.0d0;eta_zz=0.0d0;eta_xz=0.0d0;eta_yz=0.0d0
         phi_xx=0.0d0;phi_yy=0.0d0;phi_zz=0.0d0;phi_xy=0.0d0;phi_xz=0.0d0;phi_yz=0.0d0
 
         deallocate(xi_x_xi)
@@ -316,7 +313,7 @@ contains
                 enddo
             enddo
         enddo
-        do k=ks,ke 
+        do k=ks,ke
             do j=js,je
                 do i=is,ie
                     xi_x(i,j,k)=jacobi(i,j,k)*(y_eta(i,j,k)*z_phi(i,j,k)-z_eta(i,j,k)*y_phi(i,j,k))
@@ -485,7 +482,7 @@ contains
 
         do k=ks,ke
             do j=js,je
-                do i=is,ie 
+                do i=is,ie
                     xi_xx(i,j,k)   = xi_x(i,j,k)*xi_x_xi(i,j,k) + eta_x(i,j,k)*xi_x_eta(i,j,k) + phi_x(i,j,k)*xi_x_phi(i,j,k)
                     xi_yy(i,j,k)   = xi_y(i,j,k)*xi_y_xi(i,j,k) + eta_y(i,j,k)*xi_y_eta(i,j,k) + phi_y(i,j,k)*xi_y_phi(i,j,k)
                     xi_zz(i,j,k)   = xi_z(i,j,k)*xi_z_xi(i,j,k) + eta_z(i,j,k)*xi_z_eta(i,j,k) + phi_z(i,j,k)*xi_z_phi(i,j,k)
@@ -516,7 +513,7 @@ contains
         deallocate(xi_y_phi)
         deallocate(xi_z_xi)
         deallocate(xi_z_eta)
-        deallocate(xi_z_phi)  
+        deallocate(xi_z_phi)
         deallocate(eta_x_xi)
         deallocate(eta_x_eta)
         deallocate(eta_x_phi)
@@ -580,15 +577,5 @@ contains
         call VecDestroy(PHIY_local, ierr)
         call VecDestroy(PHIZ_local, ierr)
     end subroutine deallocate_memory
-
-    subroutine print_info(comm)
-        implicit none
-        PetscInt,intent(in) :: comm 
-        PetscErrorCode :: ierr 
-        call PetscPrintf(comm,"\n",ierr)
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-        call PetscPrintf(comm,"         度量系数矩阵计算结束         \n",ierr)
-        call PetscPrintf(comm," -----------------------------------\n",ierr)
-    end subroutine print_info
 
 end module mod_metrics

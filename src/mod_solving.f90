@@ -2,10 +2,10 @@
 
 module mod_solving
 ! ----------------------------------------------------
-! 
+!
 !  这个模块是主工作流。
-! 
-!       call working(comm) 主工作流。
+!
+!       call dstream(comm) 数据流。
 !
 !           1.call linear_equations(comm) 基于KSP求解方程。
 !
@@ -16,32 +16,36 @@ module mod_solving
 !           2.call nonlinear_equations(comm) 基于SNES求解方程。
 !
 !               call shark_ready(comm) 设置SNES求解参数。
-! 
+!
 ! ----------------------------------------------------
     use mod_metrics
     use mod_forming
     use mod_points
     use petsc
-    public :: working
+    public :: dstream
     private
     PetscErrorCode :: ierr
     contains
-    subroutine working(comm)
+    subroutine dstream(comm)
         use mod_parameters,only : solver_mode
         implicit none
         PetscInt,intent(in) :: comm
+        call PetscPrintf(comm, "\n ----------------------------------\n", ierr)
+        call PetscPrintf(comm, "              DStream            \n", ierr)
         call metric_coefficient(comm)
         call partial_derivatives(comm)
+        call PetscPrintf(comm,"\n   Data :: Preparation\n",ierr)
         select case (solver_mode)
             case('ksp')
                 call linear_equations(comm)
             case('snes')
                 call nonlinear_equations(comm)
         end select
-    end subroutine working
+    end subroutine dstream
 
     subroutine linear_equations(comm)
         use mod_parameters,only : ksp_mat_free_flg
+        use mod_parameters,only : whale,dolphin
         implicit none
         integer,intent(in) :: comm
         select case (ksp_mat_free_flg)
@@ -55,7 +59,7 @@ module mod_solving
     end subroutine linear_equations
 
     subroutine nonlinear_equations(comm)
-        implicit none 
+        implicit none
         integer, intent(in) :: comm
         call shark_coming(comm)
         call shark_ready(comm)
@@ -67,7 +71,7 @@ module mod_solving
         integer,intent(in) :: level
         PetscInt,intent(in) :: comm
         real(8) :: rtol
-        KSP :: ksp 
+        KSP :: ksp
         PC :: pc
         rtol = 1e-8
         if(level==0)then ! 如果level是0，那么不使用多重网格
@@ -109,12 +113,12 @@ module mod_solving
             call PCSetType(pc,PCMG,ierr)
             call KSPSetFromOptions(ksp,ierr)
             call KSPSetUp(ksp,ierr)
-            ! #####设置网格层数 
+            ! #####设置网格层数
             call PCMGSetLevels(pc,level,comm,ierr)
             call PCMGSetType(pc,PC_MG_MULTIPLICATIVE,ierr)
             call PCMGSetCycleType(pc,PC_MG_CYCLE_W,ierr)
-            ! #####设置网格粗化 
-            ! #####设置光滑子 
+            ! #####设置网格粗化
+            ! #####设置光滑子
             ! #####设置每层迭代矩阵
         endif
         call VecDestroy(RHS,ierr)
@@ -136,15 +140,15 @@ module mod_solving
         implicit none
         integer, intent(in) :: comm
         real(8) :: rtol
-        SNES :: snes 
-        KSP :: ksp 
+        SNES :: snes
+        KSP :: ksp
         PC :: pc
         rtol = 1e-8
         call SNESCreate(comm,snes,ierr)
         call SNESSetFunction(snes,PETSC_NULL_VEC,RHS_with_BC,0,ierr)
         call SNESSetJacobian(snes,shark,shark,shark_growing_up,0,ierr)
         call SNESGetKSP(snes,ksp,ierr)
-        call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)    
+        call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
         call KSPGetPC(ksp,pc,ierr)
         ! call PCSetType(pc,PCASM,ierr)
         call PCSetFromOptions(pc,ierr)

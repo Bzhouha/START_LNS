@@ -15,7 +15,7 @@ program main
     endif
 
     call istream(PETSC_COMM_WORLD)
-    call working(PETSC_COMM_WORLD)              
+    call dstream(PETSC_COMM_WORLD)
     call ostream(PETSC_COMM_WORLD)
 
     call PetscFinalize(ierr)
