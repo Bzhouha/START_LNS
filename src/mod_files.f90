@@ -83,12 +83,12 @@ module mod_files
         integer(KIND=MPI_ADDRESS_KIND) :: address_in,address_jn,address_kn,address_ln
         integer(KIND=MPI_ADDRESS_KIND) :: address_mode,address_Ma,address_Re,address_Te
         integer(KIND=MPI_ADDRESS_KIND) :: address_Alpha,address_Omega,address_Beta
-        integer(KIND=MPI_ADDRESS_KIND) :: address_initguess
-        integer(KIND=MPI_ADDRESS_KIND) :: displacement(12)
-        integer :: block_lengths(12)
+        integer(KIND=MPI_ADDRESS_KIND) :: address_initguess,address_h5fn
+        integer(KIND=MPI_ADDRESS_KIND) :: displacement(13)
+        integer :: block_lengths(13)
         PetscInt,intent(in) :: comm
         integer :: pack_type
-        integer :: types(12)
+        integer :: types(13)
 
         call MPI_Get_address(in,address_in,ierr)
         call MPI_Get_address(jn,address_jn,ierr)
@@ -102,6 +102,7 @@ module mod_files
         call MPI_Get_address(Alpha,address_Alpha,ierr)
         call MPI_Get_address(Beta,address_Beta,ierr)
         call MPI_Get_address(Omega,address_Omega,ierr)
+        call MPI_Get_address(hdf5file,address_h5fn,ierr)
         displacement(1)=0
         displacement(2)=address_jn-address_in
         displacement(3)=address_kn-address_in
@@ -114,11 +115,13 @@ module mod_files
         displacement(10)=address_Alpha-address_in
         displacement(11)=address_Beta-address_in
         displacement(12)=address_Omega-address_in
+        displacement(13)=address_h5fn-address_in
         block_lengths=1
+        block_lengths(13)=256
         types=(/MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,&
                 MPI_LOGICAL,MPI_REAL8,MPI_REAL8,MPI_REAL8,&
-                MPI_COMPLEX16,MPI_COMPLEX16,MPI_COMPLEX16/)
-        call MPI_Type_create_struct(12,block_lengths,displacement,types,pack_type,ierr)
+                MPI_COMPLEX16,MPI_COMPLEX16,MPI_COMPLEX16,MPI_CHAR/)
+        call MPI_Type_create_struct(13,block_lengths,displacement,types,pack_type,ierr)
         call MPI_Type_commit(pack_type,ierr)
         call MPI_Bcast(in,1,pack_type,0,comm,ierr)
         call MPI_Barrier(comm,ierr)
@@ -562,8 +565,8 @@ module mod_files
         call VecView(turtle, viewer, ierr)
         call PetscViewerDestroy(viewer, ierr)
         call PetscPrintf(comm, "   Binary Result: "//resultfile//"\n", ierr)
-        resultfile = trim(hdf5file)
-        call preload_hdf5(comm,resultfile)
+        resultfile = hdf5file
+        if(io_type/='hdf5') call preload_hdf5(comm,resultfile)
         call PetscViewerHDF5Open(comm,trim(resultfile),FILE_MODE_UPDATE,viewer,ierr)
         call PetscObjectSetName(turtle,"hlns",ierr)
         call VecView(turtle,viewer,ierr)
@@ -575,8 +578,6 @@ module mod_files
         call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega.i",PETSC_DOUBLE,aimag(Omega),ierr)
         call PetscViewerDestroy(viewer, ierr)
         call PetscPrintf(comm, "   HDF5 Result: "//resultfile//"\n", ierr)
-
-        ! call signal_ostream_finish(comm)
 
     end subroutine ostream
 
@@ -629,20 +630,4 @@ module mod_files
 
     end subroutine preload_hdf5
 
-    ! subroutine signal_ostream_finish(comm)
-    !     implicit none
-    !     PetscInt,INTENT(in) :: comm
-    !     call PetscPrintf(comm,"\n", ierr)
-    !     call PetscPrintf(comm,"                      ooo    ooo\n",ierr)
-    !     call PetscPrintf(comm,"                     o   o  o   o\n",ierr)
-    !     call PetscPrintf(comm,"               ooo   o   o  o   o   ooo\n",ierr)
-    !     call PetscPrintf(comm,"              o   o   ooo    ooo   o   o\n",ierr)
-    !     call PetscPrintf(comm,"              o   o                o   o\n",ierr)
-    !     call PetscPrintf(comm,"               ooo    oooooooooo    ooo\n",ierr)
-    !     call PetscPrintf(comm,"                    o            o\n",ierr)
-    !     call PetscPrintf(comm,"                   o              o\n",ierr)
-    !     call PetscPrintf(comm,"                    o            o\n",ierr)
-    !     call PetscPrintf(comm,"                      oooooooooo\n",ierr)
-    !     call PetscPrintf(comm,"\n", ierr)
-    ! end subroutine signal_ostream_finish
 end module mod_files
