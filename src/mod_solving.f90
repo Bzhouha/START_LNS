@@ -123,7 +123,7 @@ module mod_solving
         integer,intent(in) :: level
         PetscInt,intent(in) :: comm
         call DMRestoreLocalVector(meshDA,tinkle_bell,ierr)
-        call deallocate_bfinfo_and_metrics()
+        call finalclean()
         call VecDestroy(RHS,ierr)
     end subroutine dolphin_ready
 
@@ -137,8 +137,8 @@ module mod_solving
         PC :: pc
         rtol = 1e-8
         call SNESCreate(comm,snes,ierr)
-        call SNESSetFunction(snes,PETSC_NULL_VEC,RHS_with_BC,0,ierr)
-        call SNESSetJacobian(snes,shark,shark,shark_growing_up,0,ierr)
+        call SNESSetFunction(snes,PETSC_NULL_VEC,snes_fx,0,ierr)
+        call SNESSetJacobian(snes,shark,shark,snes_jac,0,ierr)
         call SNESGetKSP(snes,ksp,ierr)
         call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
         call KSPGetPC(ksp,pc,ierr)
@@ -152,7 +152,7 @@ module mod_solving
         call SNESSetUp(snes,ierr)
         call SNESSolve(snes,PETSC_NULL_VEC,turtle,ierr)
         call SNESDestroy(snes,ierr)
-        call deallocate_bfinfo_and_metrics()
+        call finalclean()
         call DMRestoreLocalVector(meshDA,tinkle_bell,ierr)
     end subroutine shark_ready
 end module mod_solving

@@ -18,14 +18,14 @@ module mod_parameters
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge ! MPI网格分块位置
     integer :: is,js,ks,il,jl,kl,ie,je,ke ! MPI网格分块位置
     character(len=5) :: solver_mode='ksp' ! KSP.or.SNES
-    character(len=256) :: gridfile ! 文件名：网格文件
-    character(len=256) :: flowfile ! 文件名：流场文件
     character(len=256) :: bigridfile ! 文件名：流场文件
     character(len=256) :: biflowfile ! 文件名：流场文件
+    character(len=256) :: turbfiles ! 文件名：边界文件
+    character(len=256) :: gridfile ! 文件名：网格文件
+    character(len=256) :: flowfile ! 文件名：流场文件
     character(len=256) :: hdf5file ! 文件名：HDF5文件
-    character(len=256) :: turbfile ! 文件名：边界文件 o
-    character(len=256) :: turbfiles ! 文件名：边界文件 o
-    character(len=256) :: initfile ! 文件名：初值文件 o
+    character(len=256) :: turbfile ! 文件名：边界文件
+    character(len=256) :: initfile ! 文件名：初值文件
     character(len=7) :: io_type ! file I/O type
     logical :: ksp_mat_free_flg ! KSP中是否使用免矩阵生成矩阵
     logical :: init_guess_flg ! 是否赋初值
@@ -38,12 +38,12 @@ module mod_parameters
     complex(R_P) :: Beta ! 波数
     integer :: lns_mode ! 2D-HLNS.or.3D-HLNS
     integer :: BC_type ! 边界条件类型：Dirichlet.or.Neumann.or.Robbin
-    Vec :: tinkle_bell ! the local vec variable using in matrix_free implementation
+    Vec :: tinkle_bell ! the local vec variable using by mat_free implementation
     integer :: rank ! 进程编号
     integer :: sink ! 进程数
     Mat :: dolphin ! KSP: 免矩阵形式的左端矩阵
     Vec :: turtle ! 解
     Mat :: whale ! KSP: 显式矩阵形式的左端矩阵
     Mat :: shark ! SNES: 雅各比矩阵
-    Vec :: RHS ! KSP: 右端项 
+    Vec :: RHS ! KSP: 右端项
 end module mod_parameters
