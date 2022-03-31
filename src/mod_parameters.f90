@@ -38,12 +38,12 @@ module mod_parameters
     complex(R_P) :: Beta ! 波数
     integer :: lns_mode ! 2D-HLNS.or.3D-HLNS
     integer :: BC_type ! 边界条件类型：Dirichlet.or.Neumann.or.Robbin
-    Vec :: tinkle_bell ! the local vec variable using by mat_free implementation
     integer :: rank ! 进程编号
     integer :: sink ! 进程数
     Mat :: dolphin ! KSP: 免矩阵形式的左端矩阵
     Vec :: turtle ! 解
     Mat :: whale ! KSP: 显式矩阵形式的左端矩阵
     Mat :: shark ! SNES: 雅各比矩阵
+    Vec :: bell ! the local vec variable using by mat_free implementation
     Vec :: RHS ! KSP: 右端项
 end module mod_parameters

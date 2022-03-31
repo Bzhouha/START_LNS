@@ -25,7 +25,7 @@ module mod_forming
 !
 !               (3).call finalclean() 释放基本流类和度量系数数组内存
 !
-!       3.call set_right_hand_side(comm) 设置右边量，即边界。
+!       3.call ksp_rhs(comm) 设置右边量，即边界。
 !
 !   for SNES :: Nonlinear Solvers
 !
@@ -37,8 +37,6 @@ module mod_forming
 !
 ! ------------------------------------------------------------------
     use penf, only: R_P
-    use mod_parameters
-    use mod_flowtype
     use mod_cubes
     use petsc
     implicit none
@@ -96,12 +94,13 @@ module mod_forming
     !   KSP :: Linear System Solvers
 
     subroutine dolphin_coming(comm)
+        use mod_parameters,only : meshDA,bell,turtle,dolphin,RHS
         implicit none
         PetscInt,intent(in) :: comm
         PetscErrorCode :: ierr
         PetscInt :: ls
-        call DMGetLocalVector(meshDA,tinkle_bell,ierr)
-        call VecZeroEntries(tinkle_bell,ierr)
+        call DMGetLocalVector(meshDA,bell,ierr)
+        call VecZeroEntries(bell,ierr)
         call VecGetLocalSize(turtle,ls,ierr)
         call MatCreateShell(comm,ls,ls,PETSC_DETERMINE,PETSC_DETERMINE,PETSC_NULL_INTEGER,dolphin,ierr)
         call MatShellSetOperation(dolphin,MATOP_MULT,dolphin_growing_up,ierr)
@@ -109,11 +108,12 @@ module mod_forming
         call MatAssemblyEnd(dolphin,MAT_FINAL_ASSEMBLY,ierr)
         call VecDuplicate(turtle,RHS,ierr)
         call VecZeroEntries(RHS,ierr)
-        call set_right_hand_side(comm)
+        call ksp_rhs(comm)
         call PetscPrintf(comm,"\n   KSP :: Matrix-Free\n",ierr)
     end subroutine dolphin_coming
 
     subroutine dolphin_growing_up(A, X, F, ierr)
+        use mod_parameters,only : meshDA,bell,lns_mode,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
         PetscScalar,pointer :: fr(:,:,:,:),xr(:,:,:,:)
         integer :: ic_index,jc_index,kc_index
@@ -124,9 +124,9 @@ module mod_forming
         integer :: i,j,k
         Vec :: X,F
         Mat :: A
-        call DMGlobalToLocalBegin(meshDA,X,INSERT_VALUES,tinkle_bell,ierr)
-        call DMGlobalToLocalEnd(meshDA,X,INSERT_VALUES,tinkle_bell,ierr)
-        call DMDAVecGetArrayReadF90(meshDA,tinkle_bell,xr,ierr)
+        call DMGlobalToLocalBegin(meshDA,X,INSERT_VALUES,bell,ierr)
+        call DMGlobalToLocalEnd(meshDA,X,INSERT_VALUES,bell,ierr)
+        call DMDAVecGetArrayReadF90(meshDA,bell,xr,ierr)
         call DMDAVecGetArrayF90(meshDA,F,fr,ierr)
         associate ( &
         &   coef_c4  => FDM_1nd_4ORD_CENTER,   &
@@ -253,11 +253,12 @@ module mod_forming
             enddo
         enddo
         end associate
-        call DMDAVecRestoreArrayReadF90(meshDA,tinkle_bell,xr,ierr)
+        call DMDAVecRestoreArrayReadF90(meshDA,bell,xr,ierr)
         call DMDAVecRestoreArrayF90(meshDA,F,fr,ierr)
     end subroutine dolphin_growing_up
 
     subroutine whale_coming(comm)
+        use mod_parameters,only : meshDA,whale,turtle,RHS
         implicit none
         PetscInt,intent(in) :: comm
         PetscErrorCode :: ierr
@@ -266,12 +267,13 @@ module mod_forming
         call whale_growing_up()
         call VecDuplicate(turtle,RHS,ierr)
         call VecZeroEntries(RHS,ierr)
-        call set_right_hand_side(comm)
+        call ksp_rhs(comm)
         call finalclean()
         call PetscPrintf(comm,"\n   KSP :: Matrix-Assembled\n",ierr)
     end subroutine whale_coming
 
     subroutine whale_growing_up()
+        use mod_parameters,only : whale,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
         PetscErrorCode :: ierr
         integer :: i,j,k
@@ -291,6 +293,7 @@ module mod_forming
     end subroutine whale_growing_up
 
     subroutine finalclean()
+        use mod_parameters
         deallocate(bf)
         deallocate(xi_x,xi_y,xi_z)
         deallocate(eta_x,eta_y,eta_z)
@@ -304,6 +307,7 @@ module mod_forming
     end subroutine finalclean
 
     subroutine whale_eat_shrimps(i,j,k)
+        use mod_parameters,only : whale,in,jn,kn
         implicit none
         PetscScalar :: box(5,5),trans(5,5)
         MatStencil :: idxm(4,1),idxn(4,1)
@@ -361,6 +365,7 @@ module mod_forming
     end subroutine whale_eat_shrimps
 
     subroutine whale_eat_sardine(i,j,k)
+        use mod_parameters,only : whale,lns_mode,in,jn,kn
         implicit none
         integer :: ic_index, jc_index, kc_index
         integer :: lib, lie, ljb, lje, lkb, lke
@@ -454,7 +459,8 @@ module mod_forming
         end associate
     end subroutine whale_eat_sardine
 
-    subroutine set_right_hand_side(comm)
+    subroutine ksp_rhs(comm)
+        use mod_parameters,only : meshDA,RHS,disturb,is,ie,js,je,ks,ke
         implicit none
         PetscScalar,pointer :: RHS_array(:,:,:,:)
         PetscInt,intent(in) :: comm
@@ -471,22 +477,24 @@ module mod_forming
         endif
         call MPI_Barrier(comm,ierr)
         deallocate(disturb)
-    end subroutine set_right_hand_side
+    end subroutine ksp_rhs
 
     !   SNES :: Nonlinear Solvers
 
     subroutine shark_coming(comm)
+        use mod_parameters,only : meshDA,shark,bell
         implicit none
         PetscInt,intent(in) :: comm
         PetscErrorCode :: ierr
-        call DMGetLocalVector(meshDA,tinkle_bell,ierr)
-        call VecZeroEntries(tinkle_bell,ierr)
+        call DMGetLocalVector(meshDA,bell,ierr)
+        call VecZeroEntries(bell,ierr)
         call DMCreateMatrix(meshDA,shark,ierr)
         call MatZeroEntries(shark,ierr)
         call PetscPrintf(comm,"\n   SNES :: Jacobi&fx\n",ierr)
     end subroutine shark_coming
 
     subroutine snes_jac(snes,x,jac,B,null_int,ierr)
+        use mod_parameters,only : lns_mode,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
         integer :: ic_index, jc_index, kc_index
         integer :: lib,lie,ljb,lje,lkb,lke
@@ -637,6 +645,7 @@ module mod_forming
     end subroutine snes_jac
 
     subroutine snes_fx(snes,x,f,null_int,ierr)
+        use mod_parameters,only : meshDA,bell,lns_mode,disturb,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
         PetscScalar,pointer :: fr(:,:,:,:),xr(:,:,:,:)
         integer :: ic_index,jc_index,kc_index
@@ -648,9 +657,9 @@ module mod_forming
         integer :: i,j,k
         SNES :: snes
         Vec :: x,f
-        call DMGlobalToLocalBegin(meshDA,X,INSERT_VALUES,tinkle_bell,ierr)
-        call DMGlobalToLocalEnd(meshDA,X,INSERT_VALUES,tinkle_bell,ierr)
-        call DMDAVecGetArrayReadF90(meshDA,tinkle_bell,xr,ierr)
+        call DMGlobalToLocalBegin(meshDA,X,INSERT_VALUES,bell,ierr)
+        call DMGlobalToLocalEnd(meshDA,X,INSERT_VALUES,bell,ierr)
+        call DMDAVecGetArrayReadF90(meshDA,bell,xr,ierr)
         call DMDAVecGetArrayF90(meshDA,F,fr,ierr)
         associate ( &
         &   coef_c4 =>FDM_1nd_4ORD_CENTER, &
@@ -766,7 +775,7 @@ module mod_forming
             enddo
         enddo
         end associate
-        call DMDAVecRestoreArrayReadF90(meshDA,tinkle_bell,xr,ierr)
+        call DMDAVecRestoreArrayReadF90(meshDA,bell,xr,ierr)
         call DMDAVecRestoreArrayF90(meshDA,F,fr,ierr)
     end subroutine snes_fx
 

@@ -45,7 +45,6 @@ module mod_solving
 
     subroutine linear_equations(comm)
         use mod_parameters,only : ksp_mat_free_flg
-        use mod_parameters,only : whale,dolphin
         implicit none
         integer,intent(in) :: comm
         select case (ksp_mat_free_flg)
@@ -118,41 +117,48 @@ module mod_solving
     end subroutine whale_ready
 
     subroutine dolphin_ready(comm,level)
-        use mod_parameters,only : turtle,RHS,meshDA,tinkle_bell
+        use mod_parameters,only : turtle,RHS,meshDA,bell
         implicit none
         integer,intent(in) :: level
         PetscInt,intent(in) :: comm
-        call DMRestoreLocalVector(meshDA,tinkle_bell,ierr)
+        call DMRestoreLocalVector(meshDA,bell,ierr)
         call finalclean()
         call VecDestroy(RHS,ierr)
     end subroutine dolphin_ready
 
     subroutine shark_ready(comm)
-        use mod_parameters,only : shark,turtle,meshDA,tinkle_bell
+        use mod_parameters,only : shark,turtle,meshDA,bell
         implicit none
-        integer, intent(in) :: comm
+        integer,intent(in) :: comm
+        PetscScalar :: zero=0.0d0
         real(8) :: rtol
         SNES :: snes
         KSP :: ksp
+        Vec :: r
         PC :: pc
         rtol = 1e-8
+        call VecSet(turtle,zero,ierr)
+        call VecDuplicate(turtle,r,ierr)
         call SNESCreate(comm,snes,ierr)
-        call SNESSetFunction(snes,PETSC_NULL_VEC,snes_fx,0,ierr)
+        call SNESSetFunction(snes,r,snes_fx,0,ierr)
         call SNESSetJacobian(snes,shark,shark,snes_jac,0,ierr)
-        call SNESGetKSP(snes,ksp,ierr)
-        call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
-        call KSPGetPC(ksp,pc,ierr)
+        ! call SNESGetKSP(snes,ksp,ierr)
+        ! call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
+        ! call KSPGetPC(ksp,pc,ierr)
         ! call PCSetType(pc,PCASM,ierr)
-        call PCSetFromOptions(pc,ierr)
-        call PCSetUp(pc,ierr)
-        call KSPSetFromOptions(ksp,ierr)
-        call KSPSetUp(ksp,ierr)
-        call SNESSetType(snes,SNESNEWTONLS,ierr)
+        ! call PCSetFromOptions(pc,ierr)
+        ! call PCSetUp(pc,ierr)
+        ! call KSPSetFromOptions(ksp,ierr)
+        ! call KSPSetUp(ksp,ierr)
+        ! call SNESSetType(snes,SNESNEWTONLS,ierr)
         call SNESSetFromOptions(snes,ierr)
         call SNESSetUp(snes,ierr)
+        call PetscPrintf(comm, "\n   SNES :: Solve\n\n", ierr)
         call SNESSolve(snes,PETSC_NULL_VEC,turtle,ierr)
+        call PetscPrintf(comm, "\n", ierr)
+        call SNESView(snes,PETSC_VIEWER_STDOUT_WORLD,ierr)
         call SNESDestroy(snes,ierr)
         call finalclean()
-        call DMRestoreLocalVector(meshDA,tinkle_bell,ierr)
+        call DMRestoreLocalVector(meshDA,bell,ierr)
     end subroutine shark_ready
 end module mod_solving
