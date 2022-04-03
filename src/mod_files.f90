@@ -525,14 +525,14 @@ module mod_files
         endif
         call MPI_Barrier(comm,ierr)
         if(rank==(sink-1))then
-            write(*,"(3X,A,I5,1X,A,I5)") "Rank:",rank,"jn =",jn
+            write(*,"(3X,A,I5,1X,A,I5)") "Rank:",rank,"jn    =",jn
             write(*,"(3X,A,I5,1X,A,F20.10)") "Rank:",rank,"Re    =",Re
             write(*,"(3X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Alpha =",Alpha
             write(*,"(3X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Omega =",Omega
         endif
         call MPI_Barrier(comm,ierr)
         if(rank==0)then
-            write(*,"(3X,A,I5,1X,A,I5)") "Rank:",rank,"jn =",jn
+            write(*,"(3X,A,I5,1X,A,I5)") "Rank:",rank,"jn    =",jn
             write(*,"(3X,A,I5,1X,A,F20.10)") "Rank:",rank,"Re    =",Re
             write(*,"(3X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Alpha =",Alpha
             write(*,"(3X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Omega =",Omega

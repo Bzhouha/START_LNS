@@ -32,7 +32,7 @@ module mod_parameters
     DM :: coordDA,meshDA,DA ! DM.Object
     integer :: split_mode=0 ! 对流系数矩阵拆分方式选择
     PetscInt :: in,jn,kn,ln ! 流场网格数、自由度数
-    PetscScalar :: fk=1.0d0 ! 松弛系数
+    PetscScalar :: fk=1.1d0 ! 松弛系数
     complex(R_P) :: Alpha ! 波数
     complex(R_P) :: Omega ! 频率
     complex(R_P) :: Beta ! 波数

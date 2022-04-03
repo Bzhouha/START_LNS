@@ -41,7 +41,7 @@ module mod_forming
     use petsc
     implicit none
     public :: dolphin_coming, whale_coming, shark_coming
-    public :: snes_jac, snes_fx, finalclean
+    public :: snes_fx, finalclean
     private
     type(lns_OP_point_type) :: Jor
     real(R_P), parameter, dimension(-2:2,-2:2) :: FDM_1nd_4ORD_CENTER=reshape( [&
@@ -490,24 +490,20 @@ module mod_forming
         call VecZeroEntries(bell,ierr)
         call DMCreateMatrix(meshDA,shark,ierr)
         call MatZeroEntries(shark,ierr)
+        call shark_growing_up()
         call PetscPrintf(comm,"\n   SNES :: Jacobi&fx\n",ierr)
     end subroutine shark_coming
 
-    subroutine snes_jac(snes,x,jac,B,null_int,ierr)
-        use mod_parameters,only : lns_mode,in,jn,kn,is,ie,js,je,ks,ke
+    subroutine shark_growing_up()
+        use mod_parameters,only : shark,lns_mode,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
         integer :: ic_index, jc_index, kc_index
         integer :: lib,lie,ljb,lje,lkb,lke
         PetscScalar :: box(5,5),trans(5,5)
         MatStencil :: idxm(4,1),idxn(4,1)
         PetscErrorCode :: ierr
-        integer :: null_int(*)
         integer :: li,lj,lk
         integer :: i,j,k
-        SNES :: snes
-        Mat :: jac,B
-        Vec :: x
-
         associate( &
         &   coef_c4 =>FDM_1nd_4ORD_CENTER,   &
         &   coef_d4 =>FDM_2nd_4ORD_CENTER,   &
@@ -529,7 +525,7 @@ module mod_forming
                         box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
                         idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
                         idxn(MatStencil_i, 1)=i; idxn(MatStencil_j, 1)=j; idxn(MatStencil_k, 1)=k
-                        call MatSetValuesBlockedStencil(jac, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+                        call MatSetValuesBlockedStencil(shark, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
                     elseif(j==0 .and. i/=0)then
                         ljb=0;lje=1
                         jc_index=1
@@ -550,7 +546,7 @@ module mod_forming
                             box=0.0d0;trans=0.0d0
                             box=delta_j(lj)*Jor%D+coef_c4f(lj,jc_index)*Jor%B
                             trans=transpose(box)
-                            call MatSetValuesBlockedStencil(jac, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+                            call MatSetValuesBlockedStencil(shark, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
                         enddo
                     elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
                         lib=-2;lie=0
@@ -563,7 +559,7 @@ module mod_forming
                             box=0.0d0
                             box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
                             box=coef_c4b(li,ic_index)*box
-                            call MatSetValuesBlockedStencil(jac, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+                            call MatSetValuesBlockedStencil(shark, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
                         enddo
                     else
                         call Jor%get_adorned_cubes(i,j,k)
@@ -631,7 +627,7 @@ module mod_forming
                                     &   delta_j(lj)*Vxz*coef_c4(li,ic_index)*coef_c4(lk,kc_index)- &
                                     &   delta_i(li)*Vyz*coef_c4(lj,jc_index)*coef_c4(lk,kc_index)
                                     trans=transpose(box)
-                                    call MatSetValuesBlockedStencil(jac, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+                                    call MatSetValuesBlockedStencil(shark, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
                                 enddo
                             enddo
                         enddo
@@ -640,9 +636,160 @@ module mod_forming
             enddo
         enddo
         end associate
-        call MatAssemblyBegin(jac,MAT_FINAL_ASSEMBLY,ierr)
-        call MatAssemblyEnd(jac,MAT_FINAL_ASSEMBLY,ierr)
-    end subroutine snes_jac
+        call MatAssemblyBegin(shark,MAT_FINAL_ASSEMBLY,ierr)
+        call MatAssemblyEnd(shark,MAT_FINAL_ASSEMBLY,ierr)
+    end subroutine shark_growing_up
+
+    ! subroutine snes_jac(snes,x,jac,B,null_int,ierr)
+    !     use mod_parameters,only : lns_mode,in,jn,kn,is,ie,js,je,ks,ke
+    !     implicit none
+    !     integer :: ic_index, jc_index, kc_index
+    !     integer :: lib,lie,ljb,lje,lkb,lke
+    !     PetscScalar :: box(5,5),trans(5,5)
+    !     MatStencil :: idxm(4,1),idxn(4,1)
+    !     PetscErrorCode :: ierr
+    !     integer :: null_int(*)
+    !     integer :: li,lj,lk
+    !     integer :: i,j,k
+    !     SNES :: snes
+    !     Mat :: jac,B
+    !     Vec :: x
+    !
+    !     associate( &
+    !     &   coef_c4 =>FDM_1nd_4ORD_CENTER,   &
+    !     &   coef_d4 =>FDM_2nd_4ORD_CENTER,   &
+    !     &   coef_c4f=>FDM_1nd_4ORD_Forward,  &
+    !     &   coef_c4b=>FDM_1nd_4ORD_Backward, &
+    !     &   coef_c1f=>FDM_1nd_1ORD_Forward,  &
+    !     &   coef_c1b=>FDM_1nd_1ORD_Backward, &
+    !     &   G   => Jor%G,   D   => Jor%D,    &
+    !     &   A_p => Jor%A_p, A_m => Jor%A_m, A_v => Jor%A_v, &
+    !     &   B_p => Jor%B_p, B_m => Jor%B_m, B_v => Jor%B_v, &
+    !     &   C_p => Jor%C_p, C_m => Jor%C_m, C_v => Jor%C_v, &
+    !     &   Vxx => Jor%Vxx, Vyy => Jor%Vyy, Vzz => Jor%Vzz, &
+    !     &   Vxy => Jor%Vxy, Vxz => Jor%Vxz, Vyz => Jor%Vyz)
+    !     do k=ks,ke
+    !         do j=js,je
+    !             do i=is,ie
+    !                 if(i==0 .or. j==(jn-1))then
+    !                     box=0.0d0
+    !                     box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
+    !                     idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
+    !                     idxn(MatStencil_i, 1)=i; idxn(MatStencil_j, 1)=j; idxn(MatStencil_k, 1)=k
+    !                     call MatSetValuesBlockedStencil(jac, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+    !                 elseif(j==0 .and. i/=0)then
+    !                     ljb=0;lje=1
+    !                     jc_index=1
+    !                     idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
+    !                     call Jor%get_adorned_cubes(i,j,k)
+    !                     do lj=1,5
+    !                         do li=2,5
+    !                             Jor%D(li,lj)=0.0d0
+    !                             Jor%B(li,lj)=0.0d0
+    !                         enddo
+    !                     enddo
+    !                     Jor%D(2,2)=1.0d0;Jor%D(3,3)=1.0d0
+    !                     Jor%D(4,4)=1.0d0;Jor%D(5,5)=1.0d0
+    !                     do lj=ljb,lje
+    !                         idxn(MatStencil_i, 1)=i
+    !                         idxn(MatStencil_j, 1)=j+lj
+    !                         idxn(MatStencil_k, 1)=k
+    !                         box=0.0d0;trans=0.0d0
+    !                         box=delta_j(lj)*Jor%D+coef_c4f(lj,jc_index)*Jor%B
+    !                         trans=transpose(box)
+    !                         call MatSetValuesBlockedStencil(jac, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+    !                     enddo
+    !                 elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
+    !                     lib=-2;lie=0
+    !                     ic_index=0
+    !                     idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
+    !                     do li=lib,lie
+    !                         idxn(MatStencil_i, 1)=i+li
+    !                         idxn(MatStencil_j, 1)=j
+    !                         idxn(MatStencil_k, 1)=k
+    !                         box=0.0d0
+    !                         box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
+    !                         box=coef_c4b(li,ic_index)*box
+    !                         call MatSetValuesBlockedStencil(jac, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+    !                     enddo
+    !                 else
+    !                     call Jor%get_adorned_cubes(i,j,k)
+    !                     if(i==0)then
+    !                         lib=0; lie=2
+    !                         ic_index=-2
+    !                     elseif(i==1)then
+    !                         lib=-1; lie=2
+    !                         ic_index=-1
+    !                     elseif(i==(in-2))then
+    !                         lib=-2; lie=1
+    !                         ic_index=1
+    !                     elseif(i==(in-1))then
+    !                         lib=-2; lie=0
+    !                         ic_index=2
+    !                     else
+    !                         lib=-2; lie=2
+    !                         ic_index=0
+    !                     endif
+    !                     if(j==0)then
+    !                         ljb=0; lje=2
+    !                         jc_index=-2
+    !                     elseif(j==1)then
+    !                         ljb=-1; lje=2
+    !                         jc_index=-1
+    !                     elseif(j==(jn-2))then
+    !                         ljb=-2; lje=1
+    !                         jc_index=1
+    !                     elseif(j==(jn-1))then
+    !                         ljb=-2; lje=0
+    !                         jc_index=2
+    !                     else
+    !                         ljb=-2; lje=2
+    !                         jc_index=0
+    !                     endif
+    !                     select case (lns_mode)
+    !                         case(2)
+    !                             lkb=0; lke=0; kc_index=0
+    !                         case(3)
+    !                             lkb=-2; lke=2; kc_index=0
+    !                     end select
+    !                     idxm=0;
+    !                     idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
+    !                     do lk = lkb, lke
+    !                         do lj = ljb, lje
+    !                             do li = lib, lie
+    !                                 idxn=0;box=0.0d0;trans=0.0d0
+    !                                 idxn(MatStencil_i, 1)=i+li
+    !                                 idxn(MatStencil_j, 1)=j+lj
+    !                                 idxn(MatStencil_k, 1)=k+lk
+    !                                 box=delta_i(li)*delta_j(lj)*delta_k(lk)*D +                    &
+    !                                 &   delta_j(lj)*delta_k(lk)*A_v*coef_c4(li,ic_index)+          &
+    !                                 &   delta_j(lj)*delta_k(lk)*A_m*coef_c1f(li,ic_index)+         &
+    !                                 &   delta_j(lj)*delta_k(lk)*A_p*coef_c1b(li,ic_index)+         &
+    !                                 &   delta_i(li)*delta_k(lk)*B_v*coef_c4(lj,jc_index)+          &
+    !                                 &   delta_i(li)*delta_k(lk)*B_m*coef_c1f(lj,jc_index)+         &
+    !                                 &   delta_i(li)*delta_k(lk)*B_p*coef_c1b(lj,jc_index)+         &
+    !                                 &   delta_i(li)*delta_j(lj)*C_v*coef_c4(lk,kc_index)+          &
+    !                                 &   delta_i(li)*delta_j(lj)*C_m*coef_c1f(lk,kc_index)+         &
+    !                                 &   delta_i(li)*delta_j(lj)*C_p*coef_c1b(lk,kc_index)-         &
+    !                                 &   delta_j(lj)*delta_k(lk)*Vxx*coef_d4(li,ic_index)-          &
+    !                                 &   delta_i(li)*delta_k(lk)*Vyy*coef_d4(lj,jc_index)-          &
+    !                                 &   delta_i(li)*delta_j(lj)*Vzz*coef_d4(lk,kc_index)-          &
+    !                                 &   delta_k(lk)*Vxy*coef_c4(li,ic_index)*coef_c4(lj,jc_index)- &
+    !                                 &   delta_j(lj)*Vxz*coef_c4(li,ic_index)*coef_c4(lk,kc_index)- &
+    !                                 &   delta_i(li)*Vyz*coef_c4(lj,jc_index)*coef_c4(lk,kc_index)
+    !                                 trans=transpose(box)
+    !                                 call MatSetValuesBlockedStencil(jac, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+    !                             enddo
+    !                         enddo
+    !                     enddo
+    !                 endif
+    !             enddo
+    !         enddo
+    !     enddo
+    !     end associate
+    !     call MatAssemblyBegin(jac,MAT_FINAL_ASSEMBLY,ierr)
+    !     call MatAssemblyEnd(jac,MAT_FINAL_ASSEMBLY,ierr)
+    ! end subroutine snes_jac
 
     subroutine snes_fx(snes,x,f,null_int,ierr)
         use mod_parameters,only : meshDA,bell,lns_mode,disturb,in,jn,kn,is,ie,js,je,ks,ke
@@ -673,11 +820,11 @@ module mod_forming
             do j=js,je
                 do i=is,ie
                     if(i==0)then
-                        f(:,i,j,k)=disturb(:,j,k)-x(:,i,j,k)
+                        f(:,i,j,k)=x(:,i,j,k)-disturb(:,j,k)
                     elseif(j==(jn-1))then
-                        f(:,i,j,k)=(-1.0d0)*x(:,i,j,k)
+                        f(:,i,j,k)=x(:,i,j,k)
                     elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
-                        f(:,i,j,k)=(-1.0d0)*(x(:,i-2,j,k)-4*x(:,i-1,j,k)+3*x(:,i,j,k))/2.0d0
+                        f(:,i,j,k)=x(:,i-2,j,k)-4*x(:,i-1,j,k)+3*x(:,i,j,k)/2.0d0
                     elseif(j==0 .and. i/=0)then
                         call Jor%get_adorned_cubes(i,j,k)
                         do lj=1,5
@@ -688,7 +835,7 @@ module mod_forming
                         enddo
                         D(2,2)=1.0d0;D(3,3)=1.0d0
                         D(4,4)=1.0d0;D(5,5)=1.0d0
-                        f(:,i,j,k)=(-1.0d0)*(matmul(D,x(:,i,j,k))+matmul(B,x(:,i,j+1,k))-matmul(B,x(:,i,j,k)))
+                        f(:,i,j,k)=matmul(D,x(:,i,j,k))+matmul(B,x(:,i,j+1,k))-matmul(B,x(:,i,j,k))
                     else
                         yi=0.0d0
                         call Jor%get_adorned_cubes(i,j,k)
@@ -766,10 +913,10 @@ module mod_forming
                             enddo
                         enddo
 
-                        f(:,i,j,k)=(-1.0d0)*(matmul(D,yi(:,1))+                                 &
+                        f(:,i,j,k)=matmul(D,yi(:,1))+                                           &
                         &          matmul(A,yi(:,2))+matmul(B,yi(:,3))+matmul(C,yi(:,4))-       &
                         &          matmul(Vxx,yi(:,5))-matmul(Vyy,yi(:,6))-matmul(Vzz,yi(:,7))- &
-                        &          matmul(Vxy,yi(:,8))-matmul(Vxz,yi(:,9))-matmul(Vyz,yi(:,10)))
+                        &          matmul(Vxy,yi(:,8))-matmul(Vxz,yi(:,9))-matmul(Vyz,yi(:,10))
                     endif
                 enddo
             enddo

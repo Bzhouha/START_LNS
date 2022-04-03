@@ -127,7 +127,7 @@ module mod_solving
     end subroutine dolphin_ready
 
     subroutine shark_ready(comm)
-        use mod_parameters,only : shark,turtle,meshDA,bell
+        use mod_parameters,only : shark,turtle,meshDA,bell,whale
         implicit none
         integer,intent(in) :: comm
         PetscScalar :: zero=0.0d0
@@ -137,20 +137,23 @@ module mod_solving
         Vec :: r
         PC :: pc
         rtol = 1e-8
-        call VecSet(turtle,zero,ierr)
+        ! call VecSet(turtle,zero,ierr)
         call VecDuplicate(turtle,r,ierr)
         call SNESCreate(comm,snes,ierr)
         call SNESSetFunction(snes,r,snes_fx,0,ierr)
-        call SNESSetJacobian(snes,shark,shark,snes_jac,0,ierr)
-        ! call SNESGetKSP(snes,ksp,ierr)
-        ! call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
-        ! call KSPGetPC(ksp,pc,ierr)
-        ! call PCSetType(pc,PCASM,ierr)
-        ! call PCSetFromOptions(pc,ierr)
+        ! call SNESSetJacobian(snes,shark,shark,snes_jac,0,ierr)
+        call SNESSetJacobian(snes,shark,shark,PETSC_NULL_FUNCTION,PETSC_NULL_INTEGER,ierr)
+        call SNESGetKSP(snes,ksp,ierr)
+        call KSPSetType(ksp,KSPFGMRES,ierr)
+        call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
+        call KSPGetPC(ksp,pc,ierr)
+        call PCSetType(pc,PCASM,ierr)
+        call PCSetFromOptions(pc,ierr)
         ! call PCSetUp(pc,ierr)
-        ! call KSPSetFromOptions(ksp,ierr)
+        call KSPSetFromOptions(ksp,ierr)
         ! call KSPSetUp(ksp,ierr)
         ! call SNESSetType(snes,SNESNEWTONLS,ierr)
+        call SNESSetTolerances(snes,PETSC_DEFAULT_REAL,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,PETSC_DEFAULT_INTEGER,ierr)
         call SNESSetFromOptions(snes,ierr)
         call SNESSetUp(snes,ierr)
         call PetscPrintf(comm, "\n   SNES :: Solve\n\n", ierr)
