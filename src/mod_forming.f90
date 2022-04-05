@@ -262,6 +262,7 @@ module mod_forming
         implicit none
         PetscInt,intent(in) :: comm
         PetscErrorCode :: ierr
+        call PetscPrintf(comm,"\n   KSP :: Matrix\n",ierr)
         call DMCreateMatrix(meshDA, whale, ierr)
         call MatZeroEntries(whale,ierr)
         call whale_growing_up()
@@ -269,7 +270,6 @@ module mod_forming
         call VecZeroEntries(RHS,ierr)
         call ksp_rhs(comm)
         call finalclean()
-        call PetscPrintf(comm,"\n   KSP :: Matrix-Assembled\n",ierr)
     end subroutine whale_coming
 
     subroutine whale_growing_up()
@@ -486,12 +486,12 @@ module mod_forming
         implicit none
         PetscInt,intent(in) :: comm
         PetscErrorCode :: ierr
+        call PetscPrintf(comm,"\n   SNES :: Jacobi&fx\n",ierr)
         call DMGetLocalVector(meshDA,bell,ierr)
         call VecZeroEntries(bell,ierr)
         call DMCreateMatrix(meshDA,shark,ierr)
         call MatZeroEntries(shark,ierr)
         call shark_growing_up()
-        call PetscPrintf(comm,"\n   SNES :: Jacobi&fx\n",ierr)
     end subroutine shark_coming
 
     subroutine shark_growing_up()

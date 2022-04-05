@@ -33,28 +33,28 @@ module mod_cubes
     private
     type,public :: lns_OP_point_type
         complex(R_P), dimension(5, 5) :: G=0.0d0
-        complex(R_P), dimension(5, 5) :: D=0.0d0 
-        complex(R_P), dimension(5, 5) :: A=0.0d0 
-        complex(R_P), dimension(5, 5) :: B=0.0d0  
-        complex(R_P), dimension(5, 5) :: C=0.0d0  
-        complex(R_P), dimension(5, 5) :: A_c=0.0d0 
-        complex(R_P), dimension(5, 5) :: B_c=0.0d0  
-        complex(R_P), dimension(5, 5) :: C_c=0.0d0  
-        complex(R_P), dimension(5, 5) :: A_p=0.0d0 
-        complex(R_P), dimension(5, 5) :: B_p=0.0d0 
-        complex(R_P), dimension(5, 5) :: C_p=0.0d0 
-        complex(R_P), dimension(5, 5) :: A_m=0.0d0 
-        complex(R_P), dimension(5, 5) :: B_m=0.0d0 
-        complex(R_P), dimension(5, 5) :: C_m=0.0d0 
-        complex(R_P), dimension(5, 5) :: A_v=0.0d0  
-        complex(R_P), dimension(5, 5) :: B_v=0.0d0 
-        complex(R_P), dimension(5, 5) :: C_v=0.0d0  
-        complex(R_P), dimension(5, 5) :: Vxx=0.0d0 
-        complex(R_P), dimension(5, 5) :: Vyy=0.0d0 
-        complex(R_P), dimension(5, 5) :: Vzz=0.0d0 
-        complex(R_P), dimension(5, 5) :: Vxy=0.0d0 
-        complex(R_P), dimension(5, 5) :: Vxz=0.0d0 
-        complex(R_P), dimension(5, 5) :: Vyz=0.0d0 
+        complex(R_P), dimension(5, 5) :: D=0.0d0
+        complex(R_P), dimension(5, 5) :: A=0.0d0
+        complex(R_P), dimension(5, 5) :: B=0.0d0
+        complex(R_P), dimension(5, 5) :: C=0.0d0
+        complex(R_P), dimension(5, 5) :: A_c=0.0d0
+        complex(R_P), dimension(5, 5) :: B_c=0.0d0
+        complex(R_P), dimension(5, 5) :: C_c=0.0d0
+        complex(R_P), dimension(5, 5) :: A_p=0.0d0
+        complex(R_P), dimension(5, 5) :: B_p=0.0d0
+        complex(R_P), dimension(5, 5) :: C_p=0.0d0
+        complex(R_P), dimension(5, 5) :: A_m=0.0d0
+        complex(R_P), dimension(5, 5) :: B_m=0.0d0
+        complex(R_P), dimension(5, 5) :: C_m=0.0d0
+        complex(R_P), dimension(5, 5) :: A_v=0.0d0
+        complex(R_P), dimension(5, 5) :: B_v=0.0d0
+        complex(R_P), dimension(5, 5) :: C_v=0.0d0
+        complex(R_P), dimension(5, 5) :: Vxx=0.0d0
+        complex(R_P), dimension(5, 5) :: Vyy=0.0d0
+        complex(R_P), dimension(5, 5) :: Vzz=0.0d0
+        complex(R_P), dimension(5, 5) :: Vxy=0.0d0
+        complex(R_P), dimension(5, 5) :: Vxz=0.0d0
+        complex(R_P), dimension(5, 5) :: Vyz=0.0d0
         contains
             procedure,public  :: get_adorned_cubes
             procedure,private :: get_unadorned_cubes,get_splited_cubes,get_colored_cubes
@@ -66,7 +66,7 @@ module mod_cubes
         use mod_flowtype
         use mod_parameters
         implicit none
-        class(lns_OP_point_type),intent(inout) :: this 
+        class(lns_OP_point_type),intent(inout) :: this
         integer,intent(in) :: i,j,k
         real(R_P) :: Pe, gf, g1, g2, cm
         real(R_P) :: n_Miu, n_MiuT, n_MiuTT, n_Miux, n_Miuy, n_Miuz
@@ -84,7 +84,7 @@ module mod_cubes
         Vxy=0.0d0;Vxz=0.0d0;Vyz=0.0d0
         ! 设定参数
         Pe = 1.0d0/(GAMMA*Ma*Ma)
-        gf = 1.0d0/GAMMA 
+        gf = 1.0d0/GAMMA
         g1 = (1.0d0-GAMMA)/GAMMA
         g2 = 1.0d0/((GAMMA-1.0d0)*Ma*Ma)
         associate ( &
@@ -93,50 +93,50 @@ module mod_cubes
             V    => bf(i,j,k)%BF%y, &
             W    => bf(i,j,k)%BF%z, &
             T    => bf(i,j,k)%BF%T, &
-        
+
             rhox => bf(i,j,k)%BFDx%rho, &
             Ux   => bf(i,j,k)%BFDx%x, &
             Vx   => bf(i,j,k)%BFDx%y, &
             Wx   => bf(i,j,k)%BFDx%z, &
             Tx   => bf(i,j,k)%BFDx%T, &
-        
+
             rhoy => bf(i,j,k)%BFDy%rho, &
             Uy   => bf(i,j,k)%BFDy%x, &
             Vy   => bf(i,j,k)%BFDy%y, &
             Wy   => bf(i,j,k)%BFDy%z, &
             Ty   => bf(i,j,k)%BFDy%T, &
-        
+
             rhoz => bf(i,j,k)%BFDz%rho, &
             Uz   => bf(i,j,k)%BFDz%x, &
             Vz   => bf(i,j,k)%BFDz%y, &
             Wz   => bf(i,j,k)%BFDz%z, &
             Tz   => bf(i,j,k)%BFDz%T, &
-        
+
             Uxx  => bf(i,j,k)%BFDxx%x, &
             nVxx => bf(i,j,k)%BFDxx%y, & ! 加前缀n与系数矩阵区分
             Wxx  => bf(i,j,k)%BFDxx%z, &
             Txx  => bf(i,j,k)%BFDxx%T, &
-        
+
             Uyy  => bf(i,j,k)%BFDyy%x, &
-            nVyy => bf(i,j,k)%BFDyy%y, & 
+            nVyy => bf(i,j,k)%BFDyy%y, &
             Wyy  => bf(i,j,k)%BFDyy%z, &
             Tyy  => bf(i,j,k)%BFDyy%T, &
-        
+
             Uzz  => bf(i,j,k)%BFDzz%x, &
-            nVzz => bf(i,j,k)%BFDzz%y, & 
+            nVzz => bf(i,j,k)%BFDzz%y, &
             Wzz  => bf(i,j,k)%BFDzz%z, &
             Tzz  => bf(i,j,k)%BFDzz%T, &
-        
+
             Uxy  => bf(i,j,k)%BFDxy%x, &
-            nVxy => bf(i,j,k)%BFDxy%y, & 
+            nVxy => bf(i,j,k)%BFDxy%y, &
             Wxy  => bf(i,j,k)%BFDxy%z, &
-        
+
             Uxz  => bf(i,j,k)%BFDxz%x, &
-            nVxz => bf(i,j,k)%BFDxz%y, & 
+            nVxz => bf(i,j,k)%BFDxz%y, &
             Wxz  => bf(i,j,k)%BFDxz%z, &
-        
+
             Uyz  => bf(i,j,k)%BFDyz%x, &
-            nVyz => bf(i,j,k)%BFDyz%y, & 
+            nVyz => bf(i,j,k)%BFDyz%y, &
             Wyz  => bf(i,j,k)%BFDyz%z  )
             ! Surthland公式相关
             cm=C1/Te
@@ -153,12 +153,12 @@ module mod_cubes
             G(4, 4) = rho
             G(5, 1) = -1.0d0*Pe*T
             G(5, 5) = rho*g2-Pe*rho
-            ! G(5, 1) = g1*T 
+            ! G(5, 1) = g1*T
             ! G(5, 5) = rho/GAMMA
 
             A(1, 1) = U
             A(1, 2) = rho
-            A(2, 1) = Pe*T 
+            A(2, 1) = Pe*T
             A(2, 2) = rho*U - d4d3*n_Miux/Re
             A(2, 3) = -1.0d0*n_Miuy/Re
             A(2, 4) = -1.0d0*n_Miuz/Re
@@ -175,14 +175,14 @@ module mod_cubes
             A(5, 4) = -2.0d0*n_Miu*(Wx+Uz)/Re
             A(5, 5) = rho*U*g2-rho*U*Pe-2.0d0*Tx*n_MiuT/Re/Pr*g2
             ! A(5, 1) = g1*T*U
-            ! A(5, 2) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Ux-Vy-Wz)/Re 
+            ! A(5, 2) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Ux-Vy-Wz)/Re
             ! A(5, 3) = -2.0d0*g2*n_Miu*(Vx+Uy)/Re
             ! A(5, 4) = -2.0d0*g2*n_Miu*(Wx+Uz)/Re
             ! A(5, 5) = gf*rho*U - 2.0d0*n_Miux/Re/Pr
 
             A_c(1, 1) = U
             A_c(1, 2) = rho
-            A_c(2, 1) = Pe*T 
+            A_c(2, 1) = Pe*T
             A_c(2, 2) = rho*U
             A_c(2, 5) = Pe*rho
             A_c(3, 3) = rho*U
@@ -204,7 +204,7 @@ module mod_cubes
             A_v(5, 3) = -2.0d0*n_Miu*(Uy+Vx)/Re
             A_v(5, 4) = -2.0d0*n_Miu*(Wx+Uz)/Re
             A_v(5, 5) = -2.0d0*Tx*n_MiuT/Re/Pr*g2
-            
+
             B(1, 1) = V
             B(1, 3) = rho
             B(2, 2) = rho*V - n_Miuy/Re
@@ -227,7 +227,7 @@ module mod_cubes
             ! B(5, 2) = -2.0d0*g2*n_Miu*(Uy+Vx)/Re
             ! B(5, 3) = -1.0d0*d4d3*g2*n_Miu*(2.0d0*Vy-Ux-Wz)/Re
             ! B(5, 4) = -2.0d0*g2*n_Miu*(Wy+Vz)/Re
-            ! B(5, 5) = gf*rho*V - 2.0d0*n_Miuy/Re/Pr 
+            ! B(5, 5) = gf*rho*V - 2.0d0*n_Miuy/Re/Pr
 
             B_c(1, 1) = V
             B_c(1, 3) = rho
@@ -252,8 +252,8 @@ module mod_cubes
             B_v(5, 2) = -2.0d0*n_Miu*(Uy+Vx)/Re
             B_v(5, 3) = -2.0d0*n_Miu*(-d2d3*Ux+d4d3*Vy-d2d3*Wz)/Re
             B_v(5, 4) = -2.0d0*n_Miu*(Vz+Wy)/Re
-            B_v(5, 5) = -2.0d0*Ty*n_MiuT*g2/Re/Pr 
-            
+            B_v(5, 5) = -2.0d0*Ty*n_MiuT*g2/Re/Pr
+
             C(1, 1) = W
             C(1, 4) = rho
             C(2, 2) = rho*W - n_Miuz/Re
@@ -302,10 +302,10 @@ module mod_cubes
             C_v(5, 3) = -2.0d0*n_Miu*(Vz+Wy)/Re
             C_v(5, 4) = -2.0d0*n_Miu*(-d2d3*Ux-d2d3*Vy+d4d3*Wz)/Re
             C_v(5, 5) = -2.0d0*Tz*n_MiuT*g2/Re/Pr
-            
+
             D(1, 1) = Ux+Vy+Wz
             D(1, 2) = rhox
-            D(1, 3) = rhoy 
+            D(1, 3) = rhoy
             D(1, 4) = rhoz
             D(2, 1) = U*Ux+V*Uy+W*Uz+Pe*Tx
             D(2, 2) = rho*Ux
@@ -340,31 +340,31 @@ module mod_cubes
             ! D(5, 5) = g1*U*rhox+g1*V*rhoy+g1*W*rhoz - ( n_MiuTT*(Tx*Tx+Ty*Ty+Tz*Tz) &
             ! + n_MiuT*(Txx+Tyy+Tzz) )/Re/Pr - g2*( d4d3*n_MiuT*(Ux*Ux+Vy*Vy+Wz*Wz-Ux*Vy-Ux*Wz-Vy*Wz) &
             ! + n_MiuT*(Uy*Uy+Vx*Vx+2.0d0*Uy*Vx+Uz*Uz+Wx*Wx+2.0d0*Uz*Wx+Vz*Vz+Wy*Wy+2.0d0*Vz*Wy) )/Re
-            
+
             Vxx(2, 2) = d4d3*n_Miu/Re
             Vxx(3, 3) = n_Miu/Re
             Vxx(4, 4) = n_Miu/Re
             Vxx(5, 5) = n_Miu*g2/Re/Pr
             ! Vxx(5, 5) = n_Miu/Re/Pr
-            
+
             Vyy(2, 2) = n_Miu/Re
             Vyy(3, 3) = d4d3*n_Miu/Re
             Vyy(4, 4) = n_Miu/Re
             Vyy(5, 5) = n_Miu*g2/Re/Pr
-            ! Vyy(5, 5) = n_Miu/Re/Pr 
-            
+            ! Vyy(5, 5) = n_Miu/Re/Pr
+
             Vzz(2, 2) = n_Miu/Re
             Vzz(3, 3) = n_Miu/Re
             Vzz(4, 4) = d4d3*n_Miu/Re
             Vzz(5, 5) = n_Miu*g2/Re/Pr
             ! Vzz(5, 5) = n_Miu/Re/Pr
-            
+
             Vxy(2, 3) = d1d3*n_Miu/Re
             Vxy(3, 2) = d1d3*n_Miu/Re
-        
+
             Vxz(2, 4) = d1d3*n_Miu/Re
             Vxz(4, 2) = d1d3*n_Miu/Re
-        
+
             Vyz(3, 4) = d1d3*n_Miu/Re
             Vyz(4, 3) = d1d3*n_Miu/Re
         end associate
@@ -406,24 +406,24 @@ module mod_cubes
         this%A_p=A_p;     this%B_p=B_p;     this%C_p=C_p
         this%A_m=A_m;     this%B_m=B_m;     this%C_m=C_m
         this%A_v=Jor%A_v; this%B_v=Jor%B_v; this%C_v=Jor%C_v
-        this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
+        this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz
         this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
     end subroutine get_splited_cubes
 
     subroutine split_upwin(A,G,A_p,A_m)
         implicit none
-        real(R_P), dimension(5, 5), intent(out) :: A_p,A_m
-        complex(R_P), dimension(5, 5), intent(in) :: A, G
+        real(R_P),dimension(5, 5),intent(out) :: A_p,A_m
+        complex(R_P),dimension(5, 5),intent(in) :: A,G
         real(R_P) :: diag_plus(5, 5),diag_minus(5, 5)
-        real(R_P), dimension(5, 5) :: At, Gt, Ab
-        real(R_P) :: alfr(5), alfi(5), beta(5)
-        complex(R_P) :: ZI=(0.0d0,1.0d0)
-        real(R_P) :: vl(5, 5), vr(5, 5)
+        complex(R_P),parameter :: ZI=(0.0d0,1.0d0)
+        real(R_P),dimension(5, 5) :: At,Gt,Ab
+        real(R_P) :: alfr(5),alfi(5),beta(5)
+        real(R_P) :: vl(5, 5),vr(5, 5)
         complex(R_P) :: lambda_(5)
         integer :: ipiv(5), info
         real(R_P) :: work(100)
-        integer :: i    
-    
+        integer :: i
+
         diag_plus=0.0d0; diag_minus=0.0d0
         alfr=0.0d0; alfi=0.0d0
         A_p=0.0d0; A_m=0.0d0
@@ -458,12 +458,12 @@ module mod_cubes
     subroutine split_eigen(A,G,A_p,A_m)
         use mod_parameters,only:fk
         implicit none
-        real(R_P), dimension(5, 5), intent(out) :: A_p,A_m
-        complex(R_P), dimension(5, 5), intent(in) :: A, G
-        real(R_P), dimension(5, 5) :: At, Gt
-        real(R_P) :: alfr(5), alfi(5), beta(5)
-        complex(R_P) :: ZI=(0.0d0,1.0d0)
-        real(R_P) :: vl(5, 5), vr(5, 5)
+        real(R_P),dimension(5, 5),intent(out) :: A_p,A_m
+        complex(R_P),dimension(5, 5),intent(in) :: A,G
+        complex(R_P),parameter :: ZI=(0.0d0,1.0d0)
+        real(R_P) :: alfr(5),alfi(5),beta(5)
+        real(R_P),dimension(5, 5) :: At,Gt
+        real(R_P) :: vl(5, 5),vr(5, 5)
         complex(R_P) :: lambda_(5)
         real(R_P) :: work(100)
         real(R_P) :: max_l
@@ -482,8 +482,8 @@ module mod_cubes
         lambda_=(alfr+ZI*alfi)/beta
         max_l = maxval(abs(lambda_))
 
-        A_p = 0.5d0*A + fk*max_l*G
-        A_m = 0.5d0*A - fk*max_l*G
+        A_p = 0.5d0*(A + fk*max_l*G)
+        A_m = 0.5d0*(A - fk*max_l*G)
 
     end subroutine split_eigen
 
@@ -501,7 +501,7 @@ module mod_cubes
     end subroutine get_colored_cubes
 
     subroutine teal_cubes(this,i,j,k)
-        use mod_parameters,only:Beta,Omega 
+        use mod_parameters,only:Beta,Omega
         implicit none
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
@@ -515,15 +515,15 @@ module mod_cubes
         this%A_p=Jor%A_p; this%B_p=Jor%B_p; this%C_p=0.0d0
         this%A_m=Jor%A_m; this%B_m=Jor%B_m; this%C_m=0.0d0
         this%A_v=Jor%A_v-Ci*Beta*Jor%Vxz
-        this%B_v=Jor%B_v-Ci*Beta*Jor%Vyz 
+        this%B_v=Jor%B_v-Ci*Beta*Jor%Vyz
         this%C_v=0.0d0
         this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
-        this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0 
+        this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0
     end subroutine teal_cubes
 
     subroutine mint_cubes(this,i,j,k)
-        use mod_parameters,only:Alpha,Beta,Omega 
-        implicit none 
+        use mod_parameters,only:Alpha,Beta,Omega
+        implicit none
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
@@ -532,42 +532,42 @@ module mod_cubes
         this%D=Jor%D-Ci*Omega*Jor%G+Ci*Alpha*Jor%A &
         +Ci*Beta*Jor%C+Alpha*Alpha*Jor%Vxx+Beta*Beta*Jor%Vzz+Alpha*Beta*Jor%Vxz
         this%A=Jor%A-2.0d0*Ci*Alpha*Jor%Vxx-Ci*Beta*Jor%Vxz
-        this%B=Jor%B-Ci*Alpha*Jor%Vxy-Ci*Beta*Jor%Vyz 
+        this%B=Jor%B-Ci*Alpha*Jor%Vxy-Ci*Beta*Jor%Vyz
         this%C=0.0d0
         this%A_p=Jor%A_p; this%B_p=Jor%B_p; this%C_p=0.0d0
         this%A_m=Jor%A_m; this%B_m=Jor%B_m; this%C_m=0.0d0
         this%A_v=Jor%A_v-2.0d0*Ci*Alpha*Jor%Vxx-Ci*Beta*Jor%Vxz
-        this%B_v=Jor%B_v-Ci*Alpha*Jor%Vxy-Ci*Beta*Jor%Vyz 
+        this%B_v=Jor%B_v-Ci*Alpha*Jor%Vxy-Ci*Beta*Jor%Vyz
         this%C_v=0.0d0
         this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=0.0d0
-        this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0      
+        this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0
     end subroutine mint_cubes
 
     subroutine skyblue_cubes(this,i,j,k)
         use mod_parameters,only:Omega
-        implicit none 
+        implicit none
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
         call Jor%get_splited_cubes(i,j,k)
-        this%G=Jor%G 
+        this%G=Jor%G
         this%D=Jor%D-Ci*Omega*Jor%G
         this%A=Jor%A;     this%B=Jor%B;     this%C=Jor%C
         this%A_p=Jor%A_p; this%B_p=Jor%B_p; this%C_p=Jor%C_p
         this%A_m=Jor%A_m; this%B_m=Jor%B_m; this%C_m=Jor%C_m
         this%A_v=Jor%A_v; this%B_v=Jor%B_v; this%C_v=Jor%C_v
-        this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
+        this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz
         this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
     end subroutine skyblue_cubes
 
     subroutine lilac_cubes(this,i,j,k)
         use mod_parameters,only:Alpha,Omega
-        implicit none 
+        implicit none
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
         call Jor%get_splited_cubes(i,j,k)
-        this%G=Jor%G 
+        this%G=Jor%G
         this%D=Jor%D-Ci*Omega*Jor%G+Ci*Alpha*Jor%A+Alpha*Alpha*Jor%Vxx
         this%A=Jor%A-2*Ci*Alpha*Jor%Vxx
         this%B=Jor%B-Ci*Alpha*Jor%Vxy
@@ -577,7 +577,7 @@ module mod_cubes
         this%A_v=Jor%A_v-2*Ci*Alpha*Jor%Vxx
         this%B_v=Jor%B_v-Ci*Alpha*Jor%Vxy
         this%C_v=Jor%C_v-Ci*Alpha*Jor%Vxz
-        this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz 
+        this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz
         this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
     end subroutine lilac_cubes
 

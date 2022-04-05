@@ -67,7 +67,8 @@ module mod_files
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-hdf5',set,ierr)
         if(set) io_type="hdf5"
 
-        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
+        if(ksp_flg)  call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
+        if(snes_flg) call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-snes_monitor",PETSC_NULL_CHARACTER,ierr)
         call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-sub_pc_factor_in_place",PETSC_NULL_CHARACTER,ierr)
         call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-pc_asm_sub_mat_type","baij",ierr)
 
@@ -560,7 +561,7 @@ module mod_files
         call PetscPrintf(comm, "\n ----------------------------------\n", ierr)
         call PetscPrintf(comm, "               Ostream              \n\n", ierr)
 
-        resultfile = "data/turtle.pet"
+        resultfile = "./data/turtle.pet"
         call PetscViewerBinaryOpen(comm,trim(resultfile),FILE_MODE_WRITE,viewer,ierr)
         call VecView(turtle, viewer, ierr)
         call PetscViewerDestroy(viewer, ierr)

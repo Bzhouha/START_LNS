@@ -47,6 +47,7 @@ module mod_solving
         use mod_parameters,only : ksp_mat_free_flg
         implicit none
         integer,intent(in) :: comm
+        ksp_mat_free_flg = .False.
         select case (ksp_mat_free_flg)
             case (.True.)
                 call dolphin_coming(comm)
