@@ -451,7 +451,8 @@ module mod_cubes
         Ab=matmul(Ab, diag_minus)
         Ab=matmul(Ab, vl)
 
-        A_p=At; A_m=Ab
+        A_p=At
+        A_m=Ab
 
     end subroutine split_upwin
 
@@ -512,6 +513,7 @@ module mod_cubes
         this%A=Jor%A-Ci*Beta*Jor%Vxz
         this%B=Jor%B-Ci*Beta*Jor%Vyz
         this%C=0.0d0
+        this%A_c=Jor%A_c; this%B_c=Jor%B_c; this%C_c=0.0d0
         this%A_p=Jor%A_p; this%B_p=Jor%B_p; this%C_p=0.0d0
         this%A_m=Jor%A_m; this%B_m=Jor%B_m; this%C_m=0.0d0
         this%A_v=Jor%A_v-Ci*Beta*Jor%Vxz
@@ -534,6 +536,7 @@ module mod_cubes
         this%A=Jor%A-2.0d0*Ci*Alpha*Jor%Vxx-Ci*Beta*Jor%Vxz
         this%B=Jor%B-Ci*Alpha*Jor%Vxy-Ci*Beta*Jor%Vyz
         this%C=0.0d0
+        this%A_c=Jor%A_c; this%B_c=Jor%B_c; this%C_c=0.0d0
         this%A_p=Jor%A_p; this%B_p=Jor%B_p; this%C_p=0.0d0
         this%A_m=Jor%A_m; this%B_m=Jor%B_m; this%C_m=0.0d0
         this%A_v=Jor%A_v-2.0d0*Ci*Alpha*Jor%Vxx-Ci*Beta*Jor%Vxz
@@ -553,6 +556,7 @@ module mod_cubes
         this%G=Jor%G
         this%D=Jor%D-Ci*Omega*Jor%G
         this%A=Jor%A;     this%B=Jor%B;     this%C=Jor%C
+        this%A_c=Jor%A_c; this%B_c=Jor%B_c; this%C_c=Jor%C_c
         this%A_p=Jor%A_p; this%B_p=Jor%B_p; this%C_p=Jor%C_p
         this%A_m=Jor%A_m; this%B_m=Jor%B_m; this%C_m=Jor%C_m
         this%A_v=Jor%A_v; this%B_v=Jor%B_v; this%C_v=Jor%C_v
@@ -572,6 +576,7 @@ module mod_cubes
         this%A=Jor%A-2*Ci*Alpha*Jor%Vxx
         this%B=Jor%B-Ci*Alpha*Jor%Vxy
         this%C=Jor%C-Ci*Alpha*Jor%Vxz
+        this%A_c=Jor%A_c; this%B_c=Jor%B_c; this%C_c=Jor%C_c
         this%A_p=Jor%A_p; this%B_p=Jor%B_p; this%C_p=Jor%C_p
         this%A_m=Jor%A_m; this%B_m=Jor%B_m; this%C_m=Jor%C_m
         this%A_v=Jor%A_v-2*Ci*Alpha*Jor%Vxx
@@ -623,6 +628,12 @@ module mod_cubes
             this%B   = eta_x*Jor%A+eta_y*Jor%B+eta_z*Jor%C-eta_xx*Jor%Vxx-eta_yy*Jor%Vyy-eta_zz*Jor%Vzz &
             -eta_xy*Jor%Vxy-eta_xz*Jor%Vxz-eta_yz*Jor%Vyz
             this%C   = phi_x*Jor%A+phi_y*Jor%B+phi_z*Jor%C-phi_xx*Jor%Vxx-phi_yy*Jor%Vyy-phi_zz*Jor%Vzz &
+            -phi_xy*Jor%Vxy-phi_xz*Jor%Vxz-phi_yz*Jor%Vyz
+            this%A_c = xi_x*Jor%A_c+xi_y*Jor%B_c+xi_z*Jor%C_c-xi_xx*Jor%Vxx-xi_yy*Jor%Vyy-xi_zz*Jor%Vzz &
+            -xi_xy*Jor%Vxy-xi_xz*Jor%Vxz-xi_yz*Jor%Vyz
+            this%B_c = eta_x*Jor%A_c+eta_y*Jor%B_c+eta_z*Jor%C_c-eta_xx*Jor%Vxx-eta_yy*Jor%Vyy-eta_zz*Jor%Vzz &
+            -eta_xy*Jor%Vxy-eta_xz*Jor%Vxz-eta_yz*Jor%Vyz
+            this%C_c = phi_x*Jor%A_c+phi_y*Jor%B_c+phi_z*Jor%C_c-phi_xx*Jor%Vxx-phi_yy*Jor%Vyy-phi_zz*Jor%Vzz &
             -phi_xy*Jor%Vxy-phi_xz*Jor%Vxz-phi_yz*Jor%Vyz
             this%A_p = xi_x*Jor%A_p+xi_y*Jor%B_p+xi_z*Jor%C_p
             this%B_p = eta_x*Jor%A_p+eta_y*Jor%B_p+eta_z*Jor%C_p

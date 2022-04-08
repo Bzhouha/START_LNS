@@ -32,9 +32,9 @@ module mod_solving
         PetscInt,intent(in) :: comm
         call PetscPrintf(comm, "\n ----------------------------------\n", ierr)
         call PetscPrintf(comm, "              DStream            \n", ierr)
+        call PetscPrintf(comm,"\n   Data :: Preparation\n",ierr)
         call metric_coefficient(comm)
         call partial_derivatives(comm)
-        call PetscPrintf(comm,"\n   Data :: Preparation\n",ierr)
         select case (solver_mode)
             case('ksp')
                 call linear_equations(comm)
@@ -75,6 +75,7 @@ module mod_solving
         PC :: pc
         rtol = 1e-8
         if(level==0)then ! 如果level是0，那么不使用多重网格
+            call PetscPrintf(comm, "\n   KSP :: Solve\n\n", ierr)
             call KSPCreate(comm,ksp,ierr)
             call KSPSetOperators(ksp,whale,whale,ierr)
             call KSPSetType(ksp,KSPFGMRES,ierr)
@@ -93,7 +94,6 @@ module mod_solving
             call PCSetUp(pc,ierr)
             call KSPSetFromOptions(ksp,ierr)
             call KSPSetUp(ksp,ierr)
-            call PetscPrintf(comm, "\n   KSP :: Solve\n\n", ierr)
             call KSPSolve(ksp,RHS,turtle,ierr)
             call PetscPrintf(comm, "\n", ierr)
             call KSPView(ksp,PETSC_VIEWER_STDOUT_WORLD,ierr)
@@ -131,14 +131,13 @@ module mod_solving
         use mod_parameters,only : shark,turtle,meshDA,bell,whale
         implicit none
         integer,intent(in) :: comm
-        PetscScalar :: zero=0.0d0
         real(8) :: rtol
         SNES :: snes
         KSP :: ksp
         Vec :: r
         PC :: pc
         rtol = 1e-8
-        ! call VecSet(turtle,zero,ierr)
+        call PetscPrintf(comm, "\n   SNES :: Solve\n\n", ierr)
         call VecDuplicate(turtle,r,ierr)
         call SNESCreate(comm,snes,ierr)
         call SNESSetFunction(snes,r,snes_fx,0,ierr)
@@ -150,14 +149,11 @@ module mod_solving
         call KSPGetPC(ksp,pc,ierr)
         call PCSetType(pc,PCASM,ierr)
         call PCSetFromOptions(pc,ierr)
-        ! call PCSetUp(pc,ierr)
         call KSPSetFromOptions(ksp,ierr)
-        ! call KSPSetUp(ksp,ierr)
         ! call SNESSetType(snes,SNESNEWTONLS,ierr)
         call SNESSetTolerances(snes,PETSC_DEFAULT_REAL,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,PETSC_DEFAULT_INTEGER,ierr)
         call SNESSetFromOptions(snes,ierr)
         call SNESSetUp(snes,ierr)
-        call PetscPrintf(comm, "\n   SNES :: Solve\n\n", ierr)
         call SNESSolve(snes,PETSC_NULL_VEC,turtle,ierr)
         call PetscPrintf(comm, "\n", ierr)
         call SNESView(snes,PETSC_VIEWER_STDOUT_WORLD,ierr)

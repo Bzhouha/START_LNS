@@ -54,7 +54,7 @@ module mod_files
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp_mf',ksp_mat_free_flg,ierr)
         if(ksp_mat_free_flg) ksp_flg=.True.
         if(ksp_flg)then
-            solver_mode='ksp';split_mode=0
+            solver_mode='ksp'; split_mode=0
         endif
         if(snes_flg)then
             solver_mode='snes';split_mode=1
