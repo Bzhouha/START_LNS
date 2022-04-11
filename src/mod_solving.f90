@@ -50,10 +50,10 @@ module mod_solving
         ksp_mat_free_flg = .False.
         select case (ksp_mat_free_flg)
             case (.True.)
-                call dolphin_coming(comm)
+                call dolphin_coming(comm,ierr)
                 call dolphin_ready(comm,0)
             case (.False.)
-                call whale_coming(comm)
+                call whale_coming(comm,ierr)
                 call whale_ready(comm,0)
         end select
     end subroutine linear_equations
@@ -61,7 +61,7 @@ module mod_solving
     subroutine nonlinear_equations(comm)
         implicit none
         integer, intent(in) :: comm
-        call shark_coming(comm)
+        call shark_coming(comm,ierr)
         call shark_ready(comm)
     end subroutine nonlinear_equations
 

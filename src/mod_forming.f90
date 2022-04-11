@@ -11,13 +11,13 @@ module mod_forming
 !
 !   for KSP :: Linear System Solvers
 !
-!       1.call dolphin_coming(comm) 免矩阵形式的矩阵生成函数
+!       1.call dolphin_coming(comm,ierr) 免矩阵形式的矩阵生成函数
 !
 !           call dolphin_growing_up(A, X, F, ierr) 免矩阵需要的矩阵向量乘法函数
 !
-!       2.call whale_coming(comm) 显式矩阵形式的矩阵生成函数
+!       2.call whale_coming(comm,ierr) 显式矩阵形式的矩阵生成函数
 !
-!           call whale_growing_up() 填充数据函数
+!           call whale_growing_up(ierr) 填充数据函数
 !
 !               (1).call whale_eat_shrimps(i,j,k) 边界部分的填充数据函数
 !
@@ -25,13 +25,13 @@ module mod_forming
 !
 !               (3).call cleanup() 释放基本流类和度量系数数组内存
 !
-!       3.call ksp_rhs(comm) 设置右边量，即边界。
+!       3.call ksp_rhs(comm,ierr) 设置右边量，即边界。
 !
 !   for SNES :: Nonlinear Solvers
 !
-!       1.call shark_coming(comm) SNES所需的矩阵、数组分配
+!       1.call shark_coming(comm,ierr) SNES所需的矩阵、数组分配
 !
-!       2.call snes_jac(snes,x,jac,B,null_int,ierr) 雅各比矩阵函数
+!           call shark_growing_up(ierr) 生成Jac矩阵
 !
 !       3.call snes_fx(snes,x,f,null_int,ierr) 右端项函数
 !
@@ -93,7 +93,7 @@ module mod_forming
 
     !   KSP :: Linear System Solvers
 
-    subroutine dolphin_coming(comm)
+    subroutine dolphin_coming(comm,ierr)
         use mod_parameters,only : meshDA,bell,turtle,dolphin,RHS
         implicit none
         PetscInt,intent(in) :: comm
@@ -108,7 +108,7 @@ module mod_forming
         call MatAssemblyEnd(dolphin,MAT_FINAL_ASSEMBLY,ierr)
         call VecDuplicate(turtle,RHS,ierr)
         call VecZeroEntries(RHS,ierr)
-        call ksp_rhs(comm)
+        call ksp_rhs(comm,ierr)
         call PetscPrintf(comm,"\n   KSP :: Matrix-Free\n",ierr)
     end subroutine dolphin_coming
 
@@ -257,7 +257,7 @@ module mod_forming
         call DMDAVecRestoreArrayF90(meshDA,F,fr,ierr)
     end subroutine dolphin_growing_up
 
-    subroutine whale_coming(comm)
+    subroutine whale_coming(comm,ierr)
         use mod_parameters,only : meshDA,whale,turtle,RHS
         implicit none
         PetscInt,intent(in) :: comm
@@ -265,13 +265,13 @@ module mod_forming
         call PetscPrintf(comm,"\n   KSP :: Matrix\n",ierr)
         call DMCreateMatrix(meshDA, whale, ierr)
         call MatZeroEntries(whale,ierr)
-        call whale_growing_up()
+        call whale_growing_up(ierr)
         call VecDuplicate(turtle,RHS,ierr)
         call VecZeroEntries(RHS,ierr)
-        call ksp_rhs(comm)
+        call ksp_rhs(comm,ierr)
     end subroutine whale_coming
 
-    subroutine whale_growing_up()
+    subroutine whale_growing_up(ierr)
         use mod_parameters,only : whale,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
         PetscErrorCode :: ierr
@@ -459,7 +459,7 @@ module mod_forming
         end associate
     end subroutine whale_eat_sardine
 
-    subroutine ksp_rhs(comm)
+    subroutine ksp_rhs(comm,ierr)
         use mod_parameters,only : meshDA,RHS,disturb,is,ie,js,je,ks,ke
         implicit none
         PetscScalar,pointer :: RHS_array(:,:,:,:)
@@ -480,7 +480,7 @@ module mod_forming
 
     !   SNES :: Nonlinear Solvers
 
-    subroutine shark_coming(comm)
+    subroutine shark_coming(comm,ierr)
         use mod_parameters,only : meshDA,shark,bell
         implicit none
         PetscInt,intent(in) :: comm
@@ -490,10 +490,10 @@ module mod_forming
         call VecZeroEntries(bell,ierr)
         call DMCreateMatrix(meshDA,shark,ierr)
         call MatZeroEntries(shark,ierr)
-        call shark_growing_up()
+        call shark_growing_up(ierr)
     end subroutine shark_coming
 
-    subroutine shark_growing_up()
+    subroutine shark_growing_up(ierr)
         use mod_parameters,only : shark,lns_mode,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
         integer :: ic_index, jc_index, kc_index
@@ -765,6 +765,7 @@ module mod_forming
                         &          matmul(A,yi(:,2))+matmul(B,yi(:,3))+matmul(C,yi(:,4))-       &
                         &          matmul(Vxx,yi(:,5))-matmul(Vyy,yi(:,6))-matmul(Vzz,yi(:,7))- &
                         &          matmul(Vxy,yi(:,8))-matmul(Vxz,yi(:,9))-matmul(Vyz,yi(:,10))
+
                     endif
                 enddo
             enddo
