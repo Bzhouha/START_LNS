@@ -123,7 +123,7 @@ module mod_solving
         integer,intent(in) :: level
         PetscInt,intent(in) :: comm
         call DMRestoreLocalVector(meshDA,bell,ierr)
-        call finalclean()
+        call cleanup()
         call VecDestroy(RHS,ierr)
     end subroutine dolphin_ready
 
@@ -158,7 +158,7 @@ module mod_solving
         call PetscPrintf(comm, "\n", ierr)
         call SNESView(snes,PETSC_VIEWER_STDOUT_WORLD,ierr)
         call SNESDestroy(snes,ierr)
-        call finalclean()
+        call cleanup()
         call DMRestoreLocalVector(meshDA,bell,ierr)
     end subroutine shark_ready
 end module mod_solving

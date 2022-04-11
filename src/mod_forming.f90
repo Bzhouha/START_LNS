@@ -23,7 +23,7 @@ module mod_forming
 !
 !               (2).call whale_eat_sardine(i,j,k) 内部部分的填充数据函数
 !
-!               (3).call finalclean() 释放基本流类和度量系数数组内存
+!               (3).call cleanup() 释放基本流类和度量系数数组内存
 !
 !       3.call ksp_rhs(comm) 设置右边量，即边界。
 !
@@ -41,7 +41,7 @@ module mod_forming
     use petsc
     implicit none
     public :: dolphin_coming, whale_coming, shark_coming
-    public :: snes_fx, finalclean
+    public :: snes_fx, cleanup
     private
     type(lns_OP_point_type) :: Jor
     real(R_P), parameter, dimension(-2:2,-2:2) :: FDM_1nd_4ORD_CENTER=reshape( [&
@@ -291,9 +291,10 @@ module mod_forming
         call MatAssemblyEnd(whale,MAT_FINAL_ASSEMBLY,ierr)
     end subroutine whale_growing_up
 
-    subroutine finalclean()
+    subroutine cleanup()
         use mod_parameters
         deallocate(bf)
+        deallocate(disturb)
         deallocate(xi_x,xi_y,xi_z)
         deallocate(eta_x,eta_y,eta_z)
         deallocate(phi_x,phi_y,phi_z)
@@ -303,7 +304,7 @@ module mod_forming
         deallocate(xi_xy,xi_xz,xi_yz)
         deallocate(eta_xy,eta_yz,eta_xz)
         deallocate(phi_xy,phi_yz,phi_xz)
-    end subroutine finalclean
+    end subroutine cleanup
 
     subroutine whale_eat_shrimps(i,j,k)
         use mod_parameters,only : whale,in,jn,kn
@@ -475,7 +476,6 @@ module mod_forming
             call DMDAVecRestoreArrayF90(meshDA,RHS,RHS_array,ierr)
         endif
         call MPI_Barrier(comm,ierr)
-        deallocate(disturb)
     end subroutine ksp_rhs
 
     !   SNES :: Nonlinear Solvers
