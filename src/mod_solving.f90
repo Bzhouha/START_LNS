@@ -145,6 +145,8 @@ module mod_solving
         call SNESSetJacobian(snes,shark,shark,PETSC_NULL_FUNCTION,PETSC_NULL_INTEGER,ierr)
         call SNESGetKSP(snes,ksp,ierr)
         call KSPSetType(ksp,KSPFGMRES,ierr)
+        call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
+        call KSPGMRESSetRestart(ksp,40,ierr)
         call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
         call KSPGetPC(ksp,pc,ierr)
         call PCSetType(pc,PCASM,ierr)
