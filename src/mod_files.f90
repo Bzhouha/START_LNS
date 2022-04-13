@@ -57,7 +57,7 @@ module mod_files
             solver_mode='ksp'; split_mode=0
         endif
         if(snes_flg)then
-            solver_mode='snes';split_mode=1
+            solver_mode='snes';split_mode=0
         endif
 
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-raw',set,ierr)

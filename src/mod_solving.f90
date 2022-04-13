@@ -44,32 +44,52 @@ module mod_solving
     end subroutine dstream
 
     subroutine linear_equations(comm)
-        use mod_parameters,only : ksp_mat_free_flg
+        use mod_parameters,only : ksp_mat_free_flg,dolphin,whale,turtle,RHS
         implicit none
         integer,intent(in) :: comm
         ksp_mat_free_flg = .False.
         select case (ksp_mat_free_flg)
             case (.True.)
+                call PetscPrintf(comm,"\n   KSP :: Matrix-Free\n",ierr)
                 call dolphin_coming(comm,ierr)
-                call dolphin_ready(comm,0)
+                call dolphin_ready(comm,dolphin,turtle,RHS,0)
             case (.False.)
+                call PetscPrintf(comm,"\n   KSP :: Matrix\n",ierr)
                 call whale_coming(comm,ierr)
-                call whale_ready(comm,0)
+                call whale_ready(comm,whale,turtle,RHS,0)
         end select
+        call ksp_rhs(comm,RHS,ierr)
     end subroutine linear_equations
 
     subroutine nonlinear_equations(comm)
+        use mod_parameters,only : whale,turtle
         implicit none
         integer, intent(in) :: comm
-        call shark_coming(comm,ierr)
-        call shark_ready(comm)
+        call PetscPrintf(comm,"\n   SNES :: Jacobi&fx\n",ierr)
+        ! call shark_coming(comm,ierr)
+        call whale_coming(comm,ierr)
+        call shark_ready(comm,whale,turtle,snes_fx4o)
     end subroutine nonlinear_equations
 
-    subroutine whale_ready(comm,level)
-        use mod_parameters,only : whale,turtle,RHS,init_guess_flg
+    subroutine dolphin_ready(comm,mat,x,rhs,level)
         implicit none
         integer,intent(in) :: level
         PetscInt,intent(in) :: comm
+        Mat,intent(in) :: mat
+        Vec,intent(in) :: rhs
+        Vec,intent(inout) :: x
+        call cleanup()
+        call VecDestroy(rhs,ierr)
+    end subroutine dolphin_ready
+
+    subroutine whale_ready(comm,mat,x,rhs,level)
+        use mod_parameters,only : init_guess_flg
+        implicit none
+        integer,intent(in) :: level
+        PetscInt,intent(in) :: comm
+        Mat,intent(in) :: mat
+        Vec,intent(in) :: rhs
+        Vec,intent(inout) :: x
         real(8) :: rtol
         KSP :: ksp
         PC :: pc
@@ -77,7 +97,7 @@ module mod_solving
         if(level==0)then ! 如果level是0，那么不使用多重网格
             call PetscPrintf(comm, "\n   KSP :: Solve\n\n", ierr)
             call KSPCreate(comm,ksp,ierr)
-            call KSPSetOperators(ksp,whale,whale,ierr)
+            call KSPSetOperators(ksp,mat,mat,ierr)
             call KSPSetType(ksp,KSPFGMRES,ierr)
             call KSPSetInitialGuessNonzero(ksp,init_guess_flg,ierr)
             call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
@@ -94,12 +114,12 @@ module mod_solving
             call PCSetUp(pc,ierr)
             call KSPSetFromOptions(ksp,ierr)
             call KSPSetUp(ksp,ierr)
-            call KSPSolve(ksp,RHS,turtle,ierr)
+            call KSPSolve(ksp,rhs,x,ierr)
             call PetscPrintf(comm, "\n", ierr)
             call KSPView(ksp,PETSC_VIEWER_STDOUT_WORLD,ierr)
         elseif(level>0)then
             call KSPCreate(comm,ksp,ierr)
-            call KSPSetOperators(ksp,whale,whale,ierr)
+            call KSPSetOperators(ksp,mat,mat,ierr)
             call KSPSetType(ksp,KSPFGMRES,ierr)
             call KSPGetPC(ksp,pc,ierr)
             call PCSetType(pc,PCMG,ierr)
@@ -117,20 +137,12 @@ module mod_solving
         call KSPDestroy(ksp,ierr)
     end subroutine whale_ready
 
-    subroutine dolphin_ready(comm,level)
-        use mod_parameters,only : turtle,RHS,meshDA,bell
-        implicit none
-        integer,intent(in) :: level
-        PetscInt,intent(in) :: comm
-        call DMRestoreLocalVector(meshDA,bell,ierr)
-        call cleanup()
-        call VecDestroy(RHS,ierr)
-    end subroutine dolphin_ready
-
-    subroutine shark_ready(comm)
-        use mod_parameters,only : shark,turtle,meshDA,bell,whale
+    subroutine shark_ready(comm,jac,x,fx)
         implicit none
         integer,intent(in) :: comm
+        Mat,intent(in) :: jac
+        Vec,intent(inout) :: x
+        external :: fx
         real(8) :: rtol
         SNES :: snes
         KSP :: ksp
@@ -138,11 +150,10 @@ module mod_solving
         PC :: pc
         rtol = 1e-8
         call PetscPrintf(comm, "\n   SNES :: Solve\n\n", ierr)
-        call VecDuplicate(turtle,r,ierr)
+        call VecDuplicate(x,r,ierr)
         call SNESCreate(comm,snes,ierr)
-        call SNESSetFunction(snes,r,snes_fx,0,ierr)
-        ! call SNESSetJacobian(snes,shark,shark,snes_jac,0,ierr)
-        call SNESSetJacobian(snes,shark,shark,PETSC_NULL_FUNCTION,PETSC_NULL_INTEGER,ierr)
+        call SNESSetFunction(snes,r,fx,0,ierr)
+        call SNESSetJacobian(snes,jac,jac,PETSC_NULL_FUNCTION,PETSC_NULL_INTEGER,ierr)
         call SNESGetKSP(snes,ksp,ierr)
         call KSPSetType(ksp,KSPFGMRES,ierr)
         call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
@@ -156,11 +167,12 @@ module mod_solving
         call SNESSetTolerances(snes,PETSC_DEFAULT_REAL,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,PETSC_DEFAULT_INTEGER,ierr)
         call SNESSetFromOptions(snes,ierr)
         call SNESSetUp(snes,ierr)
-        call SNESSolve(snes,PETSC_NULL_VEC,turtle,ierr)
+        call SNESSolve(snes,PETSC_NULL_VEC,x,ierr)
         call PetscPrintf(comm, "\n", ierr)
         call SNESView(snes,PETSC_VIEWER_STDOUT_WORLD,ierr)
+        call VecDestroy(r,ierr)
         call SNESDestroy(snes,ierr)
         call cleanup()
-        call DMRestoreLocalVector(meshDA,bell,ierr)
     end subroutine shark_ready
+
 end module mod_solving
