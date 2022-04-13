@@ -38,8 +38,8 @@ module mod_forming
     use mod_cubes
     use petsc
     implicit none
-    public :: dolphin_coming,whale_coming,ksp_rhs
-    public :: shark_coming,snes_fx1o,snes_fx4o
+    public :: form_mat
+    public :: ksp_rhs,snes_fx1o,snes_fx4o
     public :: cleanup
     private
     type(lns_OP_point_type) :: Jor
@@ -90,7 +90,16 @@ module mod_forming
     real(R_P), parameter :: delta_k(-2:2)=[0.0d0, 0.0d0, 1.0d0, 0.0d0, 0.0d0]
     contains
 
-    !   KSP :: Linear System Solvers
+    subroutine form_mat(comm,mat)
+        use mod_parameters,only:whale,dolphin,shark
+        implicit none
+        integer,intent(in) :: comm
+        PetscErrorCode :: ierr
+        Mat :: mat
+        if(mat==dolphin) call dolphin_coming(comm,ierr)
+        if(mat==whale)   call whale_coming(comm,ierr)
+        if(mat==shark)   call shark_coming(comm,ierr)
+    end subroutine form_mat
 
     subroutine dolphin_coming(comm,ierr)
         use mod_parameters,only : turtle,dolphin

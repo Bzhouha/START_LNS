@@ -51,8 +51,6 @@ module mod_files
 
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp',ksp_flg,ierr)
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-snes',snes_flg,ierr)
-        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp_mf',ksp_mat_free_flg,ierr)
-        if(ksp_mat_free_flg) ksp_flg=.True.
         if(ksp_flg)then
             solver_mode='ksp'; split_mode=0
         endif
@@ -69,6 +67,7 @@ module mod_files
 
         if(ksp_flg)  call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
         if(snes_flg) call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-snes_monitor",PETSC_NULL_CHARACTER,ierr)
+        if(snes_flg) call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
         call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-sub_pc_factor_in_place",PETSC_NULL_CHARACTER,ierr)
         call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-pc_asm_sub_mat_type","baij",ierr)
 

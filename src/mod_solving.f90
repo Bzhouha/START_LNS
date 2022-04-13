@@ -27,7 +27,7 @@ module mod_solving
     PetscErrorCode :: ierr
     contains
     subroutine dstream(comm)
-        use mod_parameters,only : solver_mode
+        use mod_parameters,only : solver_mode,whale,shark,dolphin,turtle,RHS
         implicit none
         PetscInt,intent(in) :: comm
         call PetscPrintf(comm, "\n ----------------------------------\n", ierr)
@@ -37,38 +37,34 @@ module mod_solving
         call partial_derivatives(comm)
         select case (solver_mode)
             case('ksp')
-                call linear_equations(comm)
+                call linear_equations(comm,whale,turtle,RHS)
             case('snes')
-                call nonlinear_equations(comm)
+                call nonlinear_equations(comm,whale,turtle,snes_fx4o)
         end select
     end subroutine dstream
 
-    subroutine linear_equations(comm)
-        use mod_parameters,only : ksp_mat_free_flg,dolphin,whale,turtle,RHS
+    subroutine linear_equations(comm,mat,x,rhs)
+        use mod_parameters,only : dolphin,whale
         implicit none
         integer,intent(in) :: comm
-        ksp_mat_free_flg = .False.
-        select case (ksp_mat_free_flg)
-            case (.True.)
-                call PetscPrintf(comm,"\n   KSP :: Matrix-Free\n",ierr)
-                call dolphin_coming(comm,ierr)
-                call dolphin_ready(comm,dolphin,turtle,RHS,0)
-            case (.False.)
-                call PetscPrintf(comm,"\n   KSP :: Matrix\n",ierr)
-                call whale_coming(comm,ierr)
-                call whale_ready(comm,whale,turtle,RHS,0)
-        end select
+        Vec :: x,rhs
+        Mat :: mat
+        call PetscPrintf(comm,"\n   KSP :: Matrix\n",ierr)
+        call form_mat(comm,mat)
         call ksp_rhs(comm,RHS,ierr)
+        if(mat==dolphin) call dolphin_ready(comm,mat,x,rhs,0)
+        if(mat==whale)   call whale_ready(comm,mat,x,rhs,0)
     end subroutine linear_equations
 
-    subroutine nonlinear_equations(comm)
-        use mod_parameters,only : whale,turtle
+    subroutine nonlinear_equations(comm,mat,x,fx)
         implicit none
         integer, intent(in) :: comm
+        external :: fx
+        Mat :: mat
+        Vec :: x
         call PetscPrintf(comm,"\n   SNES :: Jacobi&fx\n",ierr)
-        ! call shark_coming(comm,ierr)
-        call whale_coming(comm,ierr)
-        call shark_ready(comm,whale,turtle,snes_fx4o)
+        call form_mat(comm,mat)
+        call shark_ready(comm,mat,x,fx)
     end subroutine nonlinear_equations
 
     subroutine dolphin_ready(comm,mat,x,rhs,level)

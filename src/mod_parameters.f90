@@ -27,7 +27,6 @@ module mod_parameters
     character(len=256) :: turbfile ! 文件名：边界文件
     character(len=256) :: initfile ! 文件名：初值文件
     character(len=7) :: io_type ! file I/O type
-    logical :: ksp_mat_free_flg ! KSP中是否使用免矩阵生成矩阵
     logical :: init_guess_flg ! 是否赋初值
     DM :: coordDA,meshDA,DA ! DM.Object
     integer :: split_mode=0 ! 对流系数矩阵拆分方式选择
@@ -44,6 +43,5 @@ module mod_parameters
     Vec :: turtle ! 解
     Mat :: whale ! KSP: 显式矩阵形式的左端矩阵
     Mat :: shark ! SNES: 雅各比矩阵
-    Vec :: bell ! the local vec variable using by mat_free implementation
     Vec :: RHS ! KSP: 右端项
 end module mod_parameters
