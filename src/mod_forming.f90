@@ -39,7 +39,7 @@ module mod_forming
     use petsc
     implicit none
     public :: form_mat
-    public :: ksp_rhs,snes_fx1o,snes_fx4o
+    public :: ksp_rhs,snes_fx,snes_fx4o
     public :: cleanup
     private
     type(lns_OP_point_type) :: Jor
@@ -639,7 +639,7 @@ module mod_forming
         call MatAssemblyEnd(shark,MAT_FINAL_ASSEMBLY,ierr)
     end subroutine shark_growing_up
 
-    subroutine snes_fx1o(snes,x,f,null_int,ierr)
+    subroutine snes_fx(snes,x,f,null_int,ierr)
         use mod_parameters,only : meshDA,lns_mode,disturb,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
         PetscScalar,pointer :: fr(:,:,:,:),xr(:,:,:,:)
@@ -777,7 +777,7 @@ module mod_forming
         call DMDAVecRestoreArrayReadF90(meshDA,bell,xr,ierr)
         call DMDAVecRestoreArrayF90(meshDA,F,fr,ierr)
         call DMRestoreLocalVector(meshDA,bell,ierr)
-    end subroutine snes_fx1o
+    end subroutine snes_fx
 
     subroutine snes_fx4o(snes,x,f,null_int,ierr)
         use mod_parameters,only : meshDA,lns_mode,disturb,in,jn,kn,is,ie,js,je,ks,ke
