@@ -33,6 +33,7 @@ module mod_files
     end subroutine istream
 
     subroutine config(comm)
+        use mod_parameters,only : fk
         use mod_cfgio_adapter
         implicit none
         PetscInt,intent(in) :: comm
@@ -55,7 +56,7 @@ module mod_files
             solver_mode='ksp'; split_mode=0
         endif
         if(snes_flg)then
-            solver_mode='snes';split_mode=0
+            solver_mode='snes';split_mode=1
         endif
 
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-raw',set,ierr)
@@ -64,6 +65,7 @@ module mod_files
         if(set) io_type="binary"
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-hdf5',set,ierr)
         if(set) io_type="hdf5"
+        call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-lk',fk,set,ierr)
 
         if(ksp_flg)  call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
         if(snes_flg) call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-snes_monitor",PETSC_NULL_CHARACTER,ierr)

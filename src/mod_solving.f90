@@ -39,7 +39,7 @@ module mod_solving
             case('ksp')
                 call linear_equations(comm,whale,turtle,RHS)
             case('snes')
-                call nonlinear_equations(comm,whale,turtle,snes_fx)
+                call nonlinear_equations(comm,whale,turtle,snes_fx4o)
         end select
     end subroutine dstream
 
