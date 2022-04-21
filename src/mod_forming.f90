@@ -640,7 +640,7 @@ module mod_forming
     end subroutine shark_growing_up
 
     subroutine snes_fx(snes,x,f,null_int,ierr)
-        use mod_parameters,only : meshDA,lns_mode,disturb,in,jn,kn,is,ie,js,je,ks,ke
+        use mod_parameters,only : meshDA,lns_mode,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
         PetscScalar,pointer :: fr(:,:,:,:),xr(:,:,:,:)
         integer :: ic_index,jc_index,kc_index
@@ -671,7 +671,7 @@ module mod_forming
             do j=js,je
                 do i=is,ie
                     if(i==0)then
-                        f(:,i,j,k)=x(:,i,j,k)-disturb(:,j,k)
+                        f(:,i,j,k)=x(:,i,j,k)
                     elseif(j==(jn-1))then
                         f(:,i,j,k)=x(:,i,j,k)
                     elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
@@ -780,7 +780,7 @@ module mod_forming
     end subroutine snes_fx
 
     subroutine snes_fx4o(snes,x,f,null_int,ierr)
-        use mod_parameters,only : meshDA,lns_mode,disturb,in,jn,kn,is,ie,js,je,ks,ke
+        use mod_parameters,only : meshDA,lns_mode,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
         PetscScalar,pointer :: fr(:,:,:,:),xr(:,:,:,:)
         integer :: ic_index,jc_index,kc_index
@@ -816,7 +816,7 @@ module mod_forming
             do j=js,je
                 do i=is,ie
                     if(i==0)then
-                        f(:,i,j,k)=x(:,i,j,k)-disturb(:,j,k)
+                        f(:,i,j,k)=x(:,i,j,k)
                     elseif(j==(jn-1))then
                         f(:,i,j,k)=x(:,i,j,k)
                     elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
