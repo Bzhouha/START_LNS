@@ -27,7 +27,7 @@ module mod_solving
     PetscErrorCode :: ierr
     contains
     subroutine dstream(comm)
-        use mod_parameters,only : solver_mode,whale,shark,dolphin,turtle,RHS
+        use mod_parameters,only : solver_mode,whale,shark,dolphin,turtle,RHS,jaco
         implicit none
         PetscInt,intent(in) :: comm
         call PetscPrintf(comm, "\n ----------------------------------\n", ierr)
@@ -51,7 +51,7 @@ module mod_solving
         Mat :: mat
         call PetscPrintf(comm,"\n   KSP :: Matrix\n",ierr)
         call form_mat(comm,mat)
-        call ksp_rhs(comm,r,ierr)
+        call set_rhs(comm,r,ierr)
         if(mat==dolphin)then
             call solve_ksp_mf(comm,mat,x,r,0)
         else
@@ -67,7 +67,7 @@ module mod_solving
         Vec :: x,r
         call PetscPrintf(comm,"\n   SNES :: Jacobi&fx\n",ierr)
         call form_mat(comm,mat)
-        call ksp_rhs(comm,r,ierr)
+        call set_rhs(comm,r,ierr)
         call solve_snes(comm,mat,x,fx,r)
     end subroutine nonlinear_equations
 
