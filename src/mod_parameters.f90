@@ -44,5 +44,4 @@ module mod_parameters
     Mat :: whale ! KSP: 显式矩阵形式的左端矩阵
     Mat :: shark ! SNES: 雅各比矩阵
     Vec :: RHS ! KSP: 右端项
-    Mat :: jaco
 end module mod_parameters

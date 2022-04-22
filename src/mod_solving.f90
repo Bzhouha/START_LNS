@@ -27,7 +27,7 @@ module mod_solving
     PetscErrorCode :: ierr
     contains
     subroutine dstream(comm)
-        use mod_parameters,only : solver_mode,whale,shark,dolphin,turtle,RHS,jaco
+        use mod_parameters,only : solver_mode,whale,shark,dolphin,turtle,RHS
         implicit none
         PetscInt,intent(in) :: comm
         call PetscPrintf(comm, "\n ----------------------------------\n", ierr)
@@ -162,6 +162,7 @@ module mod_solving
         call PetscPrintf(comm, "\n   SNES :: Solve\n\n", ierr)
         call VecDuplicate(x,t,ierr)
         call SNESCreate(comm,snes,ierr)
+        call SNESSetConvergenceTest(snes,MySNESConverged,0,PETSC_NULL_FUNCTION,ierr)
         call SNESSetFunction(snes,t,fx,0,ierr)
         call SNESSetJacobian(snes,jac,jac,PETSC_NULL_FUNCTION,PETSC_NULL_INTEGER,ierr)
         ! call SNESSetType(snes,SNESNEWTONTR,ierr)
@@ -183,10 +184,25 @@ module mod_solving
         call SNESGetConvergedReasonString(snes,reason,ierr)
         call PetscPrintf(comm, "\n", ierr)
         call PetscPrintf(comm, "The Reason of Converged is : "//reason//"\n", ierr)
-        call SNESView(snes,PETSC_VIEWER_STDOUT_WORLD,ierr)
+        ! call SNESView(snes,PETSC_VIEWER_STDOUT_WORLD,ierr)
         call VecDestroy(t,ierr)
         call SNESDestroy(snes,ierr)
         call cleanup()
     end subroutine solve_snes
+
+    subroutine MySNESConverged(snes,it,xnorm,snorm,fnorm,reason,dummy,ierr)
+        implicit none
+        SNES :: snes
+        PetscInt :: it,dummy
+        PetscReal :: xnorm,snorm,fnorm,nrm
+        SNESConvergedReason :: reason
+        Vec :: f
+        PetscErrorCode :: ierr
+
+        call SNESGetFunction(snes,f,PETSC_NULL_FUNCTION,dummy,ierr)
+        call VecNorm(f,NORM_INFINITY,nrm,ierr)
+        write(*,*) nrm
+        if (nrm .le. 1.e-5) reason = SNES_CONVERGED_FNORM_ABS
+    end subroutine MySNESConverged
 
 end module mod_solving

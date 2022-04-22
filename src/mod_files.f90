@@ -33,7 +33,6 @@ module mod_files
     end subroutine istream
 
     subroutine config(comm)
-        use mod_parameters,only : fk
         use mod_cfgio_adapter
         implicit none
         PetscInt,intent(in) :: comm
