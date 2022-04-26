@@ -7,15 +7,21 @@ module mod_solving
 !
 !       call dstream(comm) 数据流。
 !
-!           1.call linear_equations(comm) 基于KSP求解方程。
+!           1.call ksp_equations(comm,mat,x,r) 迭代格式一：标准线性求解器 Ax=b
 !
-!               1).call solve_ksp_mf(comm,level) 设置KSP免矩阵求解方法。
+!               1).call solve_ksp_mf(comm,mat,x,r,level) 设置KSP免矩阵求解过程。
 !
-!               2).call solve_ksp(comm,level) 设置KSP显式矩阵求解方法。
+!               2).call solve_ksp(comm,mat,x,r,level) 设置KSP显式矩阵求解过程。
 !
-!           2.call nonlinear_equations(comm) 基于SNES求解方程。
+!           2.call snes_equations(comm,mat,x,fx,r) 迭代格式二：借用SNES模块 Jac x = - F(x)
 !
-!               call solve_snes(comm) 设置SNES求解参数。
+!               1).call solve_snes(comm,jac,x,fx,r) 设置SNES求解过程。
+!
+!               2).call MySNESConverged(snes,it,xnorm,snorm,fnorm,reason,dummy,ierr) SNES收敛判断函数。
+!
+!           3.call ksps_equations(comm,mat,x,ksps_fx) 迭代格式三：借用KSP模块 A x = - (Ax-b)
+!
+!               call solve_ksps(comm,mat,x,fx_rhs) 设置KSPs求解过程。
 !
 ! ----------------------------------------------------
     use mod_metrics
@@ -27,7 +33,7 @@ module mod_solving
     PetscErrorCode :: ierr
     contains
     subroutine dstream(comm)
-        use mod_parameters,only : solver_mode,whale,shark,dolphin,turtle,RHS
+        use mod_parameters,only : solver_mode,whale,shark,dolphin,squid,turtle,RHS
         implicit none
         PetscInt,intent(in) :: comm
         call PetscPrintf(comm, "\n ----------------------------------\n", ierr)
@@ -37,19 +43,20 @@ module mod_solving
         call partial_derivatives(comm)
         select case (solver_mode)
             case('ksp')
-                call linear_equations(comm,whale,turtle,RHS)
+                call ksp_equations(comm,whale,turtle,RHS)
             case('snes')
-                call nonlinear_equations(comm,shark,turtle,snes_fx4o,RHS)
+                call snes_equations(comm,shark,turtle,snes_fx4o,RHS)
+            case('ksps')
+                call ksps_equations(comm,squid,turtle,squid_ink)
         end select
     end subroutine dstream
 
-    subroutine linear_equations(comm,mat,x,r)
-        use mod_parameters,only : dolphin,whale
+    subroutine ksp_equations(comm,mat,x,r)
+        use mod_parameters,only : dolphin
         implicit none
         integer,intent(in) :: comm
         Vec :: x,r
         Mat :: mat
-        call PetscPrintf(comm,"\n   KSP :: Matrix\n",ierr)
         call form_mat(comm,mat)
         call set_rhs(comm,r,ierr)
         if(mat==dolphin)then
@@ -57,19 +64,31 @@ module mod_solving
         else
             call solve_ksp(comm,mat,x,r,0)
         endif
-    end subroutine linear_equations
+    end subroutine ksp_equations
 
-    subroutine nonlinear_equations(comm,mat,x,fx,r)
+    subroutine snes_equations(comm,mat,x,fx,r)
         implicit none
         integer, intent(in) :: comm
         external :: fx
         Mat :: mat
         Vec :: x,r
-        call PetscPrintf(comm,"\n   SNES :: Jacobi&fx\n",ierr)
         call form_mat(comm,mat)
         call set_rhs(comm,r,ierr)
         call solve_snes(comm,mat,x,fx,r)
-    end subroutine nonlinear_equations
+    end subroutine snes_equations
+
+    subroutine ksps_equations(comm,mat,x,ksps_fx)
+        implicit none
+        integer,intent(in) :: comm
+        external :: ksps_fx
+        Mat :: mat
+        Vec :: x
+        call form_mat(comm,mat)
+        call solve_ksps(comm,mat,x,ksps_fx)
+    end subroutine ksps_equations
+
+    ! -----------------------------------------------------------------------------------------------------
+    !   迭代格式一：标准线性求解器 Ax=b
 
     subroutine solve_ksp_mf(comm,mat,x,r,level)
         implicit none
@@ -78,12 +97,10 @@ module mod_solving
         Mat,intent(in) :: mat
         Vec,intent(in) :: r
         Vec,intent(inout) :: x
-        call cleanup()
-        call VecDestroy(r,ierr)
     end subroutine solve_ksp_mf
 
     subroutine solve_ksp(comm,mat,x,r,level)
-        use mod_parameters,only : init_guess_flg,meshDA
+        use mod_parameters,only : init_guess_flg
         implicit none
         integer,intent(in) :: level
         PetscInt,intent(in) :: comm
@@ -94,9 +111,12 @@ module mod_solving
         DM,pointer :: da_list(:)
         KSP :: ksp
         PC :: pc
+
+        call PetscPrintf(comm, "\n   KSP :: Solve\n\n", ierr)
+        ! Set parameter
         rtol = 1e-8
         if(level==0)then ! 如果level是0，那么不使用多重网格
-            call PetscPrintf(comm, "\n   KSP :: Solve\n\n", ierr)
+            ! Create & set KSP
             call KSPCreate(comm,ksp,ierr)
             call KSPSetOperators(ksp,mat,mat,ierr)
             call KSPSetType(ksp,KSPFGMRES,ierr)
@@ -104,46 +124,57 @@ module mod_solving
             call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
             call KSPGMRESSetRestart(ksp,40,ierr)
             call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
-            ! call KSPSetDiagonalScale(ksp,PETSC_TRUE,ierr)
-            ! call KSPSetDiagonalScaleFix(ksp,PETSC_TRUE,ierr)
+            ! Get & set PC
             call KspGetPC(ksp,pc,ierr)
             call PCSetType(pc,PCASM,ierr)
             call PCASMSetOverlap(pc,10,ierr)
-            ! call PCASMSetSubMatType(pc,MATBAIJ,ierr)
             call PCFactorSetUseInPlace(pc,PETSC_TRUE,ierr)
             call PCSetFromOptions(pc,ierr)
             call PCSetUp(pc,ierr)
             call KSPSetFromOptions(ksp,ierr)
             call KSPSetUp(ksp,ierr)
+            ! Solve KSP
             call KSPSolve(ksp,r,x,ierr)
+            ! View KSP
             call PetscPrintf(comm, "\n", ierr)
             call KSPView(ksp,PETSC_VIEWER_STDOUT_WORLD,ierr)
         elseif(level>0)then
+            ! Create & set KSP
             call KSPCreate(comm,ksp,ierr)
             call KSPSetOperators(ksp,mat,mat,ierr)
-            ! call KSPSetType(ksp,KSPFGMRES,ierr)
+            call KSPSetType(ksp,KSPFGMRES,ierr)
             call KSPGetPC(ksp,pc,ierr)
             call PCSetType(pc,PCMG,ierr)
             call KSPSetFromOptions(ksp,ierr)
             call KSPSetUp(ksp,ierr)
-            ! #####设置网格层数
+            ! ### 设置网格层数
             ! call PCMGSetLevels(pc,level,comm,ierr)
             ! call PCMGSetType(pc,PC_MG_MULTIPLICATIVE,ierr)
             ! call PCMGSetCycleType(pc,PC_MG_CYCLE_W,ierr)
-            ! #####设置网格粗化
-            allocate(da_list(level))
+            ! ### 设置网格粗化
+            ! allocate(da_list(level))
             ! da_list(1)=meshDA
             ! call DMCoarsen(meshDA,comm,da_list(2),ierr)
             ! call DMCoarsen(da_list(2),comm,da_list(3),ierr)
-            !
             ! call PCMGSetLevels(pc,level,comm,ierr)
             ! call PCMGSetGalerkin(pc,PC_MG_GALERKIN_PMAT,ierr)
-            ! #####设置光滑子
-            ! #####设置每层迭代矩阵
+            ! ### 设置光滑子
+            ! ### 设置每层迭代矩阵
+            ! Solve KSP
+            call KSPSolve(ksp,r,x,ierr)
+            ! View KSP
+            call PetscPrintf(comm, "\n", ierr)
+            call KSPView(ksp,PETSC_VIEWER_STDOUT_WORLD,ierr)
         endif
+        ! Destory variables
         call VecDestroy(r,ierr)
         call KSPDestroy(ksp,ierr)
+        call cleanup()
+
     end subroutine solve_ksp
+
+    ! -----------------------------------------------------------------------------------------------------
+    !   迭代格式二：借用SNES模块 Jac x = - F(x)
 
     subroutine solve_snes(comm,jac,x,fx,r)
         implicit none
@@ -158,51 +189,143 @@ module mod_solving
         KSP :: ksp
         Vec :: t
         PC :: pc
-        rtol = 1e-8
+
         call PetscPrintf(comm, "\n   SNES :: Solve\n\n", ierr)
+        ! Set parameters
+        rtol = 1e-8
+        ! Initialize Vecs
         call VecDuplicate(x,t,ierr)
+        call VecZeroEntries(t,ierr)
+        ! Create & set SNES
         call SNESCreate(comm,snes,ierr)
         call SNESSetConvergenceTest(snes,MySNESConverged,0,PETSC_NULL_FUNCTION,ierr)
         call SNESSetFunction(snes,t,fx,0,ierr)
         call SNESSetJacobian(snes,jac,jac,PETSC_NULL_FUNCTION,PETSC_NULL_INTEGER,ierr)
-        ! call SNESSetType(snes,SNESNEWTONTR,ierr)
+        ! Get & set KSP
         call SNESGetKSP(snes,ksp,ierr)
         call KSPSetType(ksp,KSPFGMRES,ierr)
         call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
-        ! call KSPGMRESSetRestart(ksp,40,ierr)
+        call KSPGMRESSetRestart(ksp,40,ierr)
         call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
+        ! Get & set PC
         call KSPGetPC(ksp,pc,ierr)
-        ! call PCSetType(pc,PCASM,ierr)
-        ! call PCASMSetOverlap(pc,10,ierr)
-        ! call PCFactorSetUseInPlace(pc,PETSC_TRUE,ierr)
+        call PCSetType(pc,PCASM,ierr)
+        call PCASMSetOverlap(pc,10,ierr)
+        call PCFactorSetUseInPlace(pc,PETSC_TRUE,ierr)
+        call PCASMSetSubMatType(pc,MATBAIJ,ierr)
         call PCSetFromOptions(pc,ierr)
         call KSPSetFromOptions(ksp,ierr)
-        ! call SNESSetTolerances(snes,PETSC_DEFAULT_REAL,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,PETSC_DEFAULT_INTEGER,ierr)
+        call SNESSetTolerances(snes,PETSC_DEFAULT_REAL,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,PETSC_DEFAULT_INTEGER,ierr)
         call SNESSetFromOptions(snes,ierr)
         call SNESSetUp(snes,ierr)
+        ! Solve
         call SNESSolve(snes,r,x,ierr)
+        ! Get convergedr reason
         call SNESGetConvergedReasonString(snes,reason,ierr)
         call PetscPrintf(comm, "\n", ierr)
         call PetscPrintf(comm, "The Reason of Converged is : "//reason//"\n", ierr)
-        ! call SNESView(snes,PETSC_VIEWER_STDOUT_WORLD,ierr)
+        ! View SNES
+        call SNESView(snes,PETSC_VIEWER_STDOUT_WORLD,ierr)
+        ! Destory variables
         call VecDestroy(t,ierr)
         call SNESDestroy(snes,ierr)
         call cleanup()
+
     end subroutine solve_snes
 
     subroutine MySNESConverged(snes,it,xnorm,snorm,fnorm,reason,dummy,ierr)
         implicit none
-        SNES :: snes
-        PetscInt :: it,dummy
         PetscReal :: xnorm,snorm,fnorm,nrm
         SNESConvergedReason :: reason
-        Vec :: f
         PetscErrorCode :: ierr
+        PetscInt :: it,dummy
+        SNES :: snes
+        Vec :: f
 
         call SNESGetFunction(snes,f,PETSC_NULL_FUNCTION,dummy,ierr)
         call VecNorm(f,NORM_INFINITY,nrm,ierr)
-        write(*,*) nrm
         if (nrm .le. 1.e-5) reason = SNES_CONVERGED_FNORM_ABS
     end subroutine MySNESConverged
+
+    ! -----------------------------------------------------------------------------------------------------
+    !   迭代格式三：借用KSP模块 A x = - (Ax-b)
+
+    subroutine solve_ksps(comm,mat,x,fx_rhs)
+        implicit none
+        character(len=20) :: str_norm
+        character(len=6) :: str_count
+        integer,intent(in) :: comm
+        Vec,intent(inout) :: x
+        PetscErrorCode :: ierr
+        Mat,intent(in) :: mat
+        PetscScalar :: one
+        external :: fx_rhs
+        PetscInt :: count
+        Vec :: r,residual
+        PetscReal :: rtol
+        PetscReal :: nrm
+        KSP :: ksp
+        PC :: pc
+
+        call PetscPrintf(comm, "\n   KSPs :: Solve\n\n", ierr)
+        ! Set parameters
+        one = 1.0d0
+        rtol = 1e-8
+        count = 0
+        ! Initialize Vecs
+        call VecDuplicate(x,r,ierr)
+        call VecZeroEntries(r,ierr)
+        call VecDuplicate(x,residual,ierr)
+        call VecZeroEntries(residual,ierr)
+        ! Create & set KSP
+        call KSPCreate(comm,ksp,ierr)
+        call KSPSetOperators(ksp,mat,mat,ierr)
+        call KSPSetType(ksp,KSPFGMRES,ierr)
+        call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
+        call KSPGMRESSetRestart(ksp,40,ierr)
+        call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
+        ! Get & Set PC
+        call KspGetPC(ksp,pc,ierr)
+        call PCSetType(pc,PCASM,ierr)
+        call PCASMSetOverlap(pc,10,ierr)
+        call PCFactorSetUseInPlace(pc,PETSC_TRUE,ierr)
+        call PCSetFromOptions(pc,ierr)
+        call PCSetUp(pc,ierr)
+        call KSPSetFromOptions(ksp,ierr)
+        call KSPSetUp(ksp,ierr)
+        ! Iteration loops
+        do while(.True.)
+            ! Get rhs
+            call fx_rhs(x,r)
+            ! Solve
+            call KSPSolve(ksp,r,residual,ierr)
+            ! Get residual
+            call VecNorm(residual,NORM_2,nrm,ierr)
+            ! Print residual
+            write(str_count,"(I5)") count
+            write(str_norm,"(ES20.12)") nrm
+            call PetscPrintf(comm,str_count//" < 2-Norm of residuel > "//str_norm//"\n",ierr)
+            ! Get solution
+            call VecAXPY(x,one,residual,ierr)
+            ! If iterated too much times
+            if(count>50)then
+                call PetscPrintf(comm,"Maximum number of iterations reached.\n",ierr)
+                exit
+            endif
+            ! If converged
+            if(nrm<1e-5)then
+                call PetscPrintf(comm,"Converged.\n",ierr)
+                exit
+            endif
+            ! Count
+            count = count + 1
+        enddo
+        ! Destory variables
+        call KSPDestroy(ksp,ierr)
+        call VecDestroy(r,ierr)
+        call VecDestroy(residual,ierr)
+        call cleanup()
+
+    end subroutine solve_ksps
 
 end module mod_solving

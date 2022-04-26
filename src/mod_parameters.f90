@@ -17,7 +17,7 @@ module mod_parameters
     real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re ! 流场参数
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge ! MPI网格分块位置
     integer :: is,js,ks,il,jl,kl,ie,je,ke ! MPI网格分块位置
-    character(len=5) :: solver_mode='ksp' ! KSP.or.SNES
+    character(len=10) :: solver_mode ! KSP.or.SNES .or. KSPs
     character(len=256) :: bigridfile ! 文件名：流场文件
     character(len=256) :: biflowfile ! 文件名：流场文件
     character(len=256) :: turbfiles ! 文件名：边界文件
@@ -44,4 +44,5 @@ module mod_parameters
     Mat :: whale ! KSP: 显式矩阵形式的左端矩阵
     Mat :: shark ! SNES: 雅各比矩阵
     Vec :: RHS ! KSP: 右端项
+    Mat :: squid ! KSPs: 左端矩阵
 end module mod_parameters
