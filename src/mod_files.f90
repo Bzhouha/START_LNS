@@ -60,7 +60,7 @@ module mod_files
             solver_mode='snes';split_mode=1
         endif
         if(ksps_flg)then
-            solver_mode='ksps';split_mode=0
+            solver_mode='ksps';split_mode=1
         endif
 
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-raw',set,ierr)
@@ -70,6 +70,7 @@ module mod_files
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-hdf5',set,ierr)
         if(set) io_type="hdf5"
         call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ck',ck,set,ierr)
+        call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-lm',lm,set,ierr)
 
         if(ksp_flg)  call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
         if(snes_flg) call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-snes_monitor",PETSC_NULL_CHARACTER,ierr)
