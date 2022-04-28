@@ -32,58 +32,63 @@ module mod_solving
     private
     PetscErrorCode :: ierr
     contains
+
     subroutine dstream(comm)
-        use mod_parameters,only : solver_mode,whale,shark,dolphin,squid,turtle,RHS
+        use mod_parameters,only : meshDA,whale,turtle,RHS,solver_mode
         implicit none
         PetscInt,intent(in) :: comm
         call PetscPrintf(comm, "\n ----------------------------------\n", ierr)
         call PetscPrintf(comm, "              DStream            \n", ierr)
-        call PetscPrintf(comm,"\n   Data :: Preparation\n",ierr)
+        call PetscPrintf(comm, "\n   Data :: Preparation\n", ierr)
         call metric_coefficient(comm)
         call partial_derivatives(comm)
         select case (solver_mode)
             case('ksp')
-                call ksp_equations(comm,whale,turtle,RHS)
+                call ksp_equations(comm,meshDA,whale,turtle,RHS)
             case('snes')
-                call snes_equations(comm,shark,turtle,snes_fx4o,RHS)
+                call snes_equations(comm,meshDA,whale,turtle,snes_fx4o,RHS)
             case('ksps')
-                call ksps_equations(comm,squid,turtle,squid_ink)
+                call ksps_equations(comm,meshDA,whale,turtle,ksps_rhs_fx)
         end select
     end subroutine dstream
 
-    subroutine ksp_equations(comm,mat,x,r)
-        use mod_parameters,only : dolphin
+    subroutine ksp_equations(comm,da,mat,x,r)
         implicit none
         integer,intent(in) :: comm
         Vec :: x,r
         Mat :: mat
-        call form_mat(comm,mat)
-        call set_rhs(comm,r,ierr)
-        if(mat==dolphin)then
-            call solve_ksp_mf(comm,mat,x,r,0)
-        else
-            call solve_ksp(comm,mat,x,r,0)
-        endif
+        DM :: da
+        call PetscPrintf(comm,"\n   KSP :: Matrix\n\n",ierr)
+        call initialize_mat_from_da(comm,da,mat)
+        call form_mat_4_precision(mat)
+        call set_rhs(comm,da,x,r)
+        call solve_ksp(comm,mat,x,r,0)
     end subroutine ksp_equations
 
-    subroutine snes_equations(comm,mat,x,fx,r)
+    subroutine snes_equations(comm,da,mat,x,fx,r)
         implicit none
         integer, intent(in) :: comm
         external :: fx
         Mat :: mat
         Vec :: x,r
-        call form_mat(comm,mat)
-        call set_rhs(comm,r,ierr)
+        DM :: da
+        call PetscPrintf(comm,"\n   SNES :: Jacobi\n\n",ierr)
+        call initialize_mat_from_da(comm,da,mat)
+        call form_mat_2_precision(mat)
+        call set_rhs(comm,da,x,r)
         call solve_snes(comm,mat,x,fx,r)
     end subroutine snes_equations
 
-    subroutine ksps_equations(comm,mat,x,ksps_fx)
+    subroutine ksps_equations(comm,da,mat,x,ksps_fx)
         implicit none
         integer,intent(in) :: comm
         external :: ksps_fx
         Mat :: mat
         Vec :: x
-        call form_mat(comm,mat)
+        DM :: da
+        call PetscPrintf(comm,"\n   KSPs :: Matrix\n\n",ierr)
+        call initialize_mat_from_da(comm,da,mat)
+        call form_mat_4_precision_handin(mat)
         call solve_ksps(comm,mat,x,ksps_fx)
     end subroutine ksps_equations
 
@@ -212,7 +217,6 @@ module mod_solving
         call PCSetType(pc,PCASM,ierr)
         call PCASMSetOverlap(pc,10,ierr)
         call PCFactorSetUseInPlace(pc,PETSC_TRUE,ierr)
-        call PCASMSetSubMatType(pc,MATBAIJ,ierr)
         call PCSetFromOptions(pc,ierr)
         call KSPSetFromOptions(ksp,ierr)
         call SNESSetTolerances(snes,PETSC_DEFAULT_REAL,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,PETSC_DEFAULT_INTEGER,ierr)
@@ -261,7 +265,7 @@ module mod_solving
         PetscScalar :: one
         external :: fx_rhs
         PetscInt :: count
-        Vec :: r,residual
+        Vec :: f,residual
         PetscReal :: rtol
         PetscReal :: nrm
         KSP :: ksp
@@ -273,8 +277,8 @@ module mod_solving
         rtol = 1e-8
         count = 0
         ! Initialize Vecs
-        call VecDuplicate(x,r,ierr)
-        call VecZeroEntries(r,ierr)
+        call VecDuplicate(x,f,ierr)
+        call VecZeroEntries(f,ierr)
         call VecDuplicate(x,residual,ierr)
         call VecZeroEntries(residual,ierr)
         ! Create & set KSP
@@ -296,9 +300,9 @@ module mod_solving
         ! Iteration loops
         do while(.True.)
             ! Get rhs
-            call fx_rhs(x,r)
+            call fx_rhs(x,f)
             ! Solve
-            call KSPSolve(ksp,r,residual,ierr)
+            call KSPSolve(ksp,f,residual,ierr)
             ! Get residual
             call VecNorm(residual,NORM_2,nrm,ierr)
             ! Print residual
@@ -322,7 +326,7 @@ module mod_solving
         enddo
         ! Destory variables
         call KSPDestroy(ksp,ierr)
-        call VecDestroy(r,ierr)
+        call VecDestroy(f,ierr)
         call VecDestroy(residual,ierr)
         call cleanup()
 
