@@ -457,7 +457,7 @@ module mod_cubes
     end subroutine split_upwin
 
     subroutine split_eigen(A,G,A_p,A_m)
-        use mod_parameters,only:fk
+        use mod_parameters,only:ck
         implicit none
         real(R_P),dimension(5, 5),intent(out) :: A_p,A_m
         complex(R_P),dimension(5, 5),intent(in) :: A,G
@@ -483,8 +483,8 @@ module mod_cubes
         lambda_=(alfr+ZI*alfi)/beta
         max_l = maxval(abs(lambda_))
 
-        A_p = 0.5d0*(A + fk*max_l*G)
-        A_m = 0.5d0*(A - fk*max_l*G)
+        A_p = 0.5d0*(A + ck*max_l*G)
+        A_m = 0.5d0*(A - ck*max_l*G)
 
     end subroutine split_eigen
 
