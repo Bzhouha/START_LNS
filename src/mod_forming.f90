@@ -931,7 +931,7 @@ module mod_forming
                     if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
                         call mat_set_boundary_conditions(mat,i,j,k)
                     else
-                        call mat_insert_values_4_precision_handin(mat,i,j,k)
+                        call mat_insert_values_4_precision_Gtx(mat,i,j,k)
                     endif
                 enddo
             enddo
@@ -942,7 +942,7 @@ module mod_forming
 
     end subroutine form_mat_4_precision_Gtx
 
-    subroutine mat_insert_values_4_precision_handin(mat,i,j,k)
+    subroutine mat_insert_values_4_precision_Gtx(mat,i,j,k)
 
         use mod_parameters,only : lns_mode,in,jn,kn,ck
         implicit none
@@ -1038,7 +1038,7 @@ module mod_forming
         end do
         end associate
 
-    end subroutine mat_insert_values_4_precision_handin
+    end subroutine mat_insert_values_4_precision_Gtx
 
     subroutine ksps_rhs_fx_b_Ax(x,f)
 
@@ -1263,7 +1263,7 @@ module mod_forming
                     if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
                         call mat_set_boundary_conditions(mat,i,j,k)
                     else
-                        call mat_insert_values_2_precision_handin(mat,i,j,k)
+                        call mat_insert_values_2_precision_Gtx(mat,i,j,k)
                     endif
                 enddo
             enddo
@@ -1274,7 +1274,7 @@ module mod_forming
 
     end subroutine form_mat_2_precision_Gtx
 
-    subroutine mat_insert_values_2_precision_handin(mat,i,j,k)
+    subroutine mat_insert_values_2_precision_Gtx(mat,i,j,k)
 
         use mod_parameters,only : lns_mode,in,jn,kn,ck
         implicit none
@@ -1358,6 +1358,6 @@ module mod_forming
             enddo
         end associate
 
-    end subroutine mat_insert_values_2_precision_handin
+    end subroutine mat_insert_values_2_precision_Gtx
 
 end module mod_forming

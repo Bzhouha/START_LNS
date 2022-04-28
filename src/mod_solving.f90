@@ -311,7 +311,7 @@ module mod_solving
 
             case(NEWTON_LIKE)
 
-                call PetscPrintf(comm,"    using *Newtom-Like* method",ierr)
+                call PetscPrintf(comm,"    using *Newtom-Like* method\n",ierr)
 
                 do while(.True.)
                     ! Get rhs
@@ -342,7 +342,7 @@ module mod_solving
 
             case(TIME_DISCRETE)
 
-                call PetscPrintf(comm,"    using *Time-Discrete* method",ierr)
+                call PetscPrintf(comm,"    using *Time-Discrete* method\n",ierr)
 
                 do while(.True.)
                     ! Get rhs
