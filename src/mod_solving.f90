@@ -28,15 +28,19 @@ module mod_solving
     use mod_forming
     use mod_points
     use petsc
+
     public :: dstream
     private
     PetscErrorCode :: ierr
+    integer, parameter :: NEWTON_LIKE=1001, TIME_DISCRETE=1002
+
     contains
 
     subroutine dstream(comm)
-        use mod_parameters,only : meshDA,whale,turtle,RHS,solver_mode
+        use mod_parameters,only : meshDA,whale,turtle,RHS,solver_mode,shark
         implicit none
         PetscInt,intent(in) :: comm
+
         call PetscPrintf(comm, "\n ----------------------------------\n", ierr)
         call PetscPrintf(comm, "              DStream            \n", ierr)
         call PetscPrintf(comm, "\n   Data :: Preparation\n", ierr)
@@ -48,7 +52,7 @@ module mod_solving
             case('snes')
                 call snes_equations(comm,meshDA,whale,turtle,snes_fx4o,RHS)
             case('ksps')
-                call ksps_equations(comm,meshDA,whale,turtle,ksps_rhs_fx)
+                call ksps_equations(comm,meshDA,whale,turtle,ksps_rhs_fx_b_Gtx,TIME_DISCRETE)
         end select
     end subroutine dstream
 
@@ -58,7 +62,7 @@ module mod_solving
         Vec :: x,r
         Mat :: mat
         DM :: da
-        call PetscPrintf(comm,"\n   KSP :: Matrix\n\n",ierr)
+        call PetscPrintf(comm,"\n   KSP :: Matrix\n",ierr)
         call initialize_mat_from_da(comm,da,mat)
         call form_mat_4_precision(mat)
         call set_rhs(comm,da,x,r)
@@ -72,24 +76,26 @@ module mod_solving
         Mat :: mat
         Vec :: x,r
         DM :: da
-        call PetscPrintf(comm,"\n   SNES :: Jacobi\n\n",ierr)
+        call PetscPrintf(comm,"\n   SNES :: Jacobi\n",ierr)
         call initialize_mat_from_da(comm,da,mat)
         call form_mat_2_precision(mat)
         call set_rhs(comm,da,x,r)
         call solve_snes(comm,mat,x,fx,r)
     end subroutine snes_equations
 
-    subroutine ksps_equations(comm,da,mat,x,ksps_fx)
+    subroutine ksps_equations(comm,da,mat,x,ksps_fx,type)
         implicit none
+        integer,intent(in) :: type
         integer,intent(in) :: comm
         external :: ksps_fx
         Mat :: mat
         Vec :: x
         DM :: da
-        call PetscPrintf(comm,"\n   KSPs :: Matrix\n\n",ierr)
+
+        call PetscPrintf(comm,"\n   KSPs :: Matrix\n",ierr)
         call initialize_mat_from_da(comm,da,mat)
         call form_mat_4_precision_handin(mat)
-        call solve_ksps(comm,mat,x,ksps_fx)
+        call solve_ksps(comm,mat,x,ksps_fx,type)
     end subroutine ksps_equations
 
     ! -----------------------------------------------------------------------------------------------------
@@ -252,35 +258,37 @@ module mod_solving
     end subroutine MySNESConverged
 
     ! -----------------------------------------------------------------------------------------------------
-    !   迭代格式三：借用KSP模块 A x = - (Ax-b)
+    !   迭代格式三：借用KSP模块 Newton-Like
 
-    subroutine solve_ksps(comm,mat,x,fx_rhs)
+    subroutine solve_ksps(comm,mat,x,fx_rhs,type)
         implicit none
         character(len=20) :: str_norm
         character(len=6) :: str_count
         integer,intent(in) :: comm
+        integer, intent(in) :: type
         Vec,intent(inout) :: x
+        PetscScalar :: one,ine
         PetscErrorCode :: ierr
         Mat,intent(in) :: mat
-        PetscScalar :: one
         external :: fx_rhs
         PetscInt :: count
-        Vec :: f,residual
         PetscReal :: rtol
         PetscReal :: nrm
+        Vec :: f,res
         KSP :: ksp
         PC :: pc
 
         call PetscPrintf(comm, "\n   KSPs :: Solve\n\n", ierr)
         ! Set parameters
         one = 1.0d0
+        ine = -1.0d0
         rtol = 1e-8
         count = 0
         ! Initialize Vecs
         call VecDuplicate(x,f,ierr)
         call VecZeroEntries(f,ierr)
-        call VecDuplicate(x,residual,ierr)
-        call VecZeroEntries(residual,ierr)
+        call VecDuplicate(x,res,ierr)
+        call VecZeroEntries(res,ierr)
         ! Create & set KSP
         call KSPCreate(comm,ksp,ierr)
         call KSPSetOperators(ksp,mat,mat,ierr)
@@ -298,36 +306,78 @@ module mod_solving
         call KSPSetFromOptions(ksp,ierr)
         call KSPSetUp(ksp,ierr)
         ! Iteration loops
-        do while(.True.)
-            ! Get rhs
-            call fx_rhs(x,f)
-            ! Solve
-            call KSPSolve(ksp,f,residual,ierr)
-            ! Get residual
-            call VecNorm(residual,NORM_2,nrm,ierr)
-            ! Print residual
-            write(str_count,"(I5)") count
-            write(str_norm,"(ES20.12)") nrm
-            call PetscPrintf(comm,str_count//" < 2-Norm of residuel > "//str_norm//"\n",ierr)
-            ! Get solution
-            call VecAXPY(x,one,residual,ierr)
-            ! If iterated too much times
-            if(count>50)then
-                call PetscPrintf(comm,"Maximum number of iterations reached.\n",ierr)
-                exit
-            endif
-            ! If converged
-            if(nrm<1e-5)then
-                call PetscPrintf(comm,"Converged.\n",ierr)
-                exit
-            endif
-            ! Count
-            count = count + 1
-        enddo
+
+        select case (type)
+
+            case(NEWTON_LIKE)
+
+                write(*,*) "    using *Newtom-Like* method"
+
+                do while(.True.)
+                    ! Get rhs
+                    call fx_rhs(x,f)
+                    ! Solve
+                    call KSPSolve(ksp,f,res,ierr)
+                    ! Get residual
+                    call VecNorm(res,NORM_2,nrm,ierr)
+                    ! Print residual
+                    write(str_count,"(I5)") count
+                    write(str_norm,"(ES20.12)") nrm
+                    call PetscPrintf(comm,"  "//str_count//" < residual 2-Norm > "//str_norm//"\n",ierr)
+                    ! Get solution
+                    call VecAXPY(x,one,res,ierr)
+                    ! If iterated too much times
+                    if(count>50)then
+                        call PetscPrintf(comm,"Maximum number of iterations reached.\n",ierr)
+                        exit
+                    endif
+                    ! If converged
+                    if(nrm<1e-5)then
+                        call PetscPrintf(comm,"Converged.\n",ierr)
+                        exit
+                    endif
+                    ! Count
+                    count = count + 1
+                enddo
+
+            case(TIME_DISCRETE)
+
+                write(*,*) "    using *Time-Discrete* method"
+
+                do while(.True.)
+                    ! Get rhs
+                    call fx_rhs(x,f)
+                    ! Solve
+                    call KSPSolve(ksp,f,res,ierr)
+                    ! Get residual
+                    call VecAYPX(x,ine,res,ierr)
+                    call VecNorm(x,NORM_INFINITY,nrm,ierr)
+                    ! Print residual
+                    write(str_count,"(I5)") count
+                    write(str_norm,"(ES20.12)") nrm
+                    call PetscPrintf(comm,"  "//str_count//" < residual i-Norm > "//str_norm//"\n",ierr)
+                    ! Get solution
+                    call VecCopy(res,x,ierr)
+                    ! If iterated too much times
+                    if(count>10)then
+                        call PetscPrintf(comm,"Maximum number of iterations reached.\n",ierr)
+                        exit
+                    endif
+                    ! If converged
+                    if(nrm<1e-5)then
+                        call PetscPrintf(comm,"Converged.\n",ierr)
+                        exit
+                    endif
+                    ! Count
+                    count = count + 1
+                enddo
+
+        end select
+
         ! Destory variables
         call KSPDestroy(ksp,ierr)
         call VecDestroy(f,ierr)
-        call VecDestroy(residual,ierr)
+        call VecDestroy(res,ierr)
         call cleanup()
 
     end subroutine solve_ksps

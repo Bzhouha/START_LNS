@@ -45,7 +45,8 @@ module mod_forming
     public :: form_mat_2_precision
     public :: form_mat_4_precision_handin
     public :: snes_fx,snes_fx4o
-    public :: ksps_rhs_fx
+    public :: ksps_rhs_fx_b_Ax
+    public :: ksps_rhs_fx_b_Gtx
     public :: set_rhs
     public :: cleanup
     private
@@ -1038,7 +1039,7 @@ module mod_forming
 
     end subroutine mat_insert_values_4_precision_handin
 
-    subroutine ksps_rhs_fx(x,f)
+    subroutine ksps_rhs_fx_b_Ax(x,f)
 
         use mod_parameters,only : meshDA,lns_mode,in,jn,kn,is,ie,js,je,ks,ke,disturb
         implicit none
@@ -1192,9 +1193,9 @@ module mod_forming
         call DMDAVecRestoreArrayF90(meshDA,f,fr,ierr)
         call DMRestoreLocalVector(meshDA,bell,ierr)
 
-    end subroutine ksps_rhs_fx
+    end subroutine ksps_rhs_fx_b_Ax
 
-    subroutine ksps_rhs_b_plus_Gtx(x,f)
+    subroutine ksps_rhs_fx_b_Gtx(x,f)
        use mod_parameters,only : meshDA,is,ie,js,je,ks,ke,disturb,ck
        implicit none
        PetscScalar,pointer :: fr(:,:,:,:),xr(:,:,:,:)
@@ -1202,21 +1203,24 @@ module mod_forming
        Vec,intent(inout) :: f
        Vec,intent(in) :: x
        integer :: i,j,k
+       PetscReal :: ick
+
+       ick = 1.0d0/ck
 
        call DMDAVecGetArrayReadF90(meshDA,x,xr,ierr)
        call DMDAVecGetArrayF90(meshDA,f,fr,ierr)
 
-       associate(       &
-       &    x => xr,    &
+       associate(    &
+       &    x => xr, &
        &    f => fr)
        do k=ks,ke
            do j=js,je
                do i=is,ie
                    call Jor%get_adorned_cubes(i,j,k)
                    if(i==0)then
-                       f(:,i,j,k)=disturb(:,j,k)+matmul(Jor%G/ck,x(:,i,j,k))
+                       f(:,i,j,k)=disturb(:,j,k)+matmul(ick*Jor%G,x(:,i,j,k))
                    else
-                       f(:,i,j,k)=matmul(Jor%G/ck,x(:,i,j,k))
+                       f(:,i,j,k)=matmul(ick*Jor%G,x(:,i,j,k))
                    endif
                enddo
            enddo
@@ -1225,7 +1229,7 @@ module mod_forming
 
        call DMDAVecRestoreArrayReadF90(meshDA,x,xr,ierr)
        call DMDAVecRestoreArrayF90(meshDA,f,fr,ierr)
-   end subroutine ksps_rhs_b_plus_Gtx
+   end subroutine ksps_rhs_fx_b_Gtx
 
     subroutine cleanup()
 
