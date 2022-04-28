@@ -43,7 +43,8 @@ module mod_forming
     public :: initialize_mat_from_da
     public :: form_mat_4_precision
     public :: form_mat_2_precision
-    public :: form_mat_4_precision_handin
+    public :: form_mat_4_precision_Gtx
+    public :: form_mat_2_precision_Gtx
     public :: snes_fx,snes_fx4o
     public :: ksps_rhs_fx_b_Ax
     public :: ksps_rhs_fx_b_Gtx
@@ -916,7 +917,7 @@ module mod_forming
     ! -----------------------------------------------------------------------------------------------------
     !   迭代格式三：借用KSP模块
 
-    subroutine form_mat_4_precision_handin(mat)
+    subroutine form_mat_4_precision_Gtx(mat)
 
         use mod_parameters,only : in,jn,kn,is,ie,js,je,ks,ke
         implicit none
@@ -939,7 +940,7 @@ module mod_forming
         call MatAssemblyBegin(mat,MAT_FINAL_ASSEMBLY,ierr)
         call MatAssemblyEnd(mat,MAT_FINAL_ASSEMBLY,ierr)
 
-    end subroutine form_mat_4_precision_handin
+    end subroutine form_mat_4_precision_Gtx
 
     subroutine mat_insert_values_4_precision_handin(mat,i,j,k)
 
@@ -1247,5 +1248,116 @@ module mod_forming
         deallocate(phi_xy,phi_yz,phi_xz)
 
     end subroutine cleanup
+
+    subroutine form_mat_2_precision_Gtx(mat)
+
+        use mod_parameters,only : in,jn,kn,is,ie,js,je,ks,ke
+        implicit none
+        Mat,intent(inout) :: mat
+        PetscErrorCode :: ierr
+        integer :: i,j,k
+
+        do k=ks,ke
+            do j=js,je
+                do i=is,ie
+                    if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
+                        call mat_set_boundary_conditions(mat,i,j,k)
+                    else
+                        call mat_insert_values_2_precision_handin(mat,i,j,k)
+                    endif
+                enddo
+            enddo
+        enddo
+
+        call MatAssemblyBegin(mat,MAT_FINAL_ASSEMBLY,ierr)
+        call MatAssemblyEnd(mat,MAT_FINAL_ASSEMBLY,ierr)
+
+    end subroutine form_mat_2_precision_Gtx
+
+    subroutine mat_insert_values_2_precision_handin(mat,i,j,k)
+
+        use mod_parameters,only : lns_mode,in,jn,kn,ck
+        implicit none
+        integer :: ic_index, jc_index, kc_index
+        integer :: lib, lie, ljb, lje, lkb, lke
+        PetscScalar :: box(5,5),trans(5,5)
+        MatStencil :: idxm(4,1),idxn(4,1)
+        integer,intent(in) :: i,j,k
+        Mat,intent(inout) :: mat
+        PetscErrorCode :: ierr
+        integer :: li, lj, lk
+
+        call Jor%get_adorned_cubes(i,j,k)
+        if(i==0)then
+            lib=0; lie=1
+            ic_index=-1
+        elseif(i==(in-1))then
+            lib=-1; lie=0
+            ic_index=1
+        else
+            lib=-1; lie=1
+            ic_index=0
+        endif
+        if(j==0)then
+            ljb=0; lje=1
+            jc_index=-1
+        elseif(j==(jn-1))then
+            ljb=-1; lje=0
+            jc_index=1
+        else
+            ljb=-1; lje=1
+            jc_index=0
+        endif
+        select case (lns_mode)
+            case(2)
+                lkb=0; lke=0; kc_index=0
+            case(3)
+                lkb=-1; lke=1; kc_index=0
+        end select
+        idxm=0;
+        idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
+        associate( &
+            &   coef_c1f=>FDM_1nd_1ORD_Forward,  &
+            &   coef_c1b=>FDM_1nd_1ORD_Backward, &
+            &   coef_d2 =>FDM_2nd_2ORD_CENTER,   &
+            &   coef_c2 =>FDM_1nd_2ORD_CENTER,   &
+            &   G   => Jor%G,   D   => Jor%D,    &
+            &   A_p => Jor%A_p, A_m => Jor%A_m, A_v => Jor%A_v, &
+            &   B_p => Jor%B_p, B_m => Jor%B_m, B_v => Jor%B_v, &
+            &   C_p => Jor%C_p, C_m => Jor%C_m, C_v => Jor%C_v, &
+            &   Vxx => Jor%Vxx, Vyy => Jor%Vyy, Vzz => Jor%Vzz, &
+            &   Vxy => Jor%Vxy, Vxz => Jor%Vxz, Vyz => Jor%Vyz)
+            do lk = lkb, lke
+                do lj = ljb, lje
+                    do li = lib, lie
+                        idxn=0;box=0.0d0;trans=0.0d0
+                        idxn(MatStencil_i, 1)=i+li
+                        idxn(MatStencil_j, 1)=j+lj
+                        idxn(MatStencil_k, 1)=k+lk
+                        box=delta_i(li)*delta_j(lj)*delta_k(lk)/ck*G+                  &
+                        &   delta_i(li)*delta_j(lj)*delta_k(lk)*D+                     &
+                        &   delta_j(lj)*delta_k(lk)*A_v*coef_c2(li,ic_index)+          &
+                        &   delta_j(lj)*delta_k(lk)*A_m*coef_c1f(li,ic_index)+         &
+                        &   delta_j(lj)*delta_k(lk)*A_p*coef_c1b(li,ic_index)+         &
+                        &   delta_i(li)*delta_k(lk)*B_v*coef_c2(lj,jc_index)+          &
+                        &   delta_i(li)*delta_k(lk)*B_m*coef_c1f(lj,jc_index)+         &
+                        &   delta_i(li)*delta_k(lk)*B_p*coef_c1b(lj,jc_index)+         &
+                        &   delta_i(li)*delta_j(lj)*C_v*coef_c2(lk,kc_index)+          &
+                        &   delta_i(li)*delta_j(lj)*C_m*coef_c1f(lk,kc_index)+         &
+                        &   delta_i(li)*delta_j(lj)*C_p*coef_c1b(lk,kc_index)-         &
+                        &   delta_j(lj)*delta_k(lk)*Vxx*coef_d2(li,ic_index)-          &
+                        &   delta_i(li)*delta_k(lk)*Vyy*coef_d2(lj,jc_index)-          &
+                        &   delta_i(li)*delta_j(lj)*Vzz*coef_d2(lk,kc_index)-          &
+                        &   delta_k(lk)*Vxy*coef_c2(li,ic_index)*coef_c2(lj,jc_index)- &
+                        &   delta_j(lj)*Vxz*coef_c2(li,ic_index)*coef_c2(lk,kc_index)- &
+                        &   delta_i(li)*Vyz*coef_c2(lj,jc_index)*coef_c2(lk,kc_index)
+                        trans=transpose(box)
+                        call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+                    enddo
+                enddo
+            enddo
+        end associate
+
+    end subroutine mat_insert_values_2_precision_handin
 
 end module mod_forming

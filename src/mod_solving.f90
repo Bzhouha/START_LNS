@@ -52,7 +52,7 @@ module mod_solving
             case('snes')
                 call snes_equations(comm,meshDA,whale,turtle,snes_fx4o,RHS)
             case('ksps')
-                call ksps_equations(comm,meshDA,whale,turtle,ksps_rhs_fx_b_Gtx,TIME_DISCRETE)
+                call ksps_equations(comm,meshDA,whale,turtle,ksps_rhs_fx_b_Ax,NEWTON_LIKE)
         end select
     end subroutine dstream
 
@@ -94,7 +94,7 @@ module mod_solving
 
         call PetscPrintf(comm,"\n   KSPs :: Matrix\n",ierr)
         call initialize_mat_from_da(comm,da,mat)
-        call form_mat_4_precision_handin(mat)
+        call form_mat_2_precision(mat)
         call solve_ksps(comm,mat,x,ksps_fx,type)
     end subroutine ksps_equations
 
@@ -311,7 +311,7 @@ module mod_solving
 
             case(NEWTON_LIKE)
 
-                write(*,*) "    using *Newtom-Like* method"
+                call PetscPrintf(comm,"    using *Newtom-Like* method",ierr)
 
                 do while(.True.)
                     ! Get rhs
@@ -319,21 +319,21 @@ module mod_solving
                     ! Solve
                     call KSPSolve(ksp,f,res,ierr)
                     ! Get residual
-                    call VecNorm(res,NORM_2,nrm,ierr)
+                    call VecNorm(res,NORM_INFINITY,nrm,ierr)
                     ! Print residual
                     write(str_count,"(I5)") count
                     write(str_norm,"(ES20.12)") nrm
-                    call PetscPrintf(comm,"  "//str_count//" < residual 2-Norm > "//str_norm//"\n",ierr)
+                    call PetscPrintf(comm," "//str_count//" < residual i-Norm > "//str_norm//"\n",ierr)
                     ! Get solution
                     call VecAXPY(x,one,res,ierr)
                     ! If iterated too much times
                     if(count>50)then
-                        call PetscPrintf(comm,"Maximum number of iterations reached.\n",ierr)
+                        call PetscPrintf(comm,"   Maximum number of iterations reached.\n",ierr)
                         exit
                     endif
                     ! If converged
                     if(nrm<1e-5)then
-                        call PetscPrintf(comm,"Converged.\n",ierr)
+                        call PetscPrintf(comm,"   Converged.\n",ierr)
                         exit
                     endif
                     ! Count
@@ -342,7 +342,7 @@ module mod_solving
 
             case(TIME_DISCRETE)
 
-                write(*,*) "    using *Time-Discrete* method"
+                call PetscPrintf(comm,"    using *Time-Discrete* method",ierr)
 
                 do while(.True.)
                     ! Get rhs
@@ -355,17 +355,17 @@ module mod_solving
                     ! Print residual
                     write(str_count,"(I5)") count
                     write(str_norm,"(ES20.12)") nrm
-                    call PetscPrintf(comm,"  "//str_count//" < residual i-Norm > "//str_norm//"\n",ierr)
+                    call PetscPrintf(comm," "//str_count//" < residual i-Norm > "//str_norm//"\n",ierr)
                     ! Get solution
                     call VecCopy(res,x,ierr)
                     ! If iterated too much times
-                    if(count>10)then
-                        call PetscPrintf(comm,"Maximum number of iterations reached.\n",ierr)
+                    if(count>50)then
+                        call PetscPrintf(comm,"   Maximum number of iterations reached.\n",ierr)
                         exit
                     endif
                     ! If converged
                     if(nrm<1e-5)then
-                        call PetscPrintf(comm,"Converged.\n",ierr)
+                        call PetscPrintf(comm,"   Converged.\n",ierr)
                         exit
                     endif
                     ! Count
