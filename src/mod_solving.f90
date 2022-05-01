@@ -125,7 +125,7 @@ module mod_solving
         call PetscPrintf(comm, "\n   KSP :: Solve\n\n", ierr)
         ! Set parameter
         rtol = 1e-8
-        if(level==0)then ! 如果level是0，那么不使用多重网格
+        if(level==0)then
             ! Create & set KSP
             call KSPCreate(comm,ksp,ierr)
             call KSPSetOperators(ksp,mat,mat,ierr)
