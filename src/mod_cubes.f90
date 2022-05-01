@@ -57,25 +57,27 @@ module mod_cubes
         complex(R_P), dimension(5, 5) :: Vyz=0.0d0
         contains
             procedure,public  :: get_adorned_cubes
-            procedure,private :: get_unadorned_cubes,get_splited_cubes,get_colored_cubes
+            procedure,public  :: get_transed_cubes
+            procedure,private :: get_unadorned_cubes
+            procedure,private :: get_splited_cubes,get_colored_cubes
             procedure,private :: teal_cubes,mint_cubes,skyblue_cubes,lilac_cubes
     end type lns_OP_point_type
     complex(R_P),parameter :: Ci = cmplx(0.0d0,1.0d0,R_P)
     contains
     subroutine get_unadorned_cubes(this,i,j,k)
-        use mod_flowtype
         use mod_parameters
         implicit none
-        class(lns_OP_point_type),intent(inout) :: this
-        integer,intent(in) :: i,j,k
-        real(R_P) :: Pe, gf, g1, g2, cm
-        real(R_P) :: n_Miu, n_MiuT, n_MiuTT, n_Miux, n_Miuy, n_Miuz
+        real(R_P) :: Vxx(5,5), Vyy(5,5), Vzz(5,5), Vxy(5,5), Vxz(5,5), Vyz(5,5)
         real(R_P) :: d1d3=1.0d0/3.0d0, d2d3=2.0d0/3.0d0, d4d3=4.0d0/3.0d0
-        real(R_P) :: G(5, 5), A(5, 5), B(5, 5), C(5, 5), D(5, 5)
-        real(R_P) :: A_v(5, 5), B_v(5, 5), C_v(5, 5)
-        real(R_P) :: A_c(5, 5), B_c(5, 5), C_c(5, 5)
-        real(R_P) :: Vxx(5, 5), Vyy(5, 5), Vzz(5, 5), Vxy(5, 5), Vxz(5, 5), Vyz(5, 5)
+        real(R_P) :: n_Miu, n_MiuT, n_MiuTT, n_Miux, n_Miuy, n_Miuz
+        real(R_P) :: G(5,5), A(5,5), B(5,5), C(5,5), D(5,5)
+        class(lns_OP_point_type),intent(inout) :: this
+        real(R_P) :: A_v(5,5), B_v(5,5), C_v(5,5)
+        real(R_P) :: A_c(5,5), B_c(5,5), C_c(5,5)
         real(R_P),parameter :: C1=110.4D0
+        real(R_P) :: Pe, gf, g1, g2, cm
+        integer,intent(in) :: i,j,k
+
         ! 初始化矩阵
         G=0.0d0;A=0.0d0;B=0.0d0;C=0.0d0;D=0.0d0
         A_c=0.0d0;B_c=0.0d0;C_c=0.0d0
@@ -369,12 +371,13 @@ module mod_cubes
             Vyz(4, 3) = d1d3*n_Miu/Re
         end associate
 
-        this%G=G;     this%D=D
-        this%A=A;     this%B=B;     this%C=C
-        this%A_c=A_c; this%B_c=B_c; this%C_c=C_c
-        this%A_v=A_v; this%B_v=B_v; this%C_v=C_v
-        this%Vxx=Vxx; this%Vyy=Vyy; this%Vzz=Vzz
-        this%Vxy=Vxy; this%Vxz=Vxz; this%Vyz=Vyz
+        this%G   = G;       this%D   = D
+        this%A   = A;       this%B   = B;       this%C   = C
+        this%A_c = A_c;     this%B_c = B_c;     this%C_c = C_c
+        this%A_v = A_v;     this%B_v = B_v;     this%C_v = C_v
+        this%Vxx = Vxx;     this%Vyy = Vyy;     this%Vzz = Vzz
+        this%Vxy = Vxy;     this%Vxz = Vxz;     this%Vyz = Vyz
+
     end subroutine get_unadorned_cubes
 
     subroutine get_splited_cubes(this,i,j,k)
@@ -586,7 +589,7 @@ module mod_cubes
         this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
     end subroutine lilac_cubes
 
-    subroutine get_adorned_cubes(this,i,j,k)
+    subroutine get_transed_cubes(this,i,j,k)
         use mod_parameters
         implicit none
         class(lns_OP_point_type),intent(inout) :: this
@@ -663,5 +666,93 @@ module mod_cubes
             +(eta_x*phi_y+phi_x*eta_y)*Jor%Vxy+(eta_x*phi_z+phi_x*eta_z)*Jor%Vxz &
             +(eta_y*phi_z+phi_y*eta_z)*Jor%Vyz
         end associate
+    end subroutine get_transed_cubes
+
+    subroutine get_adorned_cubes(this,i,j,k)
+        use mod_parameters
+        implicit none
+        class(lns_OP_point_type),intent(inout) :: this
+        real(R_P),parameter :: d4d3=4.0d0/3.0d0
+        real(R_P),parameter :: C1=110.4D0
+        real(R_P) :: miu,miut,aa,maxc
+        real(R_P),parameter :: cfl=1.5
+        type(lns_OP_point_type) :: Jor
+        integer,intent(in) :: i,j,k
+        real(R_P) :: ctu,ctv,ctw
+        real(R_P) :: gax,gae,gap
+        real(R_P) :: t1,t2,t3
+        real(R_P) :: cm,vt,vu
+
+        call Jor%get_transed_cubes(i,j,k)
+
+        if(usedt)then
+            if(calculate_dt)then
+                associate(                      &
+                &    rho   => bf(i,j,k)%BF%rho, &
+                &    u     => bf(i,j,k)%BF%x,   &
+                &    v     => bf(i,j,k)%BF%y,   &
+                &    w     => bf(i,j,k)%BF%z,   &
+                &    t     => bf(i,j,k)%BF%T,   &
+                &    xi_x  => xi_x(i,j,k),      &
+                &    xi_y  => xi_y(i,j,k),      &
+                &    xi_z  => xi_z(i,j,k),      &
+                &    eta_x => eta_x(i,j,k),     &
+                &    eta_y => eta_y(i,j,k),     &
+                &    eta_z => eta_z(i,j,k),     &
+                &    phi_x => phi_x(i,j,k),     &
+                &    phi_y => phi_y(i,j,k),     &
+                &    phi_z => phi_z(i,j,k) )
+
+                vt = GAMMA/Pr
+                vu = 1.0d0/Re/rho
+                maxc = max(d4d3,vt)
+                aa = Ma/sqrt(t)
+                cm=C1/Te
+                miu = t*sqrt(t)*(1.0d0+cm)/(t+cm)
+                miut = miu*(1.5d0/t-1.0d0/(t+cm))
+
+                select case(lns_mode)
+                    case(2)
+                        gax = sqrt(xi_x **2+xi_y **2+xi_z **2)
+                        gae = sqrt(eta_x**2+eta_y**2+eta_z**2)
+
+                        ctu = ( xi_x*u +  xi_y*v +  xi_z*w)/gax
+                        ctv = (eta_x*u + eta_y*v + eta_z*w)/gae
+
+                        t1 = ctu + aa + 2*gax*(miu+miut)*maxc*vu
+                        t2 = ctv + aa + 2*gae*(miu+miut)*maxc*vu
+
+                        dt = cfl / (gax*t1 + gae*t2)
+                    case(3)
+                        gax = sqrt(xi_x **2+xi_y **2+xi_z **2)
+                        gae = sqrt(eta_x**2+eta_y**2+eta_z**2)
+                        gap = sqrt(phi_x**2+phi_y**2+phi_z**2)
+
+                        ctu = ( xi_x*u +  xi_y*v +  xi_z*w)/gax
+                        ctv = (eta_x*u + eta_y*v + eta_z*w)/gae
+                        ctw = (phi_x*u + phi_y*v + phi_z*w)/gap
+
+                        t1 = ctu + aa + 2*gax*(miu+miut)*maxc*vu
+                        t2 = ctv + aa + 2*gae*(miu+miut)*maxc*vu
+                        t3 = ctw + aa + 2*gap*(miu+miut)*maxc*vu
+
+                        dt = cfl / (gax*t1 + gae*t2 + gap*t3)
+                end select
+                end associate
+            endif
+        else
+            dt=999999999
+        endif
+
+        this%G   = Jor%G;         this%D   = Jor%D+Jor%G*dt
+        this%A   = Jor%A;         this%B   = Jor%B;          this%C   = Jor%C
+        this%A_c = Jor%A_c;       this%B_c = Jor%B_c;        this%C_c = Jor%C_c
+        this%A_p = Jor%A_p;       this%B_p = Jor%B_p;        this%C_p = Jor%C_p
+        this%A_m = Jor%A_m;       this%B_m = Jor%B_m;        this%C_m = Jor%C_m
+        this%A_v = Jor%A_v;       this%B_v = Jor%B_v;        this%C_v = Jor%C_v
+        this%Vxx = Jor%Vxx;       this%Vyy = Jor%Vyy;        this%Vzz = Jor%Vzz
+        this%Vxy = Jor%Vxy;       this%Vxz = Jor%Vxz;        this%Vyz = Jor%Vyz
+
     end subroutine get_adorned_cubes
+
 end module mod_cubes

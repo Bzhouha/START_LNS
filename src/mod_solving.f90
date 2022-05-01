@@ -28,7 +28,6 @@ module mod_solving
     use mod_forming
     use mod_points
     use petsc
-
     public :: dstream
     private
     PetscErrorCode :: ierr
@@ -50,7 +49,7 @@ module mod_solving
             case('ksp')
                 call ksp_equations(comm,meshDA,whale,turtle,RHS)
             case('snes')
-                call snes_equations(comm,meshDA,whale,turtle,snes_fx4o,RHS)
+                call snes_equations(comm,meshDA,whale,turtle,snes_rhs_fx_4ord,RHS)
             case('ksps')
                 call ksps_equations(comm,meshDA,whale,turtle,ksps_rhs_fx_b_Ax,NEWTON_LIKE)
         end select
@@ -64,7 +63,7 @@ module mod_solving
         DM :: da
         call PetscPrintf(comm,"\n   KSP :: Matrix\n",ierr)
         call initialize_mat_from_da(comm,da,mat)
-        call form_mat_4_precision(mat)
+        call form_mat_4ord(mat)
         call set_rhs(comm,da,x,r)
         call solve_ksp(comm,mat,x,r,0)
     end subroutine ksp_equations
@@ -78,7 +77,7 @@ module mod_solving
         DM :: da
         call PetscPrintf(comm,"\n   SNES :: Jacobi\n",ierr)
         call initialize_mat_from_da(comm,da,mat)
-        call form_mat_2_precision(mat)
+        call form_mat_2ord(mat)
         call set_rhs(comm,da,x,r)
         call solve_snes(comm,mat,x,fx,r)
     end subroutine snes_equations
@@ -94,7 +93,7 @@ module mod_solving
 
         call PetscPrintf(comm,"\n   KSPs :: Matrix\n",ierr)
         call initialize_mat_from_da(comm,da,mat)
-        call form_mat_2_precision(mat)
+        call form_mat_2ord(mat)
         call solve_ksps(comm,mat,x,ksps_fx,type)
     end subroutine ksps_equations
 

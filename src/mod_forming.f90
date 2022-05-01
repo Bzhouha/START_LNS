@@ -11,15 +11,15 @@ module mod_forming
 !
 !       1.call set_matfree_mat(comm,ierr) 免矩阵形式的矩阵生成函数
 !
-!           call mat_mult_4_precision(A, X, F, ierr) 免矩阵需要的矩阵向量乘法函数
+!           call mat_mult_4ord(A, X, F, ierr) 免矩阵需要的矩阵向量乘法函数
 !
 !       2.call get_mat_from_dm(comm,ierr) 显式矩阵形式的矩阵生成函数
 !
-!           call form_mat_4_precision(ierr) 填充数据函数
+!           call form_mat_4ord(ierr) 填充数据函数
 !
 !               (1).call mat_set_boundary_conditions(i,j,k) 边界部分的填充数据函数
 !
-!               (2).call mat_insert_values_4_precision(i,j,k) 内部部分的填充数据函数
+!               (2).call mat_insert_values_4_ord(i,j,k) 内部部分的填充数据函数
 !
 !       3.call set_rhs(comm,ierr) 设置右边量，即边界。
 !
@@ -27,11 +27,11 @@ module mod_forming
 !
 !       5.call shark_coming(comm,ierr) 一阶精度分裂的矩阵
 !
-!           call form_mat_2_precision(ierr) 生成一阶精度分裂的矩阵
+!           call form_mat_2ord(ierr) 生成一阶精度分裂的矩阵
 !
 !       6.call snes_fx1o(snes,x,f,null_int,ierr) 一阶精度右端项函数
 !
-!       7.call snes_fx4o(snes,x,f,null_int,ierr) 四阶精度右端项函数
+!       7.call snes_rhs_fx_4ord(snes,x,f,null_int,ierr) 四阶精度右端项函数
 !
 ! ------------------------------------------------------------------
     use penf, only: R_P
@@ -39,13 +39,11 @@ module mod_forming
     use petsc
     implicit none
     public :: set_matfree_mat
-    public :: mat_mult_4_precision
+    public :: mat_mult_4ord
     public :: initialize_mat_from_da
-    public :: form_mat_4_precision
-    public :: form_mat_2_precision
-    public :: form_mat_4_precision_Gtx
-    public :: form_mat_2_precision_Gtx
-    public :: snes_fx,snes_fx4o
+    public :: form_mat_4ord
+    public :: form_mat_2ord
+    public :: snes_rhs_fx,snes_rhs_fx_4ord
     public :: ksps_rhs_fx_b_Ax
     public :: ksps_rhs_fx_b_Gtx
     public :: set_rhs
@@ -119,13 +117,13 @@ module mod_forming
 
         call VecGetLocalSize(x,ls,ierr)
         call MatCreateShell(comm,ls,ls,PETSC_DETERMINE,PETSC_DETERMINE,PETSC_NULL_INTEGER,mat,ierr)
-        call MatShellSetOperation(mat,MATOP_MULT,mat_mult_4_precision,ierr)
+        call MatShellSetOperation(mat,MATOP_MULT,mat_mult_4ord,ierr)
         call MatAssemblyBegin(mat,MAT_FINAL_ASSEMBLY,ierr)
         call MatAssemblyEnd(mat,MAT_FINAL_ASSEMBLY,ierr)
 
     end subroutine set_matfree_mat
 
-    subroutine mat_mult_4_precision(A,X,F,ierr)
+    subroutine mat_mult_4ord(A,X,F,ierr)
 
         use mod_parameters,only : meshDA,lns_mode,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
@@ -167,7 +165,7 @@ module mod_forming
                     elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
                         f(:,i,j,k)=(x(:,i-2,j,k)-4*x(:,i-1,j,k)+3*x(:,i,j,k))/2.0d0
                     elseif(j==0 .and. i/=0)then
-                        call Jor%get_adorned_cubes(i,j,k)
+                        call Jor%get_transed_cubes(i,j,k)
                         do lj=1,5
                             do li=2,5
                                 D(li,lj)=0.0d0
@@ -275,7 +273,7 @@ module mod_forming
         call DMDAVecRestoreArrayF90(meshDA,F,fr,ierr)
         call DMRestoreLocalVector(meshDA,bell,ierr)
 
-    end subroutine mat_mult_4_precision
+    end subroutine mat_mult_4ord
 
     subroutine initialize_mat_from_da(comm,da,mat)
 
@@ -290,7 +288,7 @@ module mod_forming
 
     end subroutine initialize_mat_from_da
 
-    subroutine form_mat_4_precision(mat)
+    subroutine form_mat_4ord(mat)
 
         use mod_parameters,only : in,jn,kn,is,ie,js,je,ks,ke
         implicit none
@@ -304,7 +302,7 @@ module mod_forming
                     if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
                         call mat_set_boundary_conditions(mat,i,j,k)
                     else
-                        call mat_insert_values_4_precision(mat,i,j,k)
+                        call mat_insert_values_4_ord(mat,i,j,k)
                     endif
                 enddo
             enddo
@@ -313,7 +311,7 @@ module mod_forming
         call MatAssemblyBegin(mat,MAT_FINAL_ASSEMBLY,ierr)
         call MatAssemblyEnd(mat,MAT_FINAL_ASSEMBLY,ierr)
 
-    end subroutine form_mat_4_precision
+    end subroutine form_mat_4ord
 
     subroutine mat_set_boundary_conditions(mat,i,j,k)
 
@@ -341,7 +339,7 @@ module mod_forming
             ljb=0;lje=1
             jc_index=1
             idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
-            call Jor%get_adorned_cubes(i,j,k)
+            call Jor%get_transed_cubes(i,j,k)
             do lj=1,5
                 do li=2,5
                     Jor%D(li,lj)=0.0d0
@@ -377,7 +375,7 @@ module mod_forming
 
     end subroutine mat_set_boundary_conditions
 
-    subroutine mat_insert_values_4_precision(mat,i,j,k)
+    subroutine mat_insert_values_4_ord(mat,i,j,k)
 
         use mod_parameters,only : lns_mode,in,jn,kn
         implicit none
@@ -474,7 +472,7 @@ module mod_forming
         end do
         end associate
 
-    end subroutine mat_insert_values_4_precision
+    end subroutine mat_insert_values_4_ord
 
     subroutine set_rhs(comm,da,x,r)
 
@@ -503,10 +501,7 @@ module mod_forming
 
     end subroutine set_rhs
 
-    ! -----------------------------------------------------------------------------------------------------
-    !   迭代格式二：借用SNES模块 Jac x = - F(x)
-
-    subroutine form_mat_2_precision(mat)
+    subroutine form_mat_2ord(mat)
 
         use mod_parameters,only : in,jn,kn,is,ie,js,je,ks,ke
         implicit none
@@ -520,7 +515,7 @@ module mod_forming
                     if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
                         call mat_set_boundary_conditions(mat,i,j,k)
                     else
-                        call mat_insert_values_2_precision(mat,i,j,k)
+                        call mat_insert_values_2_ord(mat,i,j,k)
                     endif
                 enddo
             enddo
@@ -529,9 +524,9 @@ module mod_forming
         call MatAssemblyBegin(mat,MAT_FINAL_ASSEMBLY,ierr)
         call MatAssemblyEnd(mat,MAT_FINAL_ASSEMBLY,ierr)
 
-    end subroutine form_mat_2_precision
+    end subroutine form_mat_2ord
 
-    subroutine mat_insert_values_2_precision(mat,i,j,k)
+    subroutine mat_insert_values_2_ord(mat,i,j,k)
 
         use mod_parameters,only : lns_mode,in,jn,kn
         implicit none
@@ -614,9 +609,9 @@ module mod_forming
             enddo
         end associate
 
-    end subroutine mat_insert_values_2_precision
+    end subroutine mat_insert_values_2_ord
 
-    subroutine snes_fx(snes,x,f,null_int,ierr)
+    subroutine snes_rhs_fx(snes,x,f,null_int,ierr)
 
         use mod_parameters,only : meshDA,lns_mode,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
@@ -656,7 +651,7 @@ module mod_forming
                     elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
                         f(:,i,j,k)=(x(:,i-2,j,k)-4*x(:,i-1,j,k)+3*x(:,i,j,k))/2.0d0
                     elseif(j==0 .and. i/=0)then
-                        call Jor%get_adorned_cubes(i,j,k)
+                        call Jor%get_transed_cubes(i,j,k)
                         do lj=1,5
                             do li=2,5
                                 D(li,lj)=0.0d0
@@ -668,7 +663,7 @@ module mod_forming
                         f(:,i,j,k)=matmul(D,x(:,i,j,k))+matmul(B,x(:,i,j+1,k))-matmul(B,x(:,i,j,k))
                     else
                         yi=0.0d0
-                        call Jor%get_adorned_cubes(i,j,k)
+                        call Jor%get_transed_cubes(i,j,k)
                         if(i==0)then
                             lib=0; lie=2
                             ic_index=-2
@@ -757,9 +752,9 @@ module mod_forming
         call DMDAVecRestoreArrayF90(meshDA,F,fr,ierr)
         call DMRestoreLocalVector(meshDA,bell,ierr)
 
-    end subroutine snes_fx
+    end subroutine snes_rhs_fx
 
-    subroutine snes_fx4o(snes,x,f,null_int,ierr)
+    subroutine snes_rhs_fx_4ord(snes,x,f,null_int,ierr)
 
         use mod_parameters,only : meshDA,lns_mode,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
@@ -803,7 +798,7 @@ module mod_forming
                     elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
                         f(:,i,j,k)=(x(:,i-2,j,k)-4*x(:,i-1,j,k)+3*x(:,i,j,k))/2.0d0
                     elseif(j==0 .and. i/=0)then
-                        call Jor%get_adorned_cubes(i,j,k)
+                        call Jor%get_transed_cubes(i,j,k)
                         do lj=1,5
                             do li=2,5
                                 D(li,lj)=0.0d0
@@ -815,7 +810,7 @@ module mod_forming
                         f(:,i,j,k)=matmul(D,x(:,i,j,k))+matmul(B,x(:,i,j+1,k))-matmul(B,x(:,i,j,k))
                     else
                         yi=0.0d0
-                        call Jor%get_adorned_cubes(i,j,k)
+                        call Jor%get_transed_cubes(i,j,k)
                         if(i==0)then
                             lib=0; lie=2
                             ic_index=-2
@@ -912,133 +907,10 @@ module mod_forming
         call DMDAVecRestoreArrayF90(meshDA,F,fr,ierr)
         call DMRestoreLocalVector(meshDA,bell,ierr)
 
-    end subroutine snes_fx4o
+    end subroutine snes_rhs_fx_4ord
 
     ! -----------------------------------------------------------------------------------------------------
     !   迭代格式三：借用KSP模块
-
-    subroutine form_mat_4_precision_Gtx(mat)
-
-        use mod_parameters,only : in,jn,kn,is,ie,js,je,ks,ke
-        implicit none
-        Mat,intent(inout) :: mat
-        PetscErrorCode :: ierr
-        integer :: i,j,k
-
-        do k=ks,ke
-            do j=js,je
-                do i=is,ie
-                    if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
-                        call mat_set_boundary_conditions(mat,i,j,k)
-                    else
-                        call mat_insert_values_4_precision_Gtx(mat,i,j,k)
-                    endif
-                enddo
-            enddo
-        enddo
-
-        call MatAssemblyBegin(mat,MAT_FINAL_ASSEMBLY,ierr)
-        call MatAssemblyEnd(mat,MAT_FINAL_ASSEMBLY,ierr)
-
-    end subroutine form_mat_4_precision_Gtx
-
-    subroutine mat_insert_values_4_precision_Gtx(mat,i,j,k)
-
-        use mod_parameters,only : lns_mode,in,jn,kn,ck
-        implicit none
-        integer :: ic_index, jc_index, kc_index
-        integer :: lib, lie, ljb, lje, lkb, lke
-        PetscScalar :: box(5,5),trans(5,5)
-        MatStencil :: idxm(4,1),idxn(4,1)
-        integer,intent(in) :: i,j,k
-        Mat,intent(inout) :: mat
-        PetscErrorCode :: ierr
-        integer :: li, lj, lk
-
-        call Jor%get_adorned_cubes(i,j,k)
-        if(i==0)then
-            lib=0; lie=2
-            ic_index=-2
-        elseif(i==1)then
-            lib=-1; lie=2
-            ic_index=-1
-        elseif(i==(in-2))then
-            lib=-2; lie=1
-            ic_index=1
-        elseif(i==(in-1))then
-            lib=-2; lie=0
-            ic_index=2
-        else
-            lib=-2; lie=2
-            ic_index=0
-        endif
-        if(j==0)then
-            ljb=0; lje=2
-            jc_index=-2
-        elseif(j==1)then
-            ljb=-1; lje=2
-            jc_index=-1
-        elseif(j==(jn-2))then
-            ljb=-2; lje=1
-            jc_index=1
-        elseif(j==(jn-1))then
-            ljb=-2; lje=0
-            jc_index=2
-        else
-            ljb=-2; lje=2
-            jc_index=0
-        endif
-        select case (lns_mode)
-            case(2)
-                lkb=0; lke=0; kc_index=0
-            case(3)
-                lkb=-2; lke=2; kc_index=0
-        end select
-        idxm=0;
-        idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
-        associate( &
-        &   coef_c4  => FDM_1nd_4ORD_CENTER,   &
-        &   coef_d4  => FDM_2nd_4ORD_CENTER,   &
-        &   coef_c4f => FDM_1nd_4ORD_Forward,  &
-        &   coef_c4b => FDM_1nd_4ORD_Backward, &
-        &   G   => Jor%G,   D   => Jor%D,      &
-        &   A_p => Jor%A_p, A_m => Jor%A_m, A_v => Jor%A_v, &
-        &   B_p => Jor%B_p, B_m => Jor%B_m, B_v => Jor%B_v, &
-        &   C_p => Jor%C_p, C_m => Jor%C_m, C_v => Jor%C_v, &
-        &   Vxx => Jor%Vxx, Vyy => Jor%Vyy, Vzz => Jor%Vzz, &
-        &   Vxy => Jor%Vxy, Vxz => Jor%Vxz, Vyz => Jor%Vyz)
-        do lk = lkb, lke
-            do lj = ljb, lje
-                do li = lib, lie
-                    idxn=0;box=0.0d0;trans=0.0d0
-                    idxn(MatStencil_i, 1)=i+li
-                    idxn(MatStencil_j, 1)=j+lj
-                    idxn(MatStencil_k, 1)=k+lk
-                    box=delta_i(li)*delta_j(lj)*delta_k(lk)/ck*G+                  &
-                    &   delta_i(li)*delta_j(lj)*delta_k(lk)*D+                     &
-                    &   delta_j(lj)*delta_k(lk)*A_v*coef_c4(li,ic_index)+          &
-                    &   delta_j(lj)*delta_k(lk)*A_m*coef_c4f(li,ic_index)+         &
-                    &   delta_j(lj)*delta_k(lk)*A_p*coef_c4b(li,ic_index)+         &
-                    &   delta_i(li)*delta_k(lk)*B_v*coef_c4(lj,jc_index)+          &
-                    &   delta_i(li)*delta_k(lk)*B_m*coef_c4f(lj,jc_index)+         &
-                    &   delta_i(li)*delta_k(lk)*B_p*coef_c4b(lj,jc_index)+         &
-                    &   delta_i(li)*delta_j(lj)*C_v*coef_c4(lk,kc_index)+          &
-                    &   delta_i(li)*delta_j(lj)*C_m*coef_c4f(lk,kc_index)+         &
-                    &   delta_i(li)*delta_j(lj)*C_p*coef_c4b(lk,kc_index)-         &
-                    &   delta_j(lj)*delta_k(lk)*Vxx*coef_d4(li,ic_index)-          &
-                    &   delta_i(li)*delta_k(lk)*Vyy*coef_d4(lj,jc_index)-          &
-                    &   delta_i(li)*delta_j(lj)*Vzz*coef_d4(lk,kc_index)-          &
-                    &   delta_k(lk)*Vxy*coef_c4(li,ic_index)*coef_c4(lj,jc_index)- &
-                    &   delta_j(lj)*Vxz*coef_c4(li,ic_index)*coef_c4(lk,kc_index)- &
-                    &   delta_i(li)*Vyz*coef_c4(lj,jc_index)*coef_c4(lk,kc_index)
-                    trans=transpose(box)
-                    call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
-                end do
-            end do
-        end do
-        end associate
-
-    end subroutine mat_insert_values_4_precision_Gtx
 
     subroutine ksps_rhs_fx_b_Ax(x,f)
 
@@ -1084,7 +956,7 @@ module mod_forming
                     elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
                         f(:,i,j,k)=-1.0d0*(x(:,i-2,j,k)-4*x(:,i-1,j,k)+3*x(:,i,j,k))/2.0d0
                     elseif(j==0 .and. i/=0)then
-                        call Jor%get_adorned_cubes(i,j,k)
+                        call Jor%get_transed_cubes(i,j,k)
                         do lj=1,5
                             do li=2,5
                                 D(li,lj)=0.0d0
@@ -1096,7 +968,7 @@ module mod_forming
                         f(:,i,j,k)=-1.0d0*(matmul(D,x(:,i,j,k))+matmul(B,x(:,i,j+1,k))-matmul(B,x(:,i,j,k)))
                     else
                         yi=0.0d0
-                        call Jor%get_adorned_cubes(i,j,k)
+                        call Jor%get_transed_cubes(i,j,k)
                         if(i==0)then
                             lib=0; lie=2
                             ic_index=-2
@@ -1197,16 +1069,16 @@ module mod_forming
     end subroutine ksps_rhs_fx_b_Ax
 
     subroutine ksps_rhs_fx_b_Gtx(x,f)
-       use mod_parameters,only : meshDA,is,ie,js,je,ks,ke,disturb,ck
+       use mod_parameters,only : meshDA,is,ie,js,je,ks,ke,disturb,dt
        implicit none
        PetscScalar,pointer :: fr(:,:,:,:),xr(:,:,:,:)
        PetscErrorCode :: ierr
        Vec,intent(inout) :: f
        Vec,intent(in) :: x
        integer :: i,j,k
-       PetscReal :: ick
+       PetscReal :: idt
 
-       ick = 1.0d0/ck
+       idt = 1.0d0/dt
 
        call DMDAVecGetArrayReadF90(meshDA,x,xr,ierr)
        call DMDAVecGetArrayF90(meshDA,f,fr,ierr)
@@ -1219,9 +1091,9 @@ module mod_forming
                do i=is,ie
                    call Jor%get_adorned_cubes(i,j,k)
                    if(i==0)then
-                       f(:,i,j,k)=disturb(:,j,k)+matmul(ick*Jor%G,x(:,i,j,k))
+                       f(:,i,j,k)=disturb(:,j,k)+matmul(idt*Jor%G,x(:,i,j,k))
                    else
-                       f(:,i,j,k)=matmul(ick*Jor%G,x(:,i,j,k))
+                       f(:,i,j,k)=matmul(idt*Jor%G,x(:,i,j,k))
                    endif
                enddo
            enddo
@@ -1248,116 +1120,5 @@ module mod_forming
         deallocate(phi_xy,phi_yz,phi_xz)
 
     end subroutine cleanup
-
-    subroutine form_mat_2_precision_Gtx(mat)
-
-        use mod_parameters,only : in,jn,kn,is,ie,js,je,ks,ke
-        implicit none
-        Mat,intent(inout) :: mat
-        PetscErrorCode :: ierr
-        integer :: i,j,k
-
-        do k=ks,ke
-            do j=js,je
-                do i=is,ie
-                    if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
-                        call mat_set_boundary_conditions(mat,i,j,k)
-                    else
-                        call mat_insert_values_2_precision_Gtx(mat,i,j,k)
-                    endif
-                enddo
-            enddo
-        enddo
-
-        call MatAssemblyBegin(mat,MAT_FINAL_ASSEMBLY,ierr)
-        call MatAssemblyEnd(mat,MAT_FINAL_ASSEMBLY,ierr)
-
-    end subroutine form_mat_2_precision_Gtx
-
-    subroutine mat_insert_values_2_precision_Gtx(mat,i,j,k)
-
-        use mod_parameters,only : lns_mode,in,jn,kn,ck
-        implicit none
-        integer :: ic_index, jc_index, kc_index
-        integer :: lib, lie, ljb, lje, lkb, lke
-        PetscScalar :: box(5,5),trans(5,5)
-        MatStencil :: idxm(4,1),idxn(4,1)
-        integer,intent(in) :: i,j,k
-        Mat,intent(inout) :: mat
-        PetscErrorCode :: ierr
-        integer :: li, lj, lk
-
-        call Jor%get_adorned_cubes(i,j,k)
-        if(i==0)then
-            lib=0; lie=1
-            ic_index=-1
-        elseif(i==(in-1))then
-            lib=-1; lie=0
-            ic_index=1
-        else
-            lib=-1; lie=1
-            ic_index=0
-        endif
-        if(j==0)then
-            ljb=0; lje=1
-            jc_index=-1
-        elseif(j==(jn-1))then
-            ljb=-1; lje=0
-            jc_index=1
-        else
-            ljb=-1; lje=1
-            jc_index=0
-        endif
-        select case (lns_mode)
-            case(2)
-                lkb=0; lke=0; kc_index=0
-            case(3)
-                lkb=-1; lke=1; kc_index=0
-        end select
-        idxm=0;
-        idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
-        associate( &
-            &   coef_c1f=>FDM_1nd_1ORD_Forward,  &
-            &   coef_c1b=>FDM_1nd_1ORD_Backward, &
-            &   coef_d2 =>FDM_2nd_2ORD_CENTER,   &
-            &   coef_c2 =>FDM_1nd_2ORD_CENTER,   &
-            &   G   => Jor%G,   D   => Jor%D,    &
-            &   A_p => Jor%A_p, A_m => Jor%A_m, A_v => Jor%A_v, &
-            &   B_p => Jor%B_p, B_m => Jor%B_m, B_v => Jor%B_v, &
-            &   C_p => Jor%C_p, C_m => Jor%C_m, C_v => Jor%C_v, &
-            &   Vxx => Jor%Vxx, Vyy => Jor%Vyy, Vzz => Jor%Vzz, &
-            &   Vxy => Jor%Vxy, Vxz => Jor%Vxz, Vyz => Jor%Vyz)
-            do lk = lkb, lke
-                do lj = ljb, lje
-                    do li = lib, lie
-                        idxn=0;box=0.0d0;trans=0.0d0
-                        idxn(MatStencil_i, 1)=i+li
-                        idxn(MatStencil_j, 1)=j+lj
-                        idxn(MatStencil_k, 1)=k+lk
-                        box=delta_i(li)*delta_j(lj)*delta_k(lk)/ck*G+                  &
-                        &   delta_i(li)*delta_j(lj)*delta_k(lk)*D+                     &
-                        &   delta_j(lj)*delta_k(lk)*A_v*coef_c2(li,ic_index)+          &
-                        &   delta_j(lj)*delta_k(lk)*A_m*coef_c1f(li,ic_index)+         &
-                        &   delta_j(lj)*delta_k(lk)*A_p*coef_c1b(li,ic_index)+         &
-                        &   delta_i(li)*delta_k(lk)*B_v*coef_c2(lj,jc_index)+          &
-                        &   delta_i(li)*delta_k(lk)*B_m*coef_c1f(lj,jc_index)+         &
-                        &   delta_i(li)*delta_k(lk)*B_p*coef_c1b(lj,jc_index)+         &
-                        &   delta_i(li)*delta_j(lj)*C_v*coef_c2(lk,kc_index)+          &
-                        &   delta_i(li)*delta_j(lj)*C_m*coef_c1f(lk,kc_index)+         &
-                        &   delta_i(li)*delta_j(lj)*C_p*coef_c1b(lk,kc_index)-         &
-                        &   delta_j(lj)*delta_k(lk)*Vxx*coef_d2(li,ic_index)-          &
-                        &   delta_i(li)*delta_k(lk)*Vyy*coef_d2(lj,jc_index)-          &
-                        &   delta_i(li)*delta_j(lj)*Vzz*coef_d2(lk,kc_index)-          &
-                        &   delta_k(lk)*Vxy*coef_c2(li,ic_index)*coef_c2(lj,jc_index)- &
-                        &   delta_j(lj)*Vxz*coef_c2(li,ic_index)*coef_c2(lk,kc_index)- &
-                        &   delta_i(li)*Vyz*coef_c2(lj,jc_index)*coef_c2(lk,kc_index)
-                        trans=transpose(box)
-                        call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
-                    enddo
-                enddo
-            enddo
-        end associate
-
-    end subroutine mat_insert_values_2_precision_Gtx
 
 end module mod_forming
