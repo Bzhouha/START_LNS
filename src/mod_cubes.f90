@@ -685,63 +685,63 @@ module mod_cubes
 
         call Jor%get_transed_cubes(i,j,k)
 
-        if(usedt)then
-            if(calculate_dt)then
-                associate(                      &
-                &    rho   => bf(i,j,k)%BF%rho, &
-                &    u     => bf(i,j,k)%BF%x,   &
-                &    v     => bf(i,j,k)%BF%y,   &
-                &    w     => bf(i,j,k)%BF%z,   &
-                &    t     => bf(i,j,k)%BF%T,   &
-                &    xi_x  => xi_x(i,j,k),      &
-                &    xi_y  => xi_y(i,j,k),      &
-                &    xi_z  => xi_z(i,j,k),      &
-                &    eta_x => eta_x(i,j,k),     &
-                &    eta_y => eta_y(i,j,k),     &
-                &    eta_z => eta_z(i,j,k),     &
-                &    phi_x => phi_x(i,j,k),     &
-                &    phi_y => phi_y(i,j,k),     &
-                &    phi_z => phi_z(i,j,k) )
-
-                vt = GAMMA/Pr
-                vu = 1.0d0/Re/rho
-                maxc = max(d4d3,vt)
-                aa = Ma/sqrt(t)
-                cm=C1/Te
-                miu = t*sqrt(t)*(1.0d0+cm)/(t+cm)
-                miut = miu*(1.5d0/t-1.0d0/(t+cm))
-
-                select case(lns_mode)
-                    case(2)
-                        gax = sqrt(xi_x **2+xi_y **2+xi_z **2)
-                        gae = sqrt(eta_x**2+eta_y**2+eta_z**2)
-
-                        ctu = ( xi_x*u +  xi_y*v +  xi_z*w)/gax
-                        ctv = (eta_x*u + eta_y*v + eta_z*w)/gae
-
-                        t1 = ctu + aa + 2*gax*(miu+miut)*maxc*vu
-                        t2 = ctv + aa + 2*gae*(miu+miut)*maxc*vu
-
-                        dt = cfl / (gax*t1 + gae*t2)
-                    case(3)
-                        gax = sqrt(xi_x **2+xi_y **2+xi_z **2)
-                        gae = sqrt(eta_x**2+eta_y**2+eta_z**2)
-                        gap = sqrt(phi_x**2+phi_y**2+phi_z**2)
-
-                        ctu = ( xi_x*u +  xi_y*v +  xi_z*w)/gax
-                        ctv = (eta_x*u + eta_y*v + eta_z*w)/gae
-                        ctw = (phi_x*u + phi_y*v + phi_z*w)/gap
-
-                        t1 = ctu + aa + 2*gax*(miu+miut)*maxc*vu
-                        t2 = ctv + aa + 2*gae*(miu+miut)*maxc*vu
-                        t3 = ctw + aa + 2*gap*(miu+miut)*maxc*vu
-
-                        dt = cfl / (gax*t1 + gae*t2 + gap*t3)
-                end select
-                end associate
-            endif
-        else
+        if(.not.usedt)then
             dt=999999999
+        endif
+
+        if(calculate_dt)then
+            associate(                      &
+            &    rho   => bf(i,j,k)%BF%rho, &
+            &    u     => bf(i,j,k)%BF%x,   &
+            &    v     => bf(i,j,k)%BF%y,   &
+            &    w     => bf(i,j,k)%BF%z,   &
+            &    t     => bf(i,j,k)%BF%T,   &
+            &    xi_x  => xi_x(i,j,k),      &
+            &    xi_y  => xi_y(i,j,k),      &
+            &    xi_z  => xi_z(i,j,k),      &
+            &    eta_x => eta_x(i,j,k),     &
+            &    eta_y => eta_y(i,j,k),     &
+            &    eta_z => eta_z(i,j,k),     &
+            &    phi_x => phi_x(i,j,k),     &
+            &    phi_y => phi_y(i,j,k),     &
+            &    phi_z => phi_z(i,j,k) )
+
+            vt = GAMMA/Pr
+            vu = 1.0d0/Re/rho
+            maxc = max(d4d3,vt)
+            aa = Ma/sqrt(t)
+            cm=C1/Te
+            miu = t*sqrt(t)*(1.0d0+cm)/(t+cm)
+            miut = miu*(1.5d0/t-1.0d0/(t+cm))
+
+            select case(lns_mode)
+                case(2)
+                    gax = sqrt(xi_x **2+xi_y **2+xi_z **2)
+                    gae = sqrt(eta_x**2+eta_y**2+eta_z**2)
+
+                    ctu = ( xi_x*u +  xi_y*v +  xi_z*w)/gax
+                    ctv = (eta_x*u + eta_y*v + eta_z*w)/gae
+
+                    t1 = ctu + aa + 2*gax*(miu+miut)*maxc*vu
+                    t2 = ctv + aa + 2*gae*(miu+miut)*maxc*vu
+
+                    dt = cfl / (gax*t1 + gae*t2)
+                case(3)
+                    gax = sqrt(xi_x **2+xi_y **2+xi_z **2)
+                    gae = sqrt(eta_x**2+eta_y**2+eta_z**2)
+                    gap = sqrt(phi_x**2+phi_y**2+phi_z**2)
+
+                    ctu = ( xi_x*u +  xi_y*v +  xi_z*w)/gax
+                    ctv = (eta_x*u + eta_y*v + eta_z*w)/gae
+                    ctw = (phi_x*u + phi_y*v + phi_z*w)/gap
+
+                    t1 = ctu + aa + 2*gax*(miu+miut)*maxc*vu
+                    t2 = ctv + aa + 2*gae*(miu+miut)*maxc*vu
+                    t3 = ctw + aa + 2*gap*(miu+miut)*maxc*vu
+
+                    dt = cfl / (gax*t1 + gae*t2 + gap*t3)
+            end select
+            end associate
         endif
 
         this%G   = Jor%G;         this%D   = Jor%D+Jor%G*dt

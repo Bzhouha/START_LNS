@@ -52,7 +52,6 @@ module mod_files
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp',ksp_flg,ierr)
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-snes',snes_flg,ierr)
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksps',ksps_flg,ierr)
-
         if(ksp_flg)then
             solver_mode='ksp'; split_mode=0
         endif
@@ -69,12 +68,17 @@ module mod_files
         if(set) io_type="binary"
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-hdf5',set,ierr)
         if(set) io_type="hdf5"
-        call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dt',dt,usedt,ierr)
+
+        call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dt',dt,set,ierr)
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dt',usedt,ierr)
-        if(abs(dt-1934.0d0)>1e-5)then
-            calculate_dt=.False.
+        if(usedt)then
+            if(abs(dt-1934.0d0)<1e-5)then
+                calculate_dt=.True.
+            else
+                calculate_dt=.False.
+            endif
         else
-            calculate_dt=.True.
+            calculate_dt=.False.
         endif
 
         call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-lm',lm,set,ierr)
