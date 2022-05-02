@@ -69,6 +69,7 @@ module mod_files
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-hdf5',set,ierr)
         if(set) io_type="hdf5"
 
+        call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-cfl',cfl,set,ierr)
         call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dt',dt,set,ierr)
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dt',usedt,ierr)
         if(usedt)then

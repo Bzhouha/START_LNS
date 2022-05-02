@@ -675,7 +675,6 @@ module mod_cubes
         real(R_P),parameter :: d4d3=4.0d0/3.0d0
         real(R_P),parameter :: C1=110.4D0
         real(R_P) :: miu,miut,aa,maxc
-        real(R_P),parameter :: cfl=1.5
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
         real(R_P) :: ctu,ctv,ctw

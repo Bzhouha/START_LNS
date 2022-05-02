@@ -36,7 +36,7 @@ module mod_solving
     contains
 
     subroutine dstream(comm)
-        use mod_parameters,only : meshDA,whale,turtle,RHS,solver_mode,shark
+        use mod_parameters,only : meshDA,whale,turtle,RHS,solver_mode
         implicit none
         PetscInt,intent(in) :: comm
 
@@ -326,7 +326,7 @@ module mod_solving
                     ! Get solution
                     call VecAXPY(x,one,res,ierr)
                     ! If iterated too much times
-                    if(count>50)then
+                    if(count>200)then
                         call PetscPrintf(comm,"   Maximum number of iterations reached.\n",ierr)
                         exit
                     endif

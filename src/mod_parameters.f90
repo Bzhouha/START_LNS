@@ -21,6 +21,7 @@ module mod_parameters
     character(len=256) :: bigridfile ! 文件名：流场文件
     character(len=256) :: biflowfile ! 文件名：流场文件
     character(len=256) :: turbfiles ! 文件名：边界文件
+    PetscBool :: usedt,calculate_dt
     character(len=256) :: gridfile ! 文件名：网格文件
     character(len=256) :: flowfile ! 文件名：流场文件
     character(len=256) :: hdf5file ! 文件名：HDF5文件
@@ -28,23 +29,21 @@ module mod_parameters
     character(len=256) :: initfile ! 文件名：初值文件
     character(len=7) :: io_type ! file I/O type
     logical :: init_guess_flg ! 是否赋初值
+    real(R_P) :: dt=1934.0d0! 时间步长
     DM :: coordDA,meshDA,DA ! DM.Object
     integer :: split_mode=0 ! 对流系数矩阵拆分方式选择
     PetscInt :: in,jn,kn,ln ! 流场网格数、自由度数
-    real(R_P) :: dt=1934.0d0! 时间步长
-    PetscBool :: usedt,calculate_dt
     real(R_P) :: lm=1.0d0 ! 松弛系数
     complex(R_P) :: Alpha ! 波数
     complex(R_P) :: Omega ! 频率
     complex(R_P) :: Beta ! 波数
+    real(R_P) :: cfl=2.0
     integer :: lns_mode ! 2D-HLNS.or.3D-HLNS
     integer :: BC_type ! 边界条件类型：Dirichlet.or.Neumann.or.Robbin
     integer :: rank ! 进程编号
     integer :: sink ! 进程数
-    Mat :: dolphin ! KSP: 免矩阵形式的左端矩阵
+    Mat :: dolphin ! 矩阵
     Vec :: turtle ! 解
-    Mat :: whale ! KSP: 显式矩阵形式的左端矩阵
-    Mat :: shark ! SNES: 雅各比矩阵
+    Mat :: whale ! 矩阵
     Vec :: RHS ! KSP: 右端项
-    Mat :: squid ! KSPs: 左端矩阵
 end module mod_parameters
