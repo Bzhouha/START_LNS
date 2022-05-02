@@ -539,6 +539,8 @@ module mod_files
         if(rank==0)then
             write(*,"(3X,A,I5)") "Process Count :",sink
             write(*,*)
+            write(*,"(3X,A,L3)") "Initial Guess :",init_guess_flg
+            write(*,*)
         endif
         call MPI_Barrier(comm,ierr)
         if(rank==(sink-1))then

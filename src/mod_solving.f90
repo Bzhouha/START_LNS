@@ -326,7 +326,7 @@ module mod_solving
                     ! Get solution
                     call VecAXPY(x,one,res,ierr)
                     ! If iterated too much times
-                    if(count>200)then
+                    if(count>50)then
                         call PetscPrintf(comm,"   Maximum number of iterations reached.\n",ierr)
                         exit
                     endif
