@@ -6,6 +6,8 @@ module mod_forming
 !
 !  这个模块包含调用xxxSolve前的所有准备步骤，包括矩阵、右端量的生成函数，清理函数等。
 !
+!   这个模块是混乱的。
+!
 !   在线性求解系统 KSP 框架下，生成左端矩阵；
 !   在非线性求解系统 SNES 框架下，生成雅各比矩阵和右端项函数。
 !
@@ -40,13 +42,16 @@ module mod_forming
     implicit none
     public :: set_matfree_mat
     public :: mat_mult_4ord
-    public :: initialize_mat_from_da
-    public :: form_mat_4ord
+    public :: init_mat_from_da
     public :: form_mat_2ord
-    public :: snes_rhs_fx,snes_rhs_fx_4ord
-    public :: ksps_rhs_fx_b_Ax
-    public :: ksps_rhs_fx_b_Gtx
+    public :: form_mat_4ord
+    public :: duplicate_vec
     public :: set_rhs
+    public :: snes_rhs_fx
+    public :: snes_rhs_fx_4ord
+    public :: ksps_push_bc
+    public :: ksps_rhs_fx_Ax
+    public :: ksps_rhs_fx_b_Gtx
     public :: cleanup
     private
     type(lns_OP_point_type) :: Jor
@@ -275,7 +280,7 @@ module mod_forming
 
     end subroutine mat_mult_4ord
 
-    subroutine initialize_mat_from_da(comm,da,mat)
+    subroutine init_mat_from_da(comm,da,mat)
 
         implicit none
         PetscInt,intent(in) :: comm
@@ -286,7 +291,7 @@ module mod_forming
         call DMCreateMatrix(da,mat,ierr)
         call MatZeroEntries(mat,ierr)
 
-    end subroutine initialize_mat_from_da
+    end subroutine init_mat_from_da
 
     subroutine form_mat_4ord(mat)
 
@@ -374,6 +379,23 @@ module mod_forming
         end associate
 
     end subroutine mat_set_boundary_conditions
+
+    subroutine mat_bc_set_I(mat,i,j,k)
+
+        implicit none
+        MatStencil :: idxm(4,1),idxn(4,1)
+        integer,intent(in) :: i,j,k
+        Mat,intent(inout) :: mat
+        PetscScalar :: box(5,5)
+        PetscErrorCode :: ierr
+
+        box=0.0d0
+        box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
+        idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
+        idxn(MatStencil_i, 1)=i; idxn(MatStencil_j, 1)=j; idxn(MatStencil_k, 1)=k
+        call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+
+    end subroutine mat_bc_set_I
 
     subroutine mat_insert_values_4_ord(mat,i,j,k)
 
@@ -474,7 +496,17 @@ module mod_forming
 
     end subroutine mat_insert_values_4_ord
 
-    subroutine set_rhs(comm,da,x,r)
+    subroutine duplicate_vec(x,r)
+        implicit none
+        Vec,intent(inout) :: r
+        PetscErrorCode :: ierr
+        Vec,intent(in) :: x
+
+        call VecDuplicate(x,r,ierr)
+        call VecZeroEntries(r,ierr)
+    end subroutine duplicate_vec
+
+    subroutine set_rhs(comm,da,r)
 
         use mod_parameters,only : disturb,is,ie,js,je,ks,ke
         implicit none
@@ -482,12 +514,9 @@ module mod_forming
         PetscInt,intent(in) :: comm
         Vec,intent(inout) :: r
         PetscErrorCode :: ierr
-        Vec,intent(in) :: x
         DM,intent(in) :: da
         integer :: j,k
 
-        call VecDuplicate(x,r,ierr)
-        call VecZeroEntries(r,ierr)
         if (is==0) then
             call DMDAVecGetArrayF90(da,r,r_array,ierr)
                 do k=ks,ke
@@ -513,7 +542,7 @@ module mod_forming
             do j=js,je
                 do i=is,ie
                     if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
-                        call mat_set_boundary_conditions(mat,i,j,k)
+                        call mat_bc_set_I(mat,i,j,k)
                     else
                         call mat_insert_values_2_ord(mat,i,j,k)
                     endif
@@ -912,9 +941,72 @@ module mod_forming
     ! -----------------------------------------------------------------------------------------------------
     !   迭代格式三：借用KSP模块
 
-    subroutine ksps_rhs_fx_b_Ax(x,f)
+    subroutine ksps_push_bc(comm,x)
+        use mod_parameters,only:meshDA,disturb,bf,in,jn,kn,is,ie,js,je,ks,ke
+        implicit none
+        PetscReal,parameter :: d4d3=4.0d0/3.0d0,d1d3=1.0d0/3.0d0
+        PetscScalar,pointer :: xr(:,:,:,:)
+        integer,intent(in) :: comm
+        Vec,intent(inout) :: x
+        PetscErrorCode :: ierr
+        integer :: i,j,k
 
-        use mod_parameters,only : meshDA,lns_mode,in,jn,kn,is,ie,js,je,ks,ke,disturb
+        call DMDAVecGetArrayF90(meshDA,x,xr,ierr)
+
+        associate( x => xr )
+
+        if(is==0)then
+            do k=ks,ke
+                do j=js,je
+                    do i=is,is
+                        x(:,i,j,k)=disturb(:,j,k)
+                    enddo
+                enddo
+            enddo
+        endif
+
+        if(ie==(in-1))then
+            do k=ks,ke
+                do j=js,je
+                    do i=ie,ie
+                        x(:,i,j,k)=d4d3*x(:,i-1,j,k)-d1d3*x(:,i-2,j,k)
+                    enddo
+                enddo
+            enddo
+        endif
+
+        if(js==0)then
+            do k=ks,ke
+                do j=js,js
+                    do i=is,ie
+                        x(:,i,j,k)=0.0d0
+                        x(0,i,j,k)=(bf(i,j+1,k)%BF%rho*x(4,i,j+1,k)+bf(i,j+1,k)%BF%T*x(0,i,j+1,k))/bf(i,j,k)%BF%T
+                    enddo
+                enddo
+            enddo
+        endif
+
+        if(je==(jn-1))then
+            do k=ks,ke
+                do j=je,je
+                    do i=is,ie
+                        x(:,i,j,k)=0.0d0
+                    enddo
+                enddo
+            enddo
+        endif
+
+        end associate
+
+        call DMDAVecRestoreArrayF90(meshDA,x,xr,ierr)
+
+        call MPI_Barrier(comm,ierr)
+
+    end subroutine ksps_push_bc
+
+    subroutine ksps_rhs_fx_Ax(x,f)
+
+        use mod_parameters,only : meshDA,lns_mode,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
         PetscScalar,pointer :: fr(:,:,:,:),xr(:,:,:,:)
         integer :: ic_index,jc_index,kc_index
@@ -949,23 +1041,8 @@ module mod_forming
         do k=ks,ke
             do j=js,je
                 do i=is,ie
-                    if(i==0)then
-                        f(:,i,j,k)=disturb(:,j,k)-x(:,i,j,k)
-                    elseif(j==(jn-1))then
-                        f(:,i,j,k)=-1.0d0*x(:,i,j,k)
-                    elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
-                        f(:,i,j,k)=-1.0d0*(x(:,i-2,j,k)-4*x(:,i-1,j,k)+3*x(:,i,j,k))/2.0d0
-                    elseif(j==0 .and. i/=0)then
-                        call Jor%get_transed_cubes(i,j,k)
-                        do lj=1,5
-                            do li=2,5
-                                D(li,lj)=0.0d0
-                                B(li,lj)=0.0d0
-                            enddo
-                        enddo
-                        D(2,2)=1.0d0;D(3,3)=1.0d0
-                        D(4,4)=1.0d0;D(5,5)=1.0d0
-                        f(:,i,j,k)=-1.0d0*(matmul(D,x(:,i,j,k))+matmul(B,x(:,i,j+1,k))-matmul(B,x(:,i,j,k)))
+                    if(i==0 .or. i==(in-1) .or. j==0 .or. j==(jn-1))then
+                        f(:,i,j,k)=0.0d0
                     else
                         yi=0.0d0
                         call Jor%get_transed_cubes(i,j,k)
@@ -1066,7 +1143,7 @@ module mod_forming
         call DMDAVecRestoreArrayF90(meshDA,f,fr,ierr)
         call DMRestoreLocalVector(meshDA,bell,ierr)
 
-    end subroutine ksps_rhs_fx_b_Ax
+    end subroutine ksps_rhs_fx_Ax
 
     subroutine ksps_rhs_fx_b_Gtx(x,f)
        use mod_parameters,only : meshDA,is,ie,js,je,ks,ke,disturb,dt
@@ -1102,7 +1179,10 @@ module mod_forming
 
        call DMDAVecRestoreArrayReadF90(meshDA,x,xr,ierr)
        call DMDAVecRestoreArrayF90(meshDA,f,fr,ierr)
-   end subroutine ksps_rhs_fx_b_Gtx
+    end subroutine ksps_rhs_fx_b_Gtx
+
+! ------------------------------------------------------------------------------
+! 清理函数
 
     subroutine cleanup()
 

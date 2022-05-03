@@ -51,7 +51,7 @@ module mod_solving
             case('snes')
                 call snes_equations(comm,meshDA,whale,turtle,snes_rhs_fx_4ord,RHS)
             case('ksps')
-                call ksps_equations(comm,meshDA,whale,turtle,ksps_rhs_fx_b_Ax,NEWTON_LIKE)
+                call ksps_equations(comm,meshDA,whale,turtle,ksps_rhs_fx_Ax,ksps_push_bc,NEWTON_LIKE)
         end select
     end subroutine dstream
 
@@ -62,9 +62,10 @@ module mod_solving
         Mat :: mat
         DM :: da
         call PetscPrintf(comm,"\n   KSP :: Matrix\n",ierr)
-        call initialize_mat_from_da(comm,da,mat)
+        call init_mat_from_da(comm,da,mat)
         call form_mat_4ord(mat)
-        call set_rhs(comm,da,x,r)
+        call duplicate_vec(x,r)
+        call set_rhs(comm,da,r)
         call solve_ksp(comm,mat,x,r,0)
     end subroutine ksp_equations
 
@@ -76,25 +77,27 @@ module mod_solving
         Vec :: x,r
         DM :: da
         call PetscPrintf(comm,"\n   SNES :: Jacobi\n",ierr)
-        call initialize_mat_from_da(comm,da,mat)
+        call init_mat_from_da(comm,da,mat)
         call form_mat_2ord(mat)
-        call set_rhs(comm,da,x,r)
+        call duplicate_vec(x,r)
+        call set_rhs(comm,da,r)
         call solve_snes(comm,mat,x,fx,r)
     end subroutine snes_equations
 
-    subroutine ksps_equations(comm,da,mat,x,ksps_fx,type)
+    subroutine ksps_equations(comm,da,mat,x,ksps_rhs,ksps_bc,type)
         implicit none
         integer,intent(in) :: type
         integer,intent(in) :: comm
-        external :: ksps_fx
+        external :: ksps_rhs
+        external :: ksps_bc
         Mat :: mat
         Vec :: x
         DM :: da
 
         call PetscPrintf(comm,"\n   KSPs :: Matrix\n",ierr)
-        call initialize_mat_from_da(comm,da,mat)
+        call init_mat_from_da(comm,da,mat)
         call form_mat_2ord(mat)
-        call solve_ksps(comm,mat,x,ksps_fx,type)
+        call solve_ksps(comm,mat,x,ksps_rhs,ksps_bc,type)
     end subroutine ksps_equations
 
     ! -----------------------------------------------------------------------------------------------------
@@ -250,16 +253,21 @@ module mod_solving
         PetscInt :: it,dummy
         SNES :: snes
         Vec :: f
+        character(len=20) :: str_norm
+        character(len=6) :: str_it
 
         call SNESGetFunction(snes,f,PETSC_NULL_FUNCTION,dummy,ierr)
         call VecNorm(f,NORM_INFINITY,nrm,ierr)
+        write(str_it,"(I5)") it
+        write(str_norm,"(ES20.12)") nrm
+        call PetscPrintf(PETSC_COMM_WORLD," "//str_it//" < residual i-Norm > "//str_norm//"\n",ierr)
         if (nrm .le. 1.e-5) reason = SNES_CONVERGED_FNORM_ABS
     end subroutine MySNESConverged
 
     ! -----------------------------------------------------------------------------------------------------
     !   迭代格式三：借用KSP模块 Newton-Like
 
-    subroutine solve_ksps(comm,mat,x,fx_rhs,type)
+    subroutine solve_ksps(comm,mat,x,fx_rhs,fx_bc,type)
         implicit none
         character(len=20) :: str_norm
         character(len=6) :: str_count
@@ -270,6 +278,7 @@ module mod_solving
         PetscErrorCode :: ierr
         Mat,intent(in) :: mat
         external :: fx_rhs
+        external :: fx_bc
         PetscInt :: count
         PetscReal :: rtol
         PetscReal :: nrm
@@ -313,6 +322,8 @@ module mod_solving
                 call PetscPrintf(comm,"    using *Newtom-Like* method\n",ierr)
 
                 do while(.True.)
+                    ! Update Boundary Conditions
+                    call fx_bc(comm,x)
                     ! Get rhs
                     call fx_rhs(x,f)
                     ! Solve
@@ -326,7 +337,7 @@ module mod_solving
                     ! Get solution
                     call VecAXPY(x,one,res,ierr)
                     ! If iterated too much times
-                    if(count>50)then
+                    if(count>199)then
                         call PetscPrintf(comm,"   Maximum number of iterations reached.\n",ierr)
                         exit
                     endif

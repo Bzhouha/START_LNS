@@ -73,7 +73,7 @@ module mod_files
         call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dt',dt,set,ierr)
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dt',usedt,ierr)
         if(usedt)then
-            if(abs(dt-1934.0d0)<1e-5)then
+            if(abs(dt-SWITCH)<1e-5)then
                 calculate_dt=.True.
             else
                 calculate_dt=.False.
@@ -85,8 +85,6 @@ module mod_files
         call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-lm',lm,set,ierr)
 
         if(ksp_flg)  call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
-        if(snes_flg) call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-snes_monitor",PETSC_NULL_CHARACTER,ierr)
-        ! if(snes_flg) call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
 
         call cfg_loader(trim(cfg_file))
         call MPI_Barrier(comm,ierr)

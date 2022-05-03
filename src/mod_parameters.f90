@@ -16,6 +16,7 @@ module mod_parameters
     real(R_P), dimension(:, :, :, :), allocatable :: qq ! 数组：基本流
     real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re ! 流场参数
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge ! MPI网格分块位置
+    real(R_P),parameter :: SWITCH = 707.0d0
     integer :: is,js,ks,il,jl,kl,ie,je,ke ! MPI网格分块位置
     character(len=10) :: solver_mode ! KSP.or.SNES .or. KSPs
     character(len=256) :: bigridfile ! 文件名：流场文件
@@ -29,10 +30,10 @@ module mod_parameters
     character(len=256) :: initfile ! 文件名：初值文件
     character(len=7) :: io_type ! file I/O type
     logical :: init_guess_flg ! 是否赋初值
-    real(R_P) :: dt=1934.0d0! 时间步长
     DM :: coordDA,meshDA,DA ! DM.Object
     integer :: split_mode=0 ! 对流系数矩阵拆分方式选择
     PetscInt :: in,jn,kn,ln ! 流场网格数、自由度数
+    real(R_P) :: dt=SWITCH ! 时间步长
     real(R_P) :: lm=1.0d0 ! 松弛系数
     complex(R_P) :: Alpha ! 波数
     complex(R_P) :: Omega ! 频率
@@ -45,5 +46,5 @@ module mod_parameters
     Mat :: dolphin ! 矩阵
     Vec :: turtle ! 解
     Mat :: whale ! 矩阵
-    Vec :: RHS ! KSP: 右端项
+    Vec :: RHS ! 右端项
 end module mod_parameters
