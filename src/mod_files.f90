@@ -15,10 +15,14 @@ module mod_files
 !
     use mod_parameters
     use petsc
-    public :: istream,ostream
+    public :: istream
+    public :: ostream
     private
     PetscErrorCode  :: ierr
     PetscViewer :: viewer
+    integer :: nx = PETSC_DECIDE
+    integer :: ny = PETSC_DECIDE
+    integer :: nz = PETSC_DECIDE
     contains
     subroutine istream(comm)
         implicit none
@@ -37,7 +41,7 @@ module mod_files
         implicit none
         PetscInt,intent(in) :: comm
         character(len=256) :: cfg_file
-        logical :: ksp_flg,snes_flg,ksps_flg
+        logical :: ksp_flg,snes_flg,ksps_flg,melt_flg
         PetscBool :: set
 
         call mpi_comm_rank(comm,rank,ierr)
@@ -52,6 +56,7 @@ module mod_files
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp',ksp_flg,ierr)
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-snes',snes_flg,ierr)
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksps',ksps_flg,ierr)
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-melt',melt_flg,ierr)
         if(ksp_flg)then
             solver_mode='ksp'; split_mode=0
         endif
@@ -60,6 +65,9 @@ module mod_files
         endif
         if(ksps_flg)then
             solver_mode='ksps';split_mode=0
+        endif
+        if(melt_flg)then
+            solver_mode='melt';split_mode=0
         endif
 
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-raw',set,ierr)
@@ -81,6 +89,10 @@ module mod_files
         else
             calculate_dt=.False.
         endif
+
+        call PetscOptionsGetInt (PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-nx',nx,set,ierr)
+        call PetscOptionsGetInt (PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ny',ny,set,ierr)
+        call PetscOptionsGetInt (PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-nz',nz,set,ierr)
 
         call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-lm',lm,set,ierr)
 
@@ -148,17 +160,19 @@ module mod_files
         PetscInt, intent(in) :: comm
 
         call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
-        &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE, &
+        &                 DMDA_STENCIL_BOX, in, jn, kn, nx, ny, nz, &
         &                 1, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, DA, ierr)
         call DMSetFromOptions(DA,ierr)
         call DMSetUp(DA, ierr)
+
         call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
-        &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
+        &                 DMDA_STENCIL_BOX, in, jn, kn, nx, ny, nz,&
         &                 3, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, coordDA, ierr)
         call DMSetFromOptions(coordDA,ierr)
         call DMSetUp(coordDA, ierr)
+
         call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_PERIODIC,&
-        &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
+        &                 DMDA_STENCIL_BOX, in, jn, kn, nx, ny, nz,&
         &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, meshDA, ierr)
         call DMSetMatType(meshDA,MATBAIJ,ierr)
         call DMSetFromOptions(meshDA,ierr)

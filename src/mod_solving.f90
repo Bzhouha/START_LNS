@@ -36,7 +36,7 @@ module mod_solving
     contains
 
     subroutine dstream(comm)
-        use mod_parameters,only : meshDA,whale,turtle,RHS,solver_mode
+        use mod_parameters,only : solver_mode
         implicit none
         PetscInt,intent(in) :: comm
 
@@ -47,57 +47,53 @@ module mod_solving
         call partial_derivatives(comm)
         select case (solver_mode)
             case('ksp')
-                call ksp_equations(comm,meshDA,whale,turtle,RHS)
+                call ksp_equations(comm)
             case('snes')
-                call snes_equations(comm,meshDA,whale,turtle,snes_rhs_fx_4ord,RHS)
+                call snes_equations(comm,snes_rhs_fx_4ord)
             case('ksps')
-                call ksps_equations(comm,meshDA,whale,turtle,ksps_rhs_fx_Ax,ksps_push_bc,NEWTON_LIKE)
+                call ksps_equations(comm,ksps_rhs_fx_Ax,ksps_push_bc,NEWTON_LIKE)
         end select
     end subroutine dstream
 
-    subroutine ksp_equations(comm,da,mat,x,r)
+    subroutine ksp_equations(comm)
+        use mod_parameters,only:meshDA,whale,turtle,RHS
         implicit none
         integer,intent(in) :: comm
-        Vec :: x,r
-        Mat :: mat
-        DM :: da
+
         call PetscPrintf(comm,"\n   KSP :: Matrix\n",ierr)
-        call init_mat_from_da(comm,da,mat)
-        call form_mat_4ord(mat)
-        call duplicate_vec(x,r)
-        call set_rhs(comm,da,r)
-        call solve_ksp(comm,mat,x,r,0)
+        call init_mat_from_da(comm,meshDA,whale)
+        call form_mat_4ord(whale)
+        call duplicate_vec(turtle,RHS)
+        call set_rhs(comm,RHS)
+        call solve_ksp(comm,whale,turtle,RHS,0)
     end subroutine ksp_equations
 
-    subroutine snes_equations(comm,da,mat,x,fx,r)
+    subroutine snes_equations(comm,fx)
+        use mod_parameters,only:meshDA,whale,turtle,RHS
         implicit none
         integer, intent(in) :: comm
         external :: fx
-        Mat :: mat
-        Vec :: x,r
-        DM :: da
+
         call PetscPrintf(comm,"\n   SNES :: Jacobi\n",ierr)
-        call init_mat_from_da(comm,da,mat)
-        call form_mat_2ord(mat)
-        call duplicate_vec(x,r)
-        call set_rhs(comm,da,r)
-        call solve_snes(comm,mat,x,fx,r)
+        call init_mat_from_da(comm,meshDA,whale)
+        call form_mat_2ord(whale)
+        call duplicate_vec(turtle,RHS)
+        call set_rhs(comm,RHS)
+        call solve_snes(comm,whale,turtle,fx,RHS)
     end subroutine snes_equations
 
-    subroutine ksps_equations(comm,da,mat,x,ksps_rhs,ksps_bc,type)
+    subroutine ksps_equations(comm,ksps_rhs,ksps_bc,type)
+        use mod_parameters,only:meshDA,whale,turtle
         implicit none
         integer,intent(in) :: type
         integer,intent(in) :: comm
         external :: ksps_rhs
         external :: ksps_bc
-        Mat :: mat
-        Vec :: x
-        DM :: da
 
         call PetscPrintf(comm,"\n   KSPs :: Matrix\n",ierr)
-        call init_mat_from_da(comm,da,mat)
-        call form_mat_2ord(mat)
-        call solve_ksps(comm,mat,x,ksps_rhs,ksps_bc,type)
+        call init_mat_from_da(comm,meshDA,whale)
+        call form_mat_2ord(whale)
+        call solve_ksps(comm,whale,turtle,ksps_rhs,ksps_bc,type)
     end subroutine ksps_equations
 
     ! -----------------------------------------------------------------------------------------------------

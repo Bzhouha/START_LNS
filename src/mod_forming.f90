@@ -111,16 +111,15 @@ module mod_forming
     ! -----------------------------------------------------------------------------------------------------
     !   迭代格式一：标准线性求解器 Ax=b
 
-    subroutine set_matfree_mat(comm,x,mat)
-
+    subroutine set_matfree_mat(comm,mat)
+        use mod_parameters,only:turtle
         implicit none
         PetscInt,intent(in) :: comm
         Mat,intent(inout) :: mat
         PetscErrorCode :: ierr
-        Vec,intent(in) :: x
         PetscInt :: ls
 
-        call VecGetLocalSize(x,ls,ierr)
+        call VecGetLocalSize(turtle,ls,ierr)
         call MatCreateShell(comm,ls,ls,PETSC_DETERMINE,PETSC_DETERMINE,PETSC_NULL_INTEGER,mat,ierr)
         call MatShellSetOperation(mat,MATOP_MULT,mat_mult_4ord,ierr)
         call MatAssemblyBegin(mat,MAT_FINAL_ASSEMBLY,ierr)
@@ -506,25 +505,24 @@ module mod_forming
         call VecZeroEntries(r,ierr)
     end subroutine duplicate_vec
 
-    subroutine set_rhs(comm,da,r)
+    subroutine set_rhs(comm,r)
 
-        use mod_parameters,only : disturb,is,ie,js,je,ks,ke
+        use mod_parameters,only : disturb,meshDA,is,ie,js,je,ks,ke
         implicit none
         PetscScalar,pointer :: r_array(:,:,:,:)
         PetscInt,intent(in) :: comm
         Vec,intent(inout) :: r
         PetscErrorCode :: ierr
-        DM,intent(in) :: da
         integer :: j,k
 
         if (is==0) then
-            call DMDAVecGetArrayF90(da,r,r_array,ierr)
+            call DMDAVecGetArrayF90(meshDA,r,r_array,ierr)
                 do k=ks,ke
                     do j=js,je
                         r_array(:,0,j,k)=disturb(:,j,k)
                     enddo
                 enddo
-            call DMDAVecRestoreArrayF90(da,r,r_array,ierr)
+            call DMDAVecRestoreArrayF90(meshDA,r,r_array,ierr)
         endif
         call MPI_Barrier(comm,ierr)
 
