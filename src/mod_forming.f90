@@ -49,9 +49,15 @@ module mod_forming
     public :: set_rhs
     public :: snes_rhs_fx
     public :: snes_rhs_fx_4ord
-    public :: ksps_push_bc
-    public :: ksps_rhs_fx_Ax
+    public :: snes_converged_test
+    public :: push_bc
+    public :: rhs_fx_Ax
     public :: ksps_rhs_fx_b_Gtx
+    public :: form_sub_mat_2_ord
+    public :: set_subDA
+    public :: init_sub_vecs
+    public :: get_subf
+    public :: merge_res
     public :: cleanup
     private
     type(lns_OP_point_type) :: Jor
@@ -936,10 +942,29 @@ module mod_forming
 
     end subroutine snes_rhs_fx_4ord
 
+    subroutine snes_converged_test(snes,it,xnorm,snorm,fnorm,reason,dummy,ierr)
+        implicit none
+        PetscReal :: xnorm,snorm,fnorm,nrm
+        SNESConvergedReason :: reason
+        PetscErrorCode :: ierr
+        PetscInt :: it,dummy
+        SNES :: snes
+        Vec :: f
+        character(len=20) :: str_norm
+        character(len=6) :: str_it
+
+        call SNESGetFunction(snes,f,PETSC_NULL_FUNCTION,dummy,ierr)
+        call VecNorm(f,NORM_INFINITY,nrm,ierr)
+        write(str_it,"(I5)") it
+        write(str_norm,"(ES20.12)") nrm
+        call PetscPrintf(PETSC_COMM_WORLD," "//str_it//" < residual i-Norm > "//str_norm//"\n",ierr)
+        if (nrm .le. 1.e-5) reason = SNES_CONVERGED_FNORM_ABS
+    end subroutine snes_converged_test
+
     ! -----------------------------------------------------------------------------------------------------
     !   迭代格式三：借用KSP模块
 
-    subroutine ksps_push_bc(comm,x)
+    subroutine push_bc(comm,x)
         use mod_parameters,only:meshDA,disturb,bf,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
         PetscReal,parameter :: d4d3=4.0d0/3.0d0,d1d3=1.0d0/3.0d0
@@ -1000,9 +1025,9 @@ module mod_forming
 
         call MPI_Barrier(comm,ierr)
 
-    end subroutine ksps_push_bc
+    end subroutine push_bc
 
-    subroutine ksps_rhs_fx_Ax(x,f)
+    subroutine rhs_fx_Ax(x,f)
 
         use mod_parameters,only : meshDA,lns_mode,in,jn,kn,is,ie,js,je,ks,ke
         implicit none
@@ -1141,7 +1166,7 @@ module mod_forming
         call DMDAVecRestoreArrayF90(meshDA,f,fr,ierr)
         call DMRestoreLocalVector(meshDA,bell,ierr)
 
-    end subroutine ksps_rhs_fx_Ax
+    end subroutine rhs_fx_Ax
 
     subroutine ksps_rhs_fx_b_Gtx(x,f)
        use mod_parameters,only : meshDA,is,ie,js,je,ks,ke,disturb,dt
@@ -1179,8 +1204,219 @@ module mod_forming
        call DMDAVecRestoreArrayF90(meshDA,f,fr,ierr)
     end subroutine ksps_rhs_fx_b_Gtx
 
-! ------------------------------------------------------------------------------
-! 清理函数
+    ! --------------------------------------------------------------------------
+    ! KSPs
+
+    subroutine form_sub_mat_2_ord(mat)  !!设置子块当地矩阵
+
+        use mod_parameters,only : igs,ige,jgs,jge,kgs,kge,rank
+        implicit none
+        Mat,intent(inout) :: mat
+        PetscErrorCode :: ierr
+        integer :: i,j,k
+
+        do k=kgs,kge
+            do j=jgs,jge
+                do i=igs,ige
+                    if(i==igs .or. i==ige .or. j==jgs .or. j==jge)then !!暂时不考虑展向
+                        call sub_mat_set_boundary_conditions(mat,i,j,k)  !!子矩阵边界点的\delta\hat\phi=0
+                    else
+                        call sub_mat_insert_values_2_ord(mat,i,j,k)  !!设置子矩阵内点的值
+                    endif
+                enddo
+            enddo
+        enddo
+
+        call MatAssemblyBegin(mat,MAT_FINAL_ASSEMBLY,ierr)
+        call MatAssemblyEnd(mat,MAT_FINAL_ASSEMBLY,ierr)
+
+    end subroutine form_sub_mat_2_ord
+
+    subroutine sub_mat_set_boundary_conditions(mat,i,j,k)
+        use mod_parameters,only:igs,jgs,kgs
+        implicit none
+        MatStencil :: idxm(4,1),idxn(4,1)
+        integer,intent(in) :: i,j,k
+        Mat,intent(inout) :: mat
+        PetscScalar :: box(5,5)
+        PetscErrorCode :: ierr
+
+        box=0.0d0
+        box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
+        idxm(MatStencil_i, 1)=i-igs; idxm(MatStencil_j, 1)=j-jgs; idxm(MatStencil_k, 1)=k-kgs
+        idxn(MatStencil_i, 1)=i-igs; idxn(MatStencil_j, 1)=j-jgs; idxn(MatStencil_k, 1)=k-kgs
+        call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+
+    end subroutine sub_mat_set_boundary_conditions
+
+    subroutine sub_mat_insert_values_2_ord(mat,i,j,k)
+
+        use mod_parameters,only : lns_mode,igs,jgs,kgs,bf
+        implicit none
+        integer :: ic_index, jc_index, kc_index
+        integer :: lib, lie, ljb, lje, lkb, lke
+        PetscScalar :: box(5,5),trans(5,5)
+        MatStencil :: idxm(4,1),idxn(4,1)
+        integer,intent(in) :: i,j,k
+        Mat,intent(inout) :: mat
+        PetscErrorCode :: ierr
+        integer :: li,lj,lk
+        integer :: is,js,ks
+
+        call Jor%get_adorned_cubes(i,j,k)
+        lib=-1; lie=1
+        ic_index=0
+        ljb=-1; lje=1
+        jc_index=0
+        select case (lns_mode)
+            case(2)
+                lkb=0; lke=0; kc_index=0
+            case(3)
+                lkb=-1; lke=1; kc_index=0
+        end select
+        idxm=0;
+        idxm(MatStencil_i, 1)=i-igs; idxm(MatStencil_j, 1)=j-jgs; idxm(MatStencil_k, 1)=k-kgs
+        associate( &
+            &   coef_c1f=>FDM_1nd_1ORD_Forward,  &
+            &   coef_c1b=>FDM_1nd_1ORD_Backward, &
+            &   coef_d2 =>FDM_2nd_2ORD_CENTER,   &
+            &   coef_c2 =>FDM_1nd_2ORD_CENTER,   &
+            &   G   => Jor%G,   D   => Jor%D,    &
+            &   A_p => Jor%A_p, A_m => Jor%A_m, A_v => Jor%A_v, &
+            &   B_p => Jor%B_p, B_m => Jor%B_m, B_v => Jor%B_v, &
+            &   C_p => Jor%C_p, C_m => Jor%C_m, C_v => Jor%C_v, &
+            &   Vxx => Jor%Vxx, Vyy => Jor%Vyy, Vzz => Jor%Vzz, &
+            &   Vxy => Jor%Vxy, Vxz => Jor%Vxz, Vyz => Jor%Vyz)
+            do lk = lkb, lke
+                do lj = ljb, lje
+                    do li = lib, lie
+                        idxn=0;box=0.0d0;trans=0.0d0
+                        idxn(MatStencil_i, 1)=i+li-igs
+                        idxn(MatStencil_j, 1)=j+lj-jgs
+                        idxn(MatStencil_k, 1)=k+lk-kgs
+                        box=delta_i(li)*delta_j(lj)*delta_k(lk)*D+                     &
+                        &   delta_j(lj)*delta_k(lk)*A_v*coef_c2(li,ic_index)+          &
+                        &   delta_j(lj)*delta_k(lk)*A_m*coef_c1f(li,ic_index)+         &
+                        &   delta_j(lj)*delta_k(lk)*A_p*coef_c1b(li,ic_index)+         &
+                        &   delta_i(li)*delta_k(lk)*B_v*coef_c2(lj,jc_index)+          &
+                        &   delta_i(li)*delta_k(lk)*B_m*coef_c1f(lj,jc_index)+         &
+                        &   delta_i(li)*delta_k(lk)*B_p*coef_c1b(lj,jc_index)+         &
+                        &   delta_i(li)*delta_j(lj)*C_v*coef_c2(lk,kc_index)+          &
+                        &   delta_i(li)*delta_j(lj)*C_m*coef_c1f(lk,kc_index)+         &
+                        &   delta_i(li)*delta_j(lj)*C_p*coef_c1b(lk,kc_index)-         &
+                        &   delta_j(lj)*delta_k(lk)*Vxx*coef_d2(li,ic_index)-          &
+                        &   delta_i(li)*delta_k(lk)*Vyy*coef_d2(lj,jc_index)-          &
+                        &   delta_i(li)*delta_j(lj)*Vzz*coef_d2(lk,kc_index)-          &
+                        &   delta_k(lk)*Vxy*coef_c2(li,ic_index)*coef_c2(lj,jc_index)- &
+                        &   delta_j(lj)*Vxz*coef_c2(li,ic_index)*coef_c2(lk,kc_index)- &
+                        &   delta_i(li)*Vyz*coef_c2(lj,jc_index)*coef_c2(lk,kc_index)
+                        trans=transpose(box)
+                        call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+                    enddo
+                enddo
+            enddo
+        end associate
+
+    end subroutine sub_mat_insert_values_2_ord
+
+    subroutine set_subDA(da)
+        use mod_parameters,only:igl,jgl,kgl
+        implicit none
+        DM,intent(inout) :: da
+        PetscErrorCode :: ierr
+
+        call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_PERIODIC,&
+        &                 DMDA_STENCIL_BOX, igl, jgl, kgl, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE, &
+        &                 5, 1, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, da, ierr)
+        call DMSetMatType(da,MATBAIJ,ierr)
+        call DMSetFromOptions(da,ierr)
+        call DMSetUp(da, ierr)
+    end subroutine set_subDA
+
+    subroutine init_sub_vecs()
+        use mod_parameters,only:meshDA,subDA,localx,subx
+        implicit none
+        PetscErrorCode :: ierr
+
+        call DMGetLocalVector(meshDA,localx,ierr)
+        call VecZeroEntries(localx,ierr)
+        call DMGetGlobalVector(subDA,subx,ierr)
+        call VecZeroEntries(subx,ierr)
+    end subroutine init_sub_vecs
+
+    subroutine get_subf(f,subf)
+        use mod_parameters,only:lns_mode,igs,ige,jgs,jge,kgs,kge,localx,meshDA,subDA
+        implicit none
+        PetscScalar,pointer :: fr(:,:,:,:),sfr(:,:,:,:)
+        Vec,intent(inout) :: subf
+        PetscErrorCode :: ierr
+        Vec,intent(in) :: f
+        integer :: i,j,k
+        Vec :: localf
+
+        call VecDuplicate(localx,localf,ierr)
+        call VecZeroEntries(localf,ierr)
+
+        call DMGlobalToLocalBegin(meshDA, f, INSERT_VALUES, localf, ierr)
+        call DMGlobalToLocalEnd(meshDA, f, INSERT_VALUES, localf, ierr)
+        call DMDAVecGetArrayF90(meshDA, localf, fr, ierr)
+        call DMDAVecGetArrayF90(subDA, subf, sfr, ierr)
+
+        select case(lns_mode)
+        case(2)
+            fr(:, igs:igs, :, :)=0.0d0
+            fr(:, ige:ige, :, :)=0.0d0
+            fr(:, :, jgs:jgs, :)=0.0d0
+            fr(:, :, jge:jge, :)=0.0d0
+        case(3)
+            fr(:, igs:igs, :, :)=0.0d0
+            fr(:, ige:ige, :, :)=0.0d0
+            fr(:, :, jgs:jgs, :)=0.0d0
+            fr(:, :, jge:jge, :)=0.0d0
+            fr(:, :, :, kgs:kgs)=0.0d0
+            fr(:, :, :, kge:kge)=0.0d0
+        end select
+
+        do k=kgs, kge
+            do j=jgs, jge
+                do i=igs, ige
+                    sfr(:, i-igs, j-jgs, k-kgs)=fr(:, i, j, k)
+                enddo
+            enddo
+        enddo
+
+        call DMDAVecRestoreArrayF90(meshDA, localf, fr, ierr)
+        call DMDAVecRestoreArrayF90(subDA, subf, sfr, ierr)
+        call VecDestroy(localf,ierr)
+    end subroutine get_subf
+
+    subroutine merge_res(subres,res)
+        use mod_parameters,only:subDA,meshDA,is,ie,js,je,ks,ke,igs,jgs,kgs
+        implicit none
+        PetscScalar,pointer :: sr(:,:,:,:),r(:,:,:,:)
+        Vec,intent(inout) :: res
+        Vec,intent(in) :: subres
+        PetscErrorCode :: ierr
+        integer :: i,j,k
+
+        call DMDAVecGetArrayReadF90(subDA,subres,sr,ierr)
+        call DMDAVecGetArrayF90(meshDA,res,r,ierr)
+
+        do k=ks, ke
+            do j=js, je
+                do i=is, ie
+                    r(:,i,j,k)=sr(:,i-igs,j-jgs,k-kgs)
+                enddo
+            enddo
+        enddo
+
+        call DMDAVecRestoreArrayF90(meshDA,res,r,ierr)
+        call DMDAVecRestoreArrayReadF90(subDA,subres,sr,ierr)
+
+    end subroutine merge_res
+
+    ! --------------------------------------------------------------------------
+    ! 清理函数
 
     subroutine cleanup()
 

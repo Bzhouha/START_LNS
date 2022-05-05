@@ -16,7 +16,7 @@ module mod_parameters
     real(R_P), dimension(:, :, :, :), allocatable :: qq ! 数组：基本流
     real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re ! 流场参数
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge ! MPI网格分块位置
-    real(R_P),parameter :: SWITCH = 707.0d0
+    real(R_P),parameter :: TAG = 707.0d0
     integer :: is,js,ks,il,jl,kl,ie,je,ke ! MPI网格分块位置
     character(len=10) :: solver_mode ! KSP.or.SNES .or. KSPs
     character(len=256) :: bigridfile ! 文件名：流场文件
@@ -33,18 +33,19 @@ module mod_parameters
     DM :: coordDA,meshDA,DA ! DM.Object
     integer :: split_mode=0 ! 对流系数矩阵拆分方式选择
     PetscInt :: in,jn,kn,ln ! 流场网格数、自由度数
-    real(R_P) :: dt=SWITCH ! 时间步长
+    real(R_P) :: dt=TAG ! 时间步长
     real(R_P) :: lm=1.0d0 ! 松弛系数
     complex(R_P) :: Alpha ! 波数
     complex(R_P) :: Omega ! 频率
     complex(R_P) :: Beta ! 波数
     real(R_P) :: cfl=2.0
     integer :: lns_mode ! 2D-HLNS.or.3D-HLNS
-    integer :: BC_type ! 边界条件类型：Dirichlet.or.Neumann.or.Robbin
     integer :: rank ! 进程编号
     integer :: sink ! 进程数
-    Mat :: dolphin ! 矩阵
-    Vec :: turtle ! 解
+    Vec :: turtle ! 解向量
+    Vec :: localx
     Mat :: whale ! 矩阵
     Vec :: RHS ! 右端项
+    Vec :: subx
+    DM :: subDA
 end module mod_parameters

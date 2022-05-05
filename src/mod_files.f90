@@ -81,7 +81,7 @@ module mod_files
         call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dt',dt,set,ierr)
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dt',usedt,ierr)
         if(usedt)then
-            if(abs(dt-SWITCH)<1e-5)then
+            if(abs(dt-TAG)<1e-5)then
                 calculate_dt=.True.
             else
                 calculate_dt=.False.
