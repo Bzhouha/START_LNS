@@ -16,7 +16,7 @@ program main
 
     call istream(PETSC_COMM_WORLD)
     call dstream(PETSC_COMM_WORLD)
-    ! call ostream(PETSC_COMM_WORLD)
+    call ostream(PETSC_COMM_WORLD)
 
     call PetscFinalize(ierr)
 end program main

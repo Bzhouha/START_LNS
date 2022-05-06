@@ -45,16 +45,16 @@ module mod_solving
         call PetscPrintf(comm, "\n   Data :: Preparation\n", ierr)
         call metric_coefficient(comm)
         call partial_derivatives(comm)
-        ! select case (solver_mode)
-        !     case('ksp')
-        !         call ksp_equations(comm)
-        !     case('snes')
-        !         call snes_equations(comm,snes_rhs_fx_4ord)
-        !     case('ksps')
-        !         call ksps_equations(comm,rhs_fx_Ax,push_bc,NEWTON_LIKE)
-        !     case('melt')
-        !         call melt_equations(comm,rhs_fx_Ax,push_bc)
-        ! end select
+        select case (solver_mode)
+            case('ksp')
+                call ksp_equations(comm)
+            case('snes')
+                call snes_equations(comm,snes_rhs_fx_4ord)
+            case('ksps')
+                call ksps_equations(comm,rhs_fx_Ax,push_bc,NEWTON_LIKE)
+            case('melt')
+                call melt_equations(comm,rhs_fx_Ax,push_bc)
+        end select
     end subroutine dstream
 
     subroutine ksp_equations(comm)
@@ -195,7 +195,6 @@ module mod_solving
         ! Destory variables
         call VecDestroy(r,ierr)
         call KSPDestroy(ksp,ierr)
-        call PCDestroy(pc,ierr)
         call MatDestroy(mat,ierr)
         call cleanup()
 
@@ -337,12 +336,12 @@ module mod_solving
                     ! Get solution
                     call VecAXPY(x,one,res,ierr)
                     ! If iterated too much times
-                    if(count>199)then
+                    if(count>200)then
                         call PetscPrintf(comm,"   Maximum number of iterations reached.\n",ierr)
                         exit
                     endif
                     ! If converged
-                    if(nrm<1e-5)then
+                    if(nrm<1e-4)then
                         call PetscPrintf(comm,"   Converged.\n",ierr)
                         exit
                     endif
@@ -372,7 +371,7 @@ module mod_solving
                         exit
                     endif
                     ! If converged
-                    if(nrm<1e-5)then
+                    if(nrm<1e-4)then
                         call PetscPrintf(comm,"   Converged.\n",ierr)
                         exit
                     endif
@@ -384,7 +383,6 @@ module mod_solving
 
         ! Destory variables
         call KSPDestroy(ksp,ierr)
-        call PCDestroy(pc,ierr)
         call VecDestroy(f,ierr)
         call VecDestroy(res,ierr)
         call MatDestroy(mat,ierr)
@@ -472,7 +470,7 @@ module mod_solving
                 exit
             endif
             ! 如果收敛
-            if(nrm<1e-5)then
+            if(nrm<1e-4)then
                 call PetscPrintf(comm,"   Converged.\n",ierr)
                 exit
             endif
