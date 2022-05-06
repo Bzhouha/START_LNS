@@ -48,6 +48,7 @@ module mod_points
         call allocate_memory()
         call partial_derivatives_on_IJK()
         call from_IJK_to_XYZ()
+        call delivery_by_dmda()
         call insert_to_BF()
         call deallocate_memory()
         call MPI_Barrier(comm,ierr)
@@ -252,48 +253,42 @@ module mod_points
         call VecDuplicate(QQX_local, QQYZ_local, ierr)
 
         call DMDAVecGetArrayF90(meshDA, QQ_, tmp, ierr)
-        tmp = qq
+        tmp(:,is:ie,js:je,ks:ke) = qq(:,is:ie,js:je,ks:ke)
         call DMDAVecRestoreArrayF90(meshDA, QQ_, tmp, ierr)
         call DMGlobalToLocalBegin(meshDA, QQ_, INSERT_VALUES, QQ_local, ierr)
 
-
         call DMDAVecGetArrayF90(meshDA, QQ_XX, tmp, ierr)
-        tmp = qqxx
+        tmp(:,is:ie,js:je,ks:ke) = qqxx(:,is:ie,js:je,ks:ke)
         call DMDAVecRestoreArrayF90(meshDA, QQ_XX, tmp, ierr)
         call DMGlobalToLocalEnd(meshDA, QQ_, INSERT_VALUES, QQ_local, ierr)
         call DMGlobalToLocalBegin(meshDA, QQ_XX, INSERT_VALUES, QQXX_local, ierr)
 
-
         call DMDAVecGetArrayF90(meshDA, QQ_YY, tmp, ierr)
-        tmp = qqyy
+        tmp(:,is:ie,js:je,ks:ke) = qqyy(:,is:ie,js:je,ks:ke)
         call DMDAVecRestoreArrayF90(meshDA, QQ_YY, tmp, ierr)
         call DMGlobalToLocalEnd(meshDA, QQ_XX, INSERT_VALUES, QQXX_local, ierr)
         call DMGlobalToLocalBegin(meshDA, QQ_YY, INSERT_VALUES, QQYY_local, ierr)
 
-
         call DMDAVecGetArrayF90(meshDA, QQ_ZZ, tmp, ierr)
-        tmp = qqzz
+        tmp(:,is:ie,js:je,ks:ke) = qqzz(:,is:ie,js:je,ks:ke)
         call DMDAVecRestoreArrayF90(meshDA, QQ_ZZ, tmp, ierr)
         call DMGlobalToLocalEnd(meshDA, QQ_YY, INSERT_VALUES, QQYY_local, ierr)
         call DMGlobalToLocalBegin(meshDA, QQ_ZZ, INSERT_VALUES, QQZZ_local, ierr)
 
-
         call DMDAVecGetArrayF90(meshDA, QQ_XY, tmp, ierr)
-        tmp = qqxy
+        tmp(:,is:ie,js:je,ks:ke) = qqxy(:,is:ie,js:je,ks:ke)
         call DMDAVecRestoreArrayF90(meshDA, QQ_XY, tmp, ierr)
         call DMGlobalToLocalEnd(meshDA, QQ_ZZ, INSERT_VALUES, QQZZ_local, ierr)
         call DMGlobalToLocalBegin(meshDA, QQ_XY, INSERT_VALUES, QQXY_local, ierr)
 
-
         call DMDAVecGetArrayF90(meshDA, QQ_XZ, tmp, ierr)
-        tmp = qqxz
+        tmp(:,is:ie,js:je,ks:ke) = qqxz(:,is:ie,js:je,ks:ke)
         call DMDAVecRestoreArrayF90(meshDA, QQ_XZ, tmp, ierr)
         call DMGlobalToLocalEnd(meshDA, QQ_XY, INSERT_VALUES, QQXY_local, ierr)
         call DMGlobalToLocalBegin(meshDA, QQ_XZ, INSERT_VALUES, QQXZ_local, ierr)
 
-
         call DMDAVecGetArrayF90(meshDA, QQ_YZ, tmp, ierr)
-        tmp = qqyz
+        tmp(:,is:ie,js:je,ks:ke) = qqyz(:,is:ie,js:je,ks:ke)
         call DMDAVecRestoreArrayF90(meshDA, QQ_YZ, tmp, ierr)
         call DMGlobalToLocalEnd(meshDA, QQ_XZ, INSERT_VALUES, QQXZ_local, ierr)
         call DMGlobalToLocalBegin(meshDA, QQ_YZ, INSERT_VALUES, QQYZ_local, ierr)
@@ -316,51 +311,49 @@ module mod_points
         allocate(qqyz(5,igs:ige,jgs:jge,kgs:kge))
 
         call DMDAVecGetArrayReadF90(meshDA, QQ_local, tmp, ierr)
-        qq=real(tmp)
+        qq(:,igs:ige,jgs:jge,kgs:kge)=real(tmp(:,igs:ige,jgs:jge,kgs:kge))
         call DMDAVecRestoreArrayReadF90(meshDA, QQ_local, tmp, ierr)
 
         call DMDAVecGetArrayReadF90(meshDA, QQX_local, tmp, ierr)
-        qqx=real(tmp)
+        qqx(:,igs:ige,jgs:jge,kgs:kge)=real(tmp(:,igs:ige,jgs:jge,kgs:kge))
         call DMDAVecRestoreArrayReadF90(meshDA, QQX_local, tmp, ierr)
 
         call DMDAVecGetArrayReadF90(meshDA, QQY_local, tmp, ierr)
-        qqy=real(tmp)
+        qqy(:,igs:ige,jgs:jge,kgs:kge)=real(tmp(:,igs:ige,jgs:jge,kgs:kge))
         call DMDAVecRestoreArrayReadF90(meshDA, QQY_local, tmp, ierr)
 
         call DMDAVecGetArrayReadF90(meshDA, QQZ_local, tmp, ierr)
-        qqz=real(tmp)
+        qqz(:,igs:ige,jgs:jge,kgs:kge)=real(tmp(:,igs:ige,jgs:jge,kgs:kge))
         call DMDAVecRestoreArrayReadF90(meshDA, QQZ_local, tmp, ierr)
 
         call DMDAVecGetArrayReadF90(meshDA, QQXX_local, tmp, ierr)
-        qqxx=real(tmp)
+        qqxx(:,igs:ige,jgs:jge,kgs:kge)=real(tmp(:,igs:ige,jgs:jge,kgs:kge))
         call DMDAVecRestoreArrayReadF90(meshDA, QQXX_local, tmp, ierr)
 
         call DMDAVecGetArrayReadF90(meshDA, QQYY_local, tmp, ierr)
-        qqyy=real(tmp)
+        qqyy(:,igs:ige,jgs:jge,kgs:kge)=real(tmp(:,igs:ige,jgs:jge,kgs:kge))
         call DMDAVecRestoreArrayReadF90(meshDA, QQYY_local, tmp, ierr)
 
         call DMDAVecGetArrayReadF90(meshDA, QQZZ_local, tmp, ierr)
-        qqzz=real(tmp)
+        qqzz(:,igs:ige,jgs:jge,kgs:kge)=real(tmp(:,igs:ige,jgs:jge,kgs:kge))
         call DMDAVecRestoreArrayReadF90(meshDA, QQZZ_local, tmp, ierr)
 
         call DMDAVecGetArrayReadF90(meshDA, QQXY_local, tmp, ierr)
-        qqxy=real(tmp)
+        qqxy(:,igs:ige,jgs:jge,kgs:kge)=real(tmp(:,igs:ige,jgs:jge,kgs:kge))
         call DMDAVecRestoreArrayReadF90(meshDA, QQXY_local, tmp, ierr)
 
         call DMDAVecGetArrayReadF90(meshDA, QQXZ_local, tmp, ierr)
-        qqxz=real(tmp)
+        qqxz(:,igs:ige,jgs:jge,kgs:kge)=real(tmp(:,igs:ige,jgs:jge,kgs:kge))
         call DMDAVecRestoreArrayReadF90(meshDA, QQXZ_local, tmp, ierr)
 
         call DMDAVecGetArrayReadF90(meshDA, QQYZ_local, tmp, ierr)
-        qqyz=real(tmp)
+        qqyz(:,igs:ige,jgs:jge,kgs:kge)=real(tmp(:,igs:ige,jgs:jge,kgs:kge))
         call DMDAVecRestoreArrayReadF90(meshDA, QQYZ_local, tmp, ierr)
 
-        call VecDestroy(QQ_,ierr)
+        call VecDestroy(QQ_,ierr);  call VecDestroy(QQ_local,ierr)
         call VecDestroy(QQ_X ,ierr);call VecDestroy(QQ_Y ,ierr);call VecDestroy(QQ_Z ,ierr)
         call VecDestroy(QQ_XX,ierr);call VecDestroy(QQ_YY,ierr);call VecDestroy(QQ_ZZ,ierr)
         call VecDestroy(QQ_XY,ierr);call VecDestroy(QQ_XZ,ierr);call VecDestroy(QQ_YZ,ierr)
-
-        call VecDestroy(QQ_local,ierr)
         call VecDestroy(QQX_local ,ierr);call VecDestroy(QQY_local ,ierr);call VecDestroy(QQZ_local ,ierr)
         call VecDestroy(QQXX_local,ierr);call VecDestroy(QQYY_local,ierr);call VecDestroy(QQZZ_local,ierr)
         call VecDestroy(QQXY_local,ierr);call VecDestroy(QQXZ_local,ierr);call VecDestroy(QQYZ_local,ierr)

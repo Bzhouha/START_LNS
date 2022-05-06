@@ -465,8 +465,8 @@ module mod_solving
             ! 刷新近似解
             call VecAXPY(x,one,res,ierr)
             ! 如果达到最大迭代数
-            if(count>200)then
-                call PetscPrintf(comm,"   Maximum number of iterations reached.\n",ierr)
+            if(count>500)then
+                call PetscPrintf(comm,"\n   < Maximum number of iterations reached. >\n",ierr)
                 exit
             endif
             ! 如果收敛
