@@ -113,19 +113,36 @@ module mod_points
         use mod_difference,only:fd1
         implicit none
         PetscScalar,pointer :: tmp(:,:,:,:)
-        integer :: l
+        integer :: l,i,j,k
         select case (lns_mode)
         case(2)
             do l=1,5
-                call turnItoX(qqx(l,:,:,:),qqi(l,:,:,:),qqj(l,:,:,:),qqk(l,:,:,:),xi_x,eta_x,phi_x)
-                call turnItoX(qqy(l,:,:,:),qqi(l,:,:,:),qqj(l,:,:,:),qqk(l,:,:,:),xi_y,eta_y,phi_y)
+                do i=is,ie
+                    do j=js,je
+                        do k=ks,ke
+                            call turnItoX(qqx(l,i,j,k),qqi(l,i,j,k),qqj(l,i,j,k),qqk(l,i,j,k), &
+                            &             xi_x(i,j,k),eta_x(i,j,k),phi_x(i,j,k))
+                            call turnItoX(qqy(l,i,j,k),qqi(l,i,j,k),qqj(l,i,j,k),qqk(l,i,j,k), &
+                            &             xi_y(i,j,k),eta_y(i,j,k),phi_y(i,j,k))
+                        enddo
+                    enddo
+                enddo
             enddo
             qqz=0.0d0
         case(3)
             do l=1,5
-                call turnItoX(qqx(l,:,:,:),qqi(l,:,:,:),qqj(l,:,:,:),qqk(l,:,:,:),xi_x,eta_x,phi_x)
-                call turnItoX(qqy(l,:,:,:),qqi(l,:,:,:),qqj(l,:,:,:),qqk(l,:,:,:),xi_y,eta_y,phi_y)
-                call turnItoX(qqz(l,:,:,:),qqi(l,:,:,:),qqj(l,:,:,:),qqk(l,:,:,:),xi_z,eta_z,phi_z)
+                do i=is,ie
+                    do j=js,je
+                        do k=ks,ke
+                            call turnItoX(qqx(l,i,j,k),qqi(l,i,j,k),qqj(l,i,j,k),qqk(l,i,j,k), &
+                            &             xi_x(i,j,k),eta_x(i,j,k),phi_x(i,j,k))
+                            call turnItoX(qqy(l,i,j,k),qqi(l,i,j,k),qqj(l,i,j,k),qqk(l,i,j,k), &
+                            &             xi_y(i,j,k),eta_y(i,j,k),phi_y(i,j,k))
+                            call turnItoX(qqz(l,i,j,k),qqi(l,i,j,k),qqj(l,i,j,k),qqk(l,i,j,k), &
+                            &             xi_z(i,j,k),eta_z(i,j,k),phi_z(i,j,k))
+                        enddo
+                    enddo
+                enddo
             enddo
         end select
         call DMDAVecGetArrayF90(meshDA, QQ_X, tmp, ierr)
@@ -162,9 +179,18 @@ module mod_points
             call fd1(qqzj,is,ie,js,je,ks,ke,qq_z_local_array,igs,ige,jgs,jge,kgs,kge,2,5)
             qqxk=0.0d0;qqyk=0.0d0;qqzk=0.0d0
             do l=1,5
-                call turnItoX(qqxx(l,:,:,:),qqxi(l,:,:,:),qqxj(l,:,:,:),qqxk(l,:,:,:),xi_x,eta_x,phi_x)
-                call turnItoX(qqyy(l,:,:,:),qqyi(l,:,:,:),qqyj(l,:,:,:),qqyk(l,:,:,:),xi_y,eta_y,phi_y)
-                call turnItoX(qqxy(l,:,:,:),qqxi(l,:,:,:),qqxj(l,:,:,:),qqxk(l,:,:,:),xi_y,eta_y,phi_y)
+                do i=is,ie
+                    do j=js,je
+                        do k=ks,ke
+                            call turnItoX(qqxx(l,i,j,k),qqxi(l,i,j,k),qqxj(l,i,j,k),qqxk(l,i,j,k), &
+                            &             xi_x(i,j,k),eta_x(i,j,k),phi_x(i,j,k))
+                            call turnItoX(qqyy(l,i,j,k),qqyi(l,i,j,k),qqyj(l,i,j,k),qqyk(l,i,j,k), &
+                            &             xi_y(i,j,k),eta_y(i,j,k),phi_y(i,j,k))
+                            call turnItoX(qqxy(l,i,j,k),qqxi(l,i,j,k),qqxj(l,i,j,k),qqxk(l,i,j,k), &
+                            &             xi_y(i,j,k),eta_y(i,j,k),phi_y(i,j,k))
+                        enddo
+                    enddo
+                enddo
             enddo
             qqzz=0.0d0;qqxz=0.0d0;qqyz=0.0d0
         case(3)
@@ -178,17 +204,29 @@ module mod_points
             call fd1(qqzj,is,ie,js,je,ks,ke,qq_z_local_array,igs,ige,jgs,jge,kgs,kge,2,5)
             call fd1(qqzk,is,ie,js,je,ks,ke,qq_z_local_array,igs,ige,jgs,jge,kgs,kge,3,5)
             do l=1,5
-                call turnItoX(qqxx(l,:,:,:),qqxi(l,:,:,:),qqxj(l,:,:,:),qqxk(l,:,:,:),xi_x,eta_x,phi_x)
-                call turnItoX(qqyy(l,:,:,:),qqyi(l,:,:,:),qqyj(l,:,:,:),qqyk(l,:,:,:),xi_y,eta_y,phi_y)
-                call turnItoX(qqzz(l,:,:,:),qqzi(l,:,:,:),qqzj(l,:,:,:),qqzk(l,:,:,:),xi_z,eta_z,phi_z)
-                call turnItoX(qqxy(l,:,:,:),qqxi(l,:,:,:),qqxj(l,:,:,:),qqxk(l,:,:,:),xi_y,eta_y,phi_y)
-                call turnItoX(qqxz(l,:,:,:),qqxi(l,:,:,:),qqxj(l,:,:,:),qqxk(l,:,:,:),xi_z,eta_z,phi_z)
-                call turnItoX(qqyz(l,:,:,:),qqyi(l,:,:,:),qqyj(l,:,:,:),qqyk(l,:,:,:),xi_z,eta_z,phi_z)
+                do i=is,ie
+                    do j=js,je
+                        do k=ks,ke
+                            call turnItoX(qqxx(l,i,j,k),qqxi(l,i,j,k),qqxj(l,i,j,k),qqxk(l,i,j,k), &
+                            &             xi_x(i,j,k),eta_x(i,j,k),phi_x(i,j,k))
+                            call turnItoX(qqyy(l,i,j,k),qqyi(l,i,j,k),qqyj(l,i,j,k),qqyk(l,i,j,k), &
+                            &             xi_y(i,j,k),eta_y(i,j,k),phi_y(i,j,k))
+                            call turnItoX(qqzz(l,i,j,k),qqzi(l,i,j,k),qqzj(l,i,j,k),qqzk(l,i,j,k), &
+                            &             xi_z(i,j,k),eta_z(i,j,k),phi_z(i,j,k))
+                            call turnItoX(qqxy(l,i,j,k),qqxi(l,i,j,k),qqxj(l,i,j,k),qqxk(l,i,j,k), &
+                            &             xi_y(i,j,k),eta_y(i,j,k),phi_y(i,j,k))
+                            call turnItoX(qqxz(l,i,j,k),qqxi(l,i,j,k),qqxj(l,i,j,k),qqxk(l,i,j,k), &
+                            &             xi_z(i,j,k),eta_z(i,j,k),phi_z(i,j,k))
+                            call turnItoX(qqyz(l,i,j,k),qqyi(l,i,j,k),qqyj(l,i,j,k),qqyk(l,i,j,k), &
+                            &             xi_z(i,j,k),eta_z(i,j,k),phi_z(i,j,k))
+                        enddo
+                    enddo
+                enddo
             enddo
         end select
     end subroutine from_IJK_to_XYZ
 
-    elemental subroutine turnItoX(fx,fi,fj,fk,ix,jx,kx)
+    subroutine turnItoX(fx,fi,fj,fk,ix,jx,kx)
         implicit none
         real(R_P),intent(out) :: fx
         real(R_P),intent(in) :: fi,fj,fk

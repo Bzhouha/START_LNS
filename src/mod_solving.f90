@@ -45,16 +45,16 @@ module mod_solving
         call PetscPrintf(comm, "\n   Data :: Preparation\n", ierr)
         call metric_coefficient(comm)
         call partial_derivatives(comm)
-        select case (solver_mode)
-            case('ksp')
-                call ksp_equations(comm)
-            case('snes')
-                call snes_equations(comm,snes_rhs_fx_4ord)
-            case('ksps')
-                call ksps_equations(comm,rhs_fx_Ax,push_bc,NEWTON_LIKE)
-            case('melt')
-                call melt_equations(comm,rhs_fx_Ax,push_bc)
-        end select
+        ! select case (solver_mode)
+        !     case('ksp')
+        !         call ksp_equations(comm)
+        !     case('snes')
+        !         call snes_equations(comm,snes_rhs_fx_4ord)
+        !     case('ksps')
+        !         call ksps_equations(comm,rhs_fx_Ax,push_bc,NEWTON_LIKE)
+        !     case('melt')
+        !         call melt_equations(comm,rhs_fx_Ax,push_bc)
+        ! end select
     end subroutine dstream
 
     subroutine ksp_equations(comm)
@@ -109,10 +109,8 @@ module mod_solving
         call init_sub_vecs()
         call PetscPrintf(comm,"\n   sub-KSPs :: Matrix\n",ierr)
         call init_mat_from_da(comm,subDA,whale)
-        write(*,*) "dog"
         call form_sub_mat_2_ord(whale)
-        write(*,*) "pauss"
-        ! call solve_melt(comm,whale,turtle,fx_rhs,fx_bc)
+        call solve_melt(comm,whale,turtle,fx_rhs,fx_bc)
     end subroutine melt_equations
 
     ! -----------------------------------------------------------------------------------------------------
