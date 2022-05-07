@@ -491,6 +491,32 @@ module mod_files
                     enddo
                 enddo
             enddo
+            ! block
+            !     PetscScalar,dimension(:,:,:),allocatable :: slices
+            !     PetscScalar,pointer :: tmp(:,:,:)
+            !     DM :: tmpDA
+            !     Vec :: Dog
+            !     allocate(slices(5,Jn,5))
+            !     do k=1,5
+            !         do j=1,Jn
+            !             slices(:,j,k)=slice(:,j,0)
+            !         enddo
+            !     enddo
+            !
+            !     call DMDACreate2d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
+            !     &                 DMDA_STENCIL_BOX, jn, 5, PETSC_DECIDE, PETSC_DECIDE, &
+            !     &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, tmpDA, ierr)
+            !     call DMSetUp(tmpDA, ierr)
+            !     call DMGetGlobalVector(tmpDA, Dog, ierr)
+            !     call DMDAVecGetArrayF90(tmpDA, Dog, tmp, ierr)
+            !     tmp=slices
+            !     call DMDAVecRestoreArrayF90(tmpDA, Dog, tmp, ierr)
+            !
+            !     call PetscViewerBinaryOpen(PETSC_COMM_SELF, "./data/dis5.pet",FILE_MODE_WRITE, viewer, ierr)
+            !     call VecView(Dog, viewer, ierr)
+            !     call PetscViewerDestroy(viewer, ierr)
+            !
+            ! endblock
             call DMDAVecRestoreArrayReadF90(sliceDA, disturb_slice, slice, ierr)
             call DMDAVecRestoreArrayF90(disturbDA, disturb_gather, disturbs, ierr)
 
@@ -595,8 +621,8 @@ module mod_files
         call PetscViewerBinaryOpen(comm,trim(resultfile),FILE_MODE_WRITE,viewer,ierr)
         call VecView(turtle, viewer, ierr)
         call PetscViewerDestroy(viewer, ierr)
-        call PetscPrintf(comm, "   Binary Result: "//resultfile//"\n", ierr)
-        resultfile = hdf5file
+        call PetscPrintf(comm, "   Binary Result: "//trim(resultfile)//"\n", ierr)
+        resultfile = trim(hdf5file)
         if(io_type/='hdf5') call preload_hdf5(comm,resultfile)
         call PetscViewerHDF5Open(comm,trim(resultfile),FILE_MODE_UPDATE,viewer,ierr)
         call PetscObjectSetName(turtle,"hlns",ierr)
@@ -608,7 +634,7 @@ module mod_files
         call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega.r",PETSC_DOUBLE,real(Omega),ierr)
         call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega.i",PETSC_DOUBLE,aimag(Omega),ierr)
         call PetscViewerDestroy(viewer, ierr)
-        call PetscPrintf(comm, "   HDF5 Result: "//resultfile//"\n", ierr)
+        call PetscPrintf(comm, "   HDF5 Result: "//trim(resultfile)//"\n", ierr)
 
     end subroutine ostream
 
