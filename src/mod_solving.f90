@@ -337,12 +337,12 @@ module mod_solving
                     call VecAXPY(x,one,res,ierr)
                     ! If iterated too much times
                     if(count>200)then
-                        call PetscPrintf(comm,"   Maximum number of iterations reached.\n",ierr)
+                        call PetscPrintf(comm,"\n   < Maximum number of iterations reached. >\n",ierr)
                         exit
                     endif
                     ! If converged
                     if(nrm<1e-4)then
-                        call PetscPrintf(comm,"   Converged.\n",ierr)
+                        call PetscPrintf(comm,"\n   < Converged. >\n",ierr)
                         exit
                     endif
                 enddo
@@ -367,12 +367,12 @@ module mod_solving
                     call VecCopy(res,x,ierr)
                     ! If iterated too much times
                     if(count>50)then
-                        call PetscPrintf(comm,"   Maximum number of iterations reached.\n",ierr)
+                        call PetscPrintf(comm,"\n   < Maximum number of iterations reached. >\n",ierr)
                         exit
                     endif
                     ! If converged
                     if(nrm<1e-4)then
-                        call PetscPrintf(comm,"   Converged.\n",ierr)
+                        call PetscPrintf(comm,"\n   < Converged. >\n",ierr)
                         exit
                     endif
                     ! Count
@@ -471,7 +471,7 @@ module mod_solving
             endif
             ! 如果收敛
             if(nrm<1e-4)then
-                call PetscPrintf(comm,"   Converged.\n",ierr)
+                call PetscPrintf(comm,"\n   < Converged. >\n",ierr)
                 exit
             endif
         enddo
