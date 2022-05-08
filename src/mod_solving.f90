@@ -40,8 +40,8 @@ module mod_solving
         implicit none
         PetscInt,intent(in) :: comm
 
-        call PetscPrintf(comm, "\n ----------------------------------\n", ierr)
-        call PetscPrintf(comm, "              DStream            \n", ierr)
+        call PetscPrintf(comm, "\n -----------------------------------\n", ierr)
+        call PetscPrintf(comm, "               DStream            \n", ierr)
         call PetscPrintf(comm, "\n   Data :: Preparation\n", ierr)
         call metric_coefficient(comm)
         call partial_derivatives(comm)

@@ -46,7 +46,8 @@ module mod_files
 
         call mpi_comm_rank(comm,rank,ierr)
         call mpi_comm_size(comm,sink,ierr)
-        call PetscPrintf(comm, "\n         S T A R T - L N S\n", ierr)
+        call PetscPrintf(comm, "\n          S T A R T - L N S\n", ierr)
+
         call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-f',cfg_file,set,ierr)
         if(.not. set) then
             write(*,*) 'should use -f option to determin the config file.'
@@ -178,6 +179,10 @@ module mod_files
         call DMSetFromOptions(meshDA,ierr)
         call DMSetUp(meshDA, ierr)
 
+        call DMDAGetInfo(DA, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, &
+        &   nx, ny, nz, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, &
+        &   PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, ierr)
+
         call DMGetGlobalVector(meshDA, turtle, ierr)
         call DMDAGetGhostCorners(DA,igs,jgs,kgs,igl,jgl,kgl,ierr)
         call DMDAGetCorners(DA,is,js,ks,il,jl,kl,ierr)
@@ -189,8 +194,8 @@ module mod_files
         implicit none
         integer,intent(in) :: comm
 
-        call PetscPrintf(comm, "\n ----------------------------------\n", ierr)
-        call PetscPrintf(comm, "              IStream            \n", ierr)
+        call PetscPrintf(comm, "\n -----------------------------------\n", ierr)
+        call PetscPrintf(comm, "               IStream            \n", ierr)
 
         select case(io_type)
             case("plt")
@@ -555,21 +560,23 @@ module mod_files
             write(*,*)
             write(*,"(3X,A,L3)") "Initial Guess -> ",init_guess_flg
             write(*,*)
-            write(*,"(3X,3(A,I5))") "Grid  -> ",in,"  ",jn,"  ",kn
+            write(*,"(3X,3(A,I5))") "Grid Size -> ",in,"  ",jn,"  ",kn
             write(*,*)
-            write(*,"(3X,A,F12.5)") "Re    -> ",Re
-            write(*,"(3X,A,F12.5)") "Ma    -> ",MA
-            write(*,"(3X,A,F12.5)") "Te    -> ",Te
-            write(*,"(3X,A,2(F12.5))") "Alpha -> ",Alpha
-            write(*,"(3X,A,2(F12.5))") "Beta  -> ",Beta
-            write(*,"(3X,A,2(F12.5))") "Omega -> ",Omega
+            write(*,"(3X,3(A,I5))") "Partition -> ",nx,"  ",ny,"  ",nz
+            write(*,*)
+            write(*,"(3X,A,F10.4)") "Re    -> ",Re
+            write(*,"(3X,A,F10.4)") "Ma    -> ",MA
+            write(*,"(3X,A,F10.4)") "Te    -> ",Te
+            write(*,"(3X,A,2(F10.5))") "Alpha -> ",Alpha
+            write(*,"(3X,A,2(F10.5))") "Beta  -> ",Beta
+            write(*,"(3X,A,2(F10.5))") "Omega -> ",Omega
             write(*,*)
             write(*,114) "Grid[",igs,",",jgs,",",kgs," ] ->",xx(igs,jgs,kgs),yy(igs,jgs,kgs),zz(igs,jgs,kgs)
-            114 format (3X,A,3(I6,A),3(F10.5))
+            114 format (3X,A,3(I5,A),3(F9.4))
             write(*,114) "Grid[",ige,",",jge,",",kge," ] ->",xx(ige,jge,kge),yy(ige,jge,kge),zz(ige,jge,kge)
             write(*,113) "Flow[",igs,",",jgs,",",kgs," ] ->",qq(1,igs,jgs,kgs),qq(2,igs,jgs,kgs),                &
             &                                                qq(3,igs,jgs,kgs),qq(4,igs,jgs,kgs),qq(5,igs,jgs,kgs)
-            113 format (3X,A,3(I6,A),5(F10.5))
+            113 format (3X,A,3(I5,A),5(F9.4))
             write(*,113) "Flow[",ige,",",jge,",",kge," ] ->",qq(1,ige,jge,kge),qq(2,ige,jge,kge),                &
             &                                                qq(3,ige,jge,kge),qq(4,ige,jge,kge),qq(5,ige,jge,kge)
         endif
@@ -581,8 +588,8 @@ module mod_files
         character(len=256) :: resultfile
         PetscInt, intent(in) :: comm
 
-        call PetscPrintf(comm, "\n ----------------------------------\n", ierr)
-        call PetscPrintf(comm, "               Ostream              \n\n", ierr)
+        call PetscPrintf(comm, "\n -----------------------------------\n", ierr)
+        call PetscPrintf(comm, "                Ostream              \n\n", ierr)
 
         resultfile = "./data/turtle.pet"
         call PetscViewerBinaryOpen(comm,trim(resultfile),FILE_MODE_WRITE,viewer,ierr)
@@ -602,6 +609,7 @@ module mod_files
         call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega.i",PETSC_DOUBLE,aimag(Omega),ierr)
         call PetscViewerDestroy(viewer, ierr)
         call PetscPrintf(comm, "   HDF5 Result: "//trim(resultfile)//"\n", ierr)
+        call PetscPrintf(comm, "\n", ierr)
 
     end subroutine ostream
 
