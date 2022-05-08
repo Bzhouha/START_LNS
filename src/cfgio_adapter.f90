@@ -130,20 +130,20 @@ module mod_cfgio_adapter
         endif
 
         call cfg%get("hlns", "flow file", ffile)
-        biflowfile=trim(dir)//trim(ffile)
+        biflowfile=trim(ffile)
 
         call cfg%get("hlns", "grid file", gfile)
-        bigridfile=trim(dir)//trim(gfile)
+        bigridfile=trim(gfile)
 
         call cfg%get("hlns", "hdf5 file", hfile)
-        hdf5file=trim(dir)//trim(hfile)
+        hdf5file=trim(hfile)
 
         call cfg%get("hlns", "initial guess", ifile)
-        initfile=trim(dir)//trim(ifile)
+        initfile=trim(ifile)
         inquire(file=trim(initfile),exist=init_guess_flg)
-    
+
         call cfg%get("hlns", "disturb", dfile)
-        turbfile=trim(dir)//trim(dfile)
+        turbfile=trim(dfile)
 
     end subroutine cfg_hlns
 end module mod_cfgio_adapter

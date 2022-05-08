@@ -16,7 +16,7 @@ module mod_parameters
     real(R_P), dimension(:, :, :, :), allocatable :: qq ! 数组：基本流
     real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re ! 流场参数
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge ! MPI网格分块位置
-    real(R_P),parameter :: TAG = 707.0d0
+    real(R_P),parameter :: TAG = -1.0d0
     integer :: is,js,ks,il,jl,kl,ie,je,ke ! MPI网格分块位置
     character(len=10) :: solver_mode ! KSP.or.SNES .or. KSPs
     character(len=256) :: bigridfile ! 文件名：流场文件

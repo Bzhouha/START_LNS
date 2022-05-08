@@ -70,8 +70,8 @@ module mod_files
             solver_mode='melt';split_mode=0
         endif
 
-        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-raw',set,ierr)
-        if(set) io_type="raw"
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-plt',set,ierr)
+        if(set) io_type="plt"
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-binary',set,ierr)
         if(set) io_type="binary"
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-hdf5',set,ierr)
@@ -193,14 +193,14 @@ module mod_files
         call PetscPrintf(comm, "              IStream            \n", ierr)
 
         select case(io_type)
-            case("raw")
-                call PetscPrintf(comm, "\n   I/O type : raw\n\n", ierr)
+            case("plt")
+                call PetscPrintf(comm, "\n   I/O type -> Plot3d\n\n", ierr)
                 call load_raw_files(comm)
             case("binary")
-                call PetscPrintf(comm, "\n   I/O type : binary\n\n", ierr)
+                call PetscPrintf(comm, "\n   I/O type -> Binary\n\n", ierr)
                 call load_binary_files(comm)
             case("hdf5")
-                call PetscPrintf(comm, "\n   I/O type : hdf5\n\n", ierr)
+                call PetscPrintf(comm, "\n   I/O type -> HDF5\n\n", ierr)
                 call load_hdf5_files(comm)
         end select
 
@@ -491,32 +491,6 @@ module mod_files
                     enddo
                 enddo
             enddo
-            ! block
-            !     PetscScalar,dimension(:,:,:),allocatable :: slices
-            !     PetscScalar,pointer :: tmp(:,:,:)
-            !     DM :: tmpDA
-            !     Vec :: Dog
-            !     allocate(slices(5,Jn,5))
-            !     do k=1,5
-            !         do j=1,Jn
-            !             slices(:,j,k)=slice(:,j,0)
-            !         enddo
-            !     enddo
-            !
-            !     call DMDACreate2d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
-            !     &                 DMDA_STENCIL_BOX, jn, 5, PETSC_DECIDE, PETSC_DECIDE, &
-            !     &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, tmpDA, ierr)
-            !     call DMSetUp(tmpDA, ierr)
-            !     call DMGetGlobalVector(tmpDA, Dog, ierr)
-            !     call DMDAVecGetArrayF90(tmpDA, Dog, tmp, ierr)
-            !     tmp=slices
-            !     call DMDAVecRestoreArrayF90(tmpDA, Dog, tmp, ierr)
-            !
-            !     call PetscViewerBinaryOpen(PETSC_COMM_SELF, "./data/dis5.pet",FILE_MODE_WRITE, viewer, ierr)
-            !     call VecView(Dog, viewer, ierr)
-            !     call PetscViewerDestroy(viewer, ierr)
-            !
-            ! endblock
             call DMDAVecRestoreArrayReadF90(sliceDA, disturb_slice, slice, ierr)
             call DMDAVecRestoreArrayF90(disturbDA, disturb_gather, disturbs, ierr)
 
@@ -574,37 +548,30 @@ module mod_files
     subroutine check(comm)
         implicit none
         PetscInt,intent(in) :: comm
-        if(rank==0)then
-            write(*,"(3X,A,I5)") "Process Count :",sink
-            write(*,*)
-            write(*,"(3X,A,L3)") "Initial Guess :",init_guess_flg
-            write(*,*)
-        endif
-        call MPI_Barrier(comm,ierr)
         if(rank==(sink-1))then
-            write(*,"(3X,A,I5,1X,A,I5)") "Rank:",rank,"jn    =",jn
-            write(*,"(3X,A,I5,1X,A,F20.10)") "Rank:",rank,"Re    =",Re
-            write(*,"(3X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Alpha =",Alpha
-            write(*,"(3X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Omega =",Omega
-        endif
-        call MPI_Barrier(comm,ierr)
-        if(rank==0)then
-            write(*,"(3X,A,I5,1X,A,I5)") "Rank:",rank,"jn    =",jn
-            write(*,"(3X,A,I5,1X,A,F20.10)") "Rank:",rank,"Re    =",Re
-            write(*,"(3X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Alpha =",Alpha
-            write(*,"(3X,A,I5,1X,A,2(F20.15))") "Rank:",rank,"Omega =",Omega
-        endif
-        call MPI_Barrier(comm,ierr)
-        if(rank==0)then
+            write(*,"(3X,A,I3)") "Process Count -> ",sink
             write(*,*)
-            write(*,113) "data[0,0,0]：",qq(1,0,0,0),qq(2,0,0,0),qq(3,0,0,0),qq(4,0,0,0),qq(5,0,0,0)
-            113 format (3X,A,5(F10.5))
-            write(*,113) "data[1,0,0]：",qq(1,1,0,0),qq(2,1,0,0),qq(3,1,0,0),qq(4,1,0,0),qq(5,1,0,0)
-            write(*,113) "data[2,0,0]：",qq(1,2,0,0),qq(2,2,0,0),qq(3,2,0,0),qq(4,2,0,0),qq(5,2,0,0)
-            write(*,114) "mesh[0,0,0]：",xx(0,0,0),yy(0,0,0),zz(0,0,0)
-            114 format (3X,A,3(F10.5))
-            write(*,114) "mesh[1,0,0]：",xx(1,0,0),yy(1,0,0),zz(1,0,0)
-            write(*,114) "mesh[2,0,0]：",xx(2,0,0),yy(2,0,0),zz(2,0,0)
+            write(*,"(3X,A,I3)") "LNS Dimension -> ",lns_mode
+            write(*,*)
+            write(*,"(3X,A,L3)") "Initial Guess -> ",init_guess_flg
+            write(*,*)
+            write(*,"(3X,3(A,I5))") "Grid  -> ",in,"  ",jn,"  ",kn
+            write(*,*)
+            write(*,"(3X,A,F12.5)") "Re    -> ",Re
+            write(*,"(3X,A,F12.5)") "Ma    -> ",MA
+            write(*,"(3X,A,F12.5)") "Te    -> ",Te
+            write(*,"(3X,A,2(F12.5))") "Alpha -> ",Alpha
+            write(*,"(3X,A,2(F12.5))") "Beta  -> ",Beta
+            write(*,"(3X,A,2(F12.5))") "Omega -> ",Omega
+            write(*,*)
+            write(*,114) "Grid[",igs,",",jgs,",",kgs," ] ->",xx(igs,jgs,kgs),yy(igs,jgs,kgs),zz(igs,jgs,kgs)
+            114 format (3X,A,3(I6,A),3(F10.5))
+            write(*,114) "Grid[",ige,",",jge,",",kge," ] ->",xx(ige,jge,kge),yy(ige,jge,kge),zz(ige,jge,kge)
+            write(*,113) "Flow[",igs,",",jgs,",",kgs," ] ->",qq(1,igs,jgs,kgs),qq(2,igs,jgs,kgs),                &
+            &                                                qq(3,igs,jgs,kgs),qq(4,igs,jgs,kgs),qq(5,igs,jgs,kgs)
+            113 format (3X,A,3(I6,A),5(F10.5))
+            write(*,113) "Flow[",ige,",",jge,",",kge," ] ->",qq(1,ige,jge,kge),qq(2,ige,jge,kge),                &
+            &                                                qq(3,ige,jge,kge),qq(4,ige,jge,kge),qq(5,ige,jge,kge)
         endif
         call MPI_Barrier(comm,ierr)
     end subroutine check
@@ -622,7 +589,7 @@ module mod_files
         call VecView(turtle, viewer, ierr)
         call PetscViewerDestroy(viewer, ierr)
         call PetscPrintf(comm, "   Binary Result: "//trim(resultfile)//"\n", ierr)
-        resultfile = trim(hdf5file)
+        resultfile = hdf5file
         if(io_type/='hdf5') call preload_hdf5(comm,resultfile)
         call PetscViewerHDF5Open(comm,trim(resultfile),FILE_MODE_UPDATE,viewer,ierr)
         call PetscObjectSetName(turtle,"hlns",ierr)
@@ -644,7 +611,7 @@ module mod_files
         DM :: uni_coordDA,uni_meshDA
         integer,intent(in) :: comm
         Vec :: coord,flowfield
-        PetscViewer :: Sviewer
+        PetscViewer :: sviewer
 
         if(rank==0)then
             call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
@@ -661,15 +628,15 @@ module mod_files
 
             call PetscViewerHDF5Open(PETSC_COMM_SELF,trim(resultfile),FILE_MODE_WRITE,viewer,ierr)
 
-            call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(biflowfile),FILE_MODE_READ, Sviewer, ierr)
-            call VecLoad(flowfield, Sviewer, ierr)
-            call PetscViewerDestroy(Sviewer, ierr)
+            call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(biflowfile),FILE_MODE_READ, sviewer, ierr)
+            call VecLoad(flowfield, sviewer, ierr)
+            call PetscViewerDestroy(sviewer, ierr)
             call PetscObjectSetName(flowfield,"baseflow",ierr)
             call VecView(flowfield,viewer,ierr)
 
-            call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(bigridfile),FILE_MODE_READ, Sviewer, ierr)
-            call VecLoad(coord, Sviewer, ierr)
-            call PetscViewerDestroy(Sviewer, ierr)
+            call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(bigridfile),FILE_MODE_READ, sviewer, ierr)
+            call VecLoad(coord, sviewer, ierr)
+            call PetscViewerDestroy(sviewer, ierr)
             call PetscObjectSetName(coord,"grid",ierr)
             call VecView(coord,viewer,ierr)
             call PetscViewerHDF5WriteAttribute(viewer,"grid","grid.In",PETSC_INT,in,ierr)
