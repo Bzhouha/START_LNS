@@ -50,7 +50,8 @@ mod_parameters.f90 \
 main.f90 \
 mod_cubes.f90 \
 mod_flowtype.f90 \
-mod_points.f90 
+mod_points.f90 \
+mod_iterate.f90
 
 SRCS_F90d4 = \
 penf.F90 \
@@ -81,7 +82,8 @@ mod_parameters.o \
 main.o \
 mod_cubes.o \
 mod_flowtype.o \
-mod_points.o 
+mod_points.o \
+mod_iterate.o
 
 OBJS_F90d4 = \
 penf.o \
@@ -165,6 +167,11 @@ mod_forming.o: \
 	mod_cubes.o \
 	mod_difference.o \
 	penf.o 
+mod_itreate.o: \
+	mod_iterate.f90 \
+	mod_parameters.o \
+	mod_cubes.o \
+	penf.o
 penf_stringify.o: \
 	penf_stringify.F90 \
 	penf_b_size.o \
@@ -179,7 +186,8 @@ mod_solving.o: \
 	mod_parameters.o \
 	mod_cubes.o \
 	mod_forming.o \
-	mod_metrics.o 
+	mod_metrics.o \
+	mod_iterate.o
 stringifor_string_t.o: \
 	stringifor_string_t.F90 \
 	befor64.o \

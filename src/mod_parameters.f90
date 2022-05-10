@@ -7,6 +7,60 @@ module mod_parameters
     use petsc
     implicit none
     public
+
+    real(R_P), parameter, dimension(-2:2,-2:2) :: FDM_1nd_4ORD_CENTER=reshape( [&
+        0.0d0       ,        0.0d0, -3.0d0/2.0d0, 2.0d0      ,  -1.0d0/2.0d0, &
+        0.0d0       , -1.0d0/3.0d0, -1.0d0/2.0d0, 1.0d0      ,  -1.0d0/6.0d0, &
+        1.0d0/12.0d0, -2.0d0/3.0d0,        0.0d0, 2.0d0/3.0d0, -1.0d0/12.0d0, &
+        1.0d0/6.0d0 ,       -1.0d0,  1.0d0/2.0d0, 1.0d0/3.0d0,         0.0d0, &
+        1.0d0/2.0d0 ,       -2.0d0,  3.0d0/2.0d0, 0.0d0      ,         0.0d0  &
+        ], [5,5])
+    real(R_P), parameter, dimension(-2:2,-2:2) :: FDM_2nd_4ORD_CENTER=reshape( [&
+        0.0d0        ,       0.0d0,         0.0d0,       0.0d0,         0.0d0, &
+        0.0d0        ,       1.0d0,        -2.0d0,       1.0d0,         0.0d0, &
+        -1.0d0/12.0d0, 4.0d0/3.0d0, -15.0d0/6.0d0, 4.0d0/3.0d0, -1.0d0/12.0d0, &
+        0.0d0        ,       1.0d0,        -2.0d0,       1.0d0,         0.0d0, &
+        0.0d0        ,       0.0d0,         0.0d0,       0.0d0,         0.0d0  &
+        ], [5,5])
+    real(R_P), parameter, dimension(-2:2,-2:2) :: FDM_1nd_4ORD_Backward=reshape( [&
+        0.0d0        ,       0.0d0,        0.0d0,       0.0d0,         0.0d0, &
+        0.0d0        ,      -1.0d0,        1.0d0,       0.0d0,         0.0d0, &
+        1.0d0/6.0d0  ,      -1.0d0,  1.0d0/2.0d0, 1.0d0/3.0d0,         0.0d0, &
+        1.0d0/6.0d0  ,      -1.0d0,  1.0d0/2.0d0, 1.0d0/3.0d0,         0.0d0, &
+        0.0d0        ,       0.0d0,        0.0d0,       0.0d0,         0.0d0  &
+        ],[5,5])
+    real(R_P), parameter, dimension(-2:2,-2:2) :: FDM_1nd_4ORD_Forward=reshape( [&
+        0.0d0        ,       0.0d0,         0.0d0,       0.0d0,         0.0d0, &
+        0.0d0        ,-1.0d0/3.0d0,  -1.0d0/2.0d0,       1.0d0,  -1.0d0/6.0d0, &
+        0.0d0        ,-1.0d0/3.0d0,  -1.0d0/2.0d0,       1.0d0,  -1.0d0/6.0d0, &
+        0.0d0        ,       0.0d0,        -1.0d0,       1.0d0,         0.0d0, &
+        0.0d0        ,       0.0d0,         0.0d0,       0.0d0,         0.0d0  &
+        ],[5,5])
+    real(R_P), parameter, dimension(-1:1,-1:1) :: FDM_1nd_1ORD_Backward=reshape( [&
+           0.0d0,           -1.0d0,                1.0d0, &
+          -1.0d0,            1.0d0,                0.0d0, &
+          -1.0d0,            1.0d0,                0.0d0  &
+        ],[3,3])
+    real(R_P), parameter, dimension(-1:1,-1:1) :: FDM_1nd_1ORD_Forward=reshape( [&
+           0.0d0,           -1.0d0,                1.0d0, &
+           0.0d0,           -1.0d0,                1.0d0, &
+          -1.0d0,            1.0d0,                0.0d0  &
+        ],[3,3])
+    real(R_P), parameter, dimension(-1:1,-1:1) :: FDM_2nd_2ORD_CENTER=reshape( [&
+           0.0d0,            0.0d0,                0.0d0, &
+           1.0d0,           -2.0d0,                1.0d0, &
+           0.0d0,            0.0d0,                0.0d0  &
+        ], [3,3])
+    real(R_P), parameter, dimension(-1:1,-1:1) :: FDM_1nd_2ORD_CENTER=reshape( [&
+           0.0d0,          -1.0d0,                 1.0d0, &
+    -1.0d0/2.0d0,           0.0d0,           1.0d0/2.0d0, &
+          -1.0d0,           1.0d0,                 0.0d0  &
+        ], [3,3])
+        
+    real(R_P), parameter :: delta_i(-2:2)=[0.0d0, 0.0d0, 1.0d0, 0.0d0, 0.0d0]
+    real(R_P), parameter :: delta_j(-2:2)=[0.0d0, 0.0d0, 1.0d0, 0.0d0, 0.0d0]
+    real(R_P), parameter :: delta_k(-2:2)=[0.0d0, 0.0d0, 1.0d0, 0.0d0, 0.0d0]
+
     real(R_P), dimension(:, :, :), allocatable :: xi_xx,xi_yy,xi_zz,eta_xx,eta_yy,eta_zz,phi_xx,phi_yy,phi_zz ! 数组：度量系数
     real(R_P), dimension(:, :, :), allocatable :: xi_xy,xi_xz,xi_yz,eta_xy,eta_yz,eta_xz,phi_xy,phi_yz,phi_xz ! 数组：度量系数
     real(R_P), dimension(:, :, :), allocatable :: xi_x,xi_y,xi_z,eta_x,eta_y,eta_z,phi_x,phi_y,phi_z ! 数组：度量系数
@@ -40,6 +94,7 @@ module mod_parameters
     complex(R_P) :: Beta ! 波数
     real(R_P) :: cfl=2.0
     integer :: lns_mode ! 2D-HLNS.or.3D-HLNS
+    integer :: levels
     integer :: rank ! 进程编号
     integer :: sink ! 进程数
     Vec :: turtle ! 解向量
@@ -48,4 +103,5 @@ module mod_parameters
     Vec :: RHS ! 右端项
     Vec :: subx
     DM :: subDA
+
 end module mod_parameters

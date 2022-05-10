@@ -632,12 +632,9 @@ module mod_cubes
             -eta_xy*Jor%Vxy-eta_xz*Jor%Vxz-eta_yz*Jor%Vyz
             this%C   = phi_x*Jor%A+phi_y*Jor%B+phi_z*Jor%C-phi_xx*Jor%Vxx-phi_yy*Jor%Vyy-phi_zz*Jor%Vzz &
             -phi_xy*Jor%Vxy-phi_xz*Jor%Vxz-phi_yz*Jor%Vyz
-            this%A_c = xi_x*Jor%A_c+xi_y*Jor%B_c+xi_z*Jor%C_c-xi_xx*Jor%Vxx-xi_yy*Jor%Vyy-xi_zz*Jor%Vzz &
-            -xi_xy*Jor%Vxy-xi_xz*Jor%Vxz-xi_yz*Jor%Vyz
-            this%B_c = eta_x*Jor%A_c+eta_y*Jor%B_c+eta_z*Jor%C_c-eta_xx*Jor%Vxx-eta_yy*Jor%Vyy-eta_zz*Jor%Vzz &
-            -eta_xy*Jor%Vxy-eta_xz*Jor%Vxz-eta_yz*Jor%Vyz
-            this%C_c = phi_x*Jor%A_c+phi_y*Jor%B_c+phi_z*Jor%C_c-phi_xx*Jor%Vxx-phi_yy*Jor%Vyy-phi_zz*Jor%Vzz &
-            -phi_xy*Jor%Vxy-phi_xz*Jor%Vxz-phi_yz*Jor%Vyz
+            this%A_c = xi_x*Jor%A_c+xi_y*Jor%B_c+xi_z*Jor%C_c
+            this%B_c = eta_x*Jor%A_c+eta_y*Jor%B_c+eta_z*Jor%C_c
+            this%C_c = phi_x*Jor%A_c+phi_y*Jor%B_c+phi_z*Jor%C_c
             this%A_p = xi_x*Jor%A_p+xi_y*Jor%B_p+xi_z*Jor%C_p
             this%B_p = eta_x*Jor%A_p+eta_y*Jor%B_p+eta_z*Jor%C_p
             this%C_p = phi_x*Jor%A_p+phi_y*Jor%B_p+phi_z*Jor%C_p

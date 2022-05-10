@@ -41,7 +41,7 @@ module mod_files
         implicit none
         PetscInt,intent(in) :: comm
         character(len=256) :: cfg_file
-        logical :: ksp_flg,snes_flg,ksps_flg,melt_flg
+        PetscBool :: ksp_flg,snes_flg,ksps_flg,subs_flg,mg_flg
         PetscBool :: set
 
         call mpi_comm_rank(comm,rank,ierr)
@@ -57,7 +57,7 @@ module mod_files
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp',ksp_flg,ierr)
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-snes',snes_flg,ierr)
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksps',ksps_flg,ierr)
-        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-melt',melt_flg,ierr)
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-subs',subs_flg,ierr)
         if(ksp_flg)then
             solver_mode='ksp'; split_mode=0
         endif
@@ -67,9 +67,12 @@ module mod_files
         if(ksps_flg)then
             solver_mode='ksps';split_mode=0
         endif
-        if(melt_flg)then
-            solver_mode='melt';split_mode=0
+        if(subs_flg)then
+            solver_mode='subs';split_mode=0
         endif
+
+        call PetscOptionsGetInt (PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-lv',levels,mg_flg,ierr)
+        if(.not.mg_flg) levels=0
 
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-plt',set,ierr)
         if(set) io_type="plt"
@@ -557,6 +560,8 @@ module mod_files
             write(*,"(3X,A,I3)") "Process Count -> ",sink
             write(*,*)
             write(*,"(3X,A,I3)") "LNS Dimension -> ",lns_mode
+            write(*,*)
+            write(*,"(3X,2A)") "Solver Mode -> ",solver_mode
             write(*,*)
             write(*,"(3X,A,L3)") "Initial Guess -> ",init_guess_flg
             write(*,*)
