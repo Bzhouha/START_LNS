@@ -323,7 +323,7 @@ module mod_solving
         call KSPSetFromOptions(ksp,ierr)
         call KSPSetUp(ksp,ierr)
         ! Iteration loops
-        call PetscPrintf(comm,"    using *Newtom-Like* method\n",ierr)
+        ! call PetscPrintf(comm,"    using *Newtom-Like* method\n",ierr)
 
         do while(.True.)
             ! Count

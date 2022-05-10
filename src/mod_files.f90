@@ -101,6 +101,7 @@ module mod_files
         call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-lm',lm,set,ierr)
 
         if(ksp_flg)  call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
+        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-history",PETSC_NULL_CHARACTER,ierr)
 
         call cfg_loader(trim(cfg_file))
         call MPI_Barrier(comm,ierr)
@@ -556,35 +557,66 @@ module mod_files
     subroutine check(comm)
         implicit none
         PetscInt,intent(in) :: comm
-        if(rank==(sink-1))then
-            write(*,"(3X,A,I3)") "Process Count -> ",sink
-            write(*,*)
-            write(*,"(3X,A,I3)") "LNS Dimension -> ",lns_mode
-            write(*,*)
-            write(*,"(3X,2A)") "Solver Mode -> ",solver_mode
-            write(*,*)
-            write(*,"(3X,A,L3)") "Initial Guess -> ",init_guess_flg
-            write(*,*)
-            write(*,"(3X,3(A,I5))") "Grid Size -> ",in,"  ",jn,"  ",kn
-            write(*,*)
-            write(*,"(3X,3(A,I5))") "Partition -> ",nx,"  ",ny,"  ",nz
-            write(*,*)
-            write(*,"(3X,A,F10.4)") "Re    -> ",Re
-            write(*,"(3X,A,F10.4)") "Ma    -> ",MA
-            write(*,"(3X,A,F10.4)") "Te    -> ",Te
-            write(*,"(3X,A,2(F10.5))") "Alpha -> ",Alpha
-            write(*,"(3X,A,2(F10.5))") "Beta  -> ",Beta
-            write(*,"(3X,A,2(F10.5))") "Omega -> ",Omega
-            write(*,*)
-            write(*,114) "Grid[",igs,",",jgs,",",kgs," ] ->",xx(igs,jgs,kgs),yy(igs,jgs,kgs),zz(igs,jgs,kgs)
-            114 format (3X,A,3(I5,A),3(F9.4))
-            write(*,114) "Grid[",ige,",",jge,",",kge," ] ->",xx(ige,jge,kge),yy(ige,jge,kge),zz(ige,jge,kge)
-            write(*,113) "Flow[",igs,",",jgs,",",kgs," ] ->",qq(1,igs,jgs,kgs),qq(2,igs,jgs,kgs),                &
-            &                                                qq(3,igs,jgs,kgs),qq(4,igs,jgs,kgs),qq(5,igs,jgs,kgs)
-            113 format (3X,A,3(I5,A),5(F9.4))
-            write(*,113) "Flow[",ige,",",jge,",",kge," ] ->",qq(1,ige,jge,kge),qq(2,ige,jge,kge),                &
-            &                                                qq(3,ige,jge,kge),qq(4,ige,jge,kge),qq(5,ige,jge,kge)
-        endif
+        character(len=75) :: str_75
+        character(len=57) :: str_57
+        character(len=34) :: str_34
+        character(len=24) :: str_24
+        character(len=18) :: str_18
+        character(len=5) :: str_5
+        character(len=1) :: str_1
+
+        write(str_5,"(I5)") sink
+        call PetscPrintf(comm,"   Process Count -> "//str_5//"\n\n",ierr)
+
+        select case (solver_mode)
+            case('ksp')
+                call PetscPrintf(comm,"   Solver Mode -> KSP\n\n",ierr)
+            case('snes')
+                call PetscPrintf(comm,"   Solver Mode -> SNES\n\n",ierr)
+            case('ksps')
+                call PetscPrintf(comm,"   Solver Mode -> Newton-Like\n\n",ierr)
+            case('subs')
+                call PetscPrintf(comm,"   Solver Mode -> Newton-Like subs\n\n",ierr)
+        end select
+
+        write(str_1,"(I1)") lns_mode
+        call PetscPrintf(comm,"   LNS Dimension -> "//str_1//"D-LNS\n\n",ierr)
+
+        write(str_5,"(L3)") init_guess_flg
+        call PetscPrintf(comm,"   Initial Guess -> "//str_5//"\n\n",ierr)
+
+        write(str_18,"(3I6)") in,jn,kn
+        call PetscPrintf(comm,"   Grid Size -> "//str_18//"\n\n",ierr)
+
+        write(str_18,"(3I6)") nx,ny,nz
+        call PetscPrintf(comm,"   Partition -> "//str_18//"\n\n",ierr)
+
+        1111 format (3X,A,'    -> ',F11.3)
+        1222 format (3X,A,' -> ',2F11.7)
+        1333 format (3X,'Grid[',2(I5,','),I5,' ] ->',3(F9.3))
+        1444 format (3X,'Flow[',2(I5,','),I5,' ] ->',5(F9.3))
+
+        write(str_24,1111) 'Re',Re;call PetscPrintf(comm,str_24//"\n",ierr)
+        write(str_24,1111) 'Ma',Ma;call PetscPrintf(comm,str_24//"\n",ierr)
+        write(str_24,1111) 'Te',Te;call PetscPrintf(comm,str_24//"\n",ierr)
+
+        write(str_34,1222) "Alpha",Alpha;call PetscPrintf(comm,str_34//"\n",ierr)
+        write(str_34,1222) "Beta ",Beta;call PetscPrintf(comm,str_34//"\n",ierr)
+        write(str_34,1222) "Omega",Omega;call PetscPrintf(comm,str_34//"\n\n",ierr)
+
+        write(str_57,1333) igs,jgs,kgs,xx(igs,jgs,kgs),yy(igs,jgs,kgs),zz(igs,jgs,kgs)
+        call PetscPrintf(comm,str_57//"\n",ierr)
+        write(str_57,1333) ige,jge,kge,xx(ige,jge,kge),yy(ige,jge,kge),zz(ige,jge,kge)
+        call PetscPrintf(comm,str_57//"\n",ierr)
+
+        write(str_75,1444) igs,jgs,kgs,qq(1,igs,jgs,kgs),qq(2,igs,jgs,kgs),    &
+        &                  qq(3,igs,jgs,kgs),qq(4,igs,jgs,kgs),qq(5,igs,jgs,kgs)
+        call PetscPrintf(comm,str_75//"\n",ierr)
+
+        write(str_75,1444) ige,jge,kge,qq(1,igs,jgs,kgs),qq(2,ige,jge,kge),    &
+        &                  qq(3,ige,jge,kge),qq(4,ige,jge,kge),qq(5,ige,jge,kge)
+        call PetscPrintf(comm,str_75//"\n",ierr)
+
         call MPI_Barrier(comm,ierr)
     end subroutine check
 
