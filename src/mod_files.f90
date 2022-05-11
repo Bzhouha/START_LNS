@@ -567,7 +567,7 @@ module mod_files
         write(str_5,"(I5)") sink
         call PetscPrintf(comm,"   Process Count -> "//str_5//"\n\n",ierr)
 
-        call PetscPrintf(comm,"   Solver Type -> "//solver_mode,"\n\n",ierr)
+        call PetscPrintf(comm,"   Solver Type -> "//solver_mode//"\n\n",ierr)
 
         write(str_1,"(I1)") lns_mode
         call PetscPrintf(comm,"   LNS Dimension -> "//str_1//"D-LNS\n\n",ierr)
