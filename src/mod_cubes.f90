@@ -740,7 +740,7 @@ module mod_cubes
             end associate
         endif
 
-        this%G   = Jor%G;         this%D   = Jor%D+Jor%G*dt
+        this%G   = Jor%G;         this%D   = Jor%D+Jor%G/dt
         this%A   = Jor%A;         this%B   = Jor%B;          this%C   = Jor%C
         this%A_c = Jor%A_c;       this%B_c = Jor%B_c;        this%C_c = Jor%C_c
         this%A_p = Jor%A_p;       this%B_p = Jor%B_p;        this%C_p = Jor%C_p

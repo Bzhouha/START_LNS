@@ -122,7 +122,7 @@ module mod_forming
                         f(:,i,j,k)=matmul(D,x(:,i,j,k))+matmul(B,x(:,i,j+1,k))-matmul(B,x(:,i,j,k))
                     else
                         yi=0.0d0
-                        call Jor%get_adorned_cubes(i,j,k)
+                        call Jor%get_transed_cubes(i,j,k)
                         if(i==0)then
                             lib=0; lie=2
                             ic_index=-2
@@ -269,9 +269,6 @@ module mod_forming
         PetscErrorCode :: ierr
         integer :: li,lj
 
-        associate( &
-            coef_c4f=>FDM_1nd_4ORD_Forward, &
-            coef_c4b=>FDM_1nd_4ORD_Backward)
         if(i==0 .or. j==(jn-1))then
             box=0.0d0
             box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
@@ -291,30 +288,33 @@ module mod_forming
             enddo
             Jor%D(2,2)=1.0d0;Jor%D(3,3)=1.0d0
             Jor%D(4,4)=1.0d0;Jor%D(5,5)=1.0d0
-            do lj=ljb,lje
-                idxn(MatStencil_i, 1)=i
-                idxn(MatStencil_j, 1)=j+lj
-                idxn(MatStencil_k, 1)=k
-                box=0.0d0;trans=0.0d0
-                box=delta_j(lj)*Jor%D+coef_c4f(lj,jc_index)*Jor%B
-                trans=transpose(box)
-                call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
-            enddo
+            idxn(MatStencil_i, 1)=i;idxn(MatStencil_j, 1)=j;idxn(MatStencil_k, 1)=k
+            box=0.0d0;trans=0.0d0
+            box=Jor%D-1.0d0*Jor%B
+            trans=transpose(box)
+            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+            idxn(MatStencil_i, 1)=i;idxn(MatStencil_j, 1)=j+1;idxn(MatStencil_k, 1)=k
+            box=0.0d0;trans=0.0d0
+            box=Jor%B
+            trans=transpose(box)
+            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
         elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
             lib=-2;lie=0
             ic_index=0
             idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
-            do li=lib,lie
-                idxn(MatStencil_i, 1)=i+li
-                idxn(MatStencil_j, 1)=j
-                idxn(MatStencil_k, 1)=k
-                box=0.0d0
-                box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
-                box=coef_c4b(li,ic_index)*box
-                call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
-            enddo
+            idxn(MatStencil_i, 1)=i-2;idxn(MatStencil_j, 1)=j;idxn(MatStencil_k, 1)=k
+            box=0.0d0;box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
+            box=1.0d0/2.0d0*box
+            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+            idxn(MatStencil_i, 1)=i-1;idxn(MatStencil_j, 1)=j;idxn(MatStencil_k, 1)=k
+            box=0.0d0;box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
+            box=-2.0d0*box
+            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+            idxn(MatStencil_i, 1)=i;idxn(MatStencil_j, 1)=j;idxn(MatStencil_k, 1)=k
+            box=0.0d0;box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
+            box=3.0d0/2.0d0*box
+            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
         endif
-        end associate
 
     end subroutine mat_set_boundary_conditions
 
@@ -347,7 +347,7 @@ module mod_forming
         PetscErrorCode :: ierr
         integer :: li, lj, lk
 
-        call Jor%get_adorned_cubes(i,j,k)
+        call Jor%get_transed_cubes(i,j,k)
         if(i==0)then
             lib=0; lie=2
             ic_index=-2

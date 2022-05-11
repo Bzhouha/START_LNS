@@ -56,7 +56,7 @@ module mod_parameters
     -1.0d0/2.0d0,           0.0d0,           1.0d0/2.0d0, &
           -1.0d0,           1.0d0,                 0.0d0  &
         ], [3,3])
-        
+
     real(R_P), parameter :: delta_i(-2:2)=[0.0d0, 0.0d0, 1.0d0, 0.0d0, 0.0d0]
     real(R_P), parameter :: delta_j(-2:2)=[0.0d0, 0.0d0, 1.0d0, 0.0d0, 0.0d0]
     real(R_P), parameter :: delta_k(-2:2)=[0.0d0, 0.0d0, 1.0d0, 0.0d0, 0.0d0]
@@ -92,7 +92,7 @@ module mod_parameters
     complex(R_P) :: Alpha ! 波数
     complex(R_P) :: Omega ! 频率
     complex(R_P) :: Beta ! 波数
-    real(R_P) :: cfl=2.0
+    real(R_P) :: cfl=30
     integer :: lns_mode ! 2D-HLNS.or.3D-HLNS
     integer :: levels
     integer :: rank ! 进程编号

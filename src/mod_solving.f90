@@ -132,10 +132,10 @@ module mod_solving
         DM :: fDA
         PC :: pc
 
-        call PetscPrintf(comm, "\n   KSP :: Solving\n\n", ierr)
         ! Set parameter
         rtol = 1e-8
         if(level==0)then
+            call PetscPrintf(comm, "\n   KSP :: Solving\n\n", ierr)
             ! Create & set KSP
             call KSPCreate(comm,ksp,ierr)
             call KSPSetOperators(ksp,mat,mat,ierr)
@@ -182,18 +182,14 @@ module mod_solving
                 call DMCoarsen(da_list(i),comm,da_list(i+1),ierr)
             enddo
 
-            block
-                Mat :: INTP
             do i=1,level-1
                 call DMCreateInterpolation(da_list(i+1),da_list(i),Ref,PETSC_NULL_VEC,ierr)
                 ! call PCMGSetInterpolation(pc,i,Ref,ierr)
-                call MatPtAP(mat,Ref,MAT_INITIAL_MATRIX,PETSC_DEFAULT_REAL,INTP,ierr)
+                ! call MatPtAP(mat,Ref,MAT_INITIAL_MATRIX,PETSC_DEFAULT_REAL,INTP,ierr)
                 ! call MatRARt(mat,Ref,MAT_INITIAL_MATRIX,PETSC_DEFAULT_REAL,INTP,ierr)
-                call PCMGSetOperators(pc,i,INTP,INTP,ierr)
+                ! call PCMGSetOperators(pc,i,INTP,INTP,ierr)
                 call MatDestroy(Ref,ierr)
-                call MatDestroy(INTP,ierr)
             enddo
-            endblock
 
             deallocate(da_list)
             ! ### 设置光滑子

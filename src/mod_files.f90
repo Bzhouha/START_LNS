@@ -101,7 +101,6 @@ module mod_files
         call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-lm',lm,set,ierr)
 
         if(ksp_flg)  call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-ksp_monitor",PETSC_NULL_CHARACTER,ierr)
-        call PetscOptionsSetValue(PETSC_NULL_OPTIONS,"-history",PETSC_NULL_CHARACTER,ierr)
 
         call cfg_loader(trim(cfg_file))
         call MPI_Barrier(comm,ierr)
