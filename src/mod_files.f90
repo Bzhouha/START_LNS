@@ -567,16 +567,7 @@ module mod_files
         write(str_5,"(I5)") sink
         call PetscPrintf(comm,"   Process Count -> "//str_5//"\n\n",ierr)
 
-        select case (solver_mode)
-            case('ksp')
-                call PetscPrintf(comm,"   Solver Mode -> KSP\n\n",ierr)
-            case('snes')
-                call PetscPrintf(comm,"   Solver Mode -> SNES\n\n",ierr)
-            case('ksps')
-                call PetscPrintf(comm,"   Solver Mode -> Newton-Like\n\n",ierr)
-            case('subs')
-                call PetscPrintf(comm,"   Solver Mode -> Newton-Like subs\n\n",ierr)
-        end select
+        call PetscPrintf(comm,"   Solver Type -> "//solver_mode,"\n\n",ierr)
 
         write(str_1,"(I1)") lns_mode
         call PetscPrintf(comm,"   LNS Dimension -> "//str_1//"D-LNS\n\n",ierr)
