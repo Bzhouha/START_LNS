@@ -20,9 +20,6 @@ module mod_files
     private
     PetscErrorCode  :: ierr
     PetscViewer :: viewer
-    integer :: nx = PETSC_DECIDE
-    integer :: ny = PETSC_DECIDE
-    integer :: nz = PETSC_DECIDE
     contains
     subroutine istream(comm)
         implicit none

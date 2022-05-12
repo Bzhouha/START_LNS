@@ -24,6 +24,7 @@ module mod_solving
 !               call solve_newt(comm,mat,x,fx_rhs) 设置KSPs求解过程。
 !
 ! ----------------------------------------------------
+    use mod_parameters
     use mod_metrics
     use mod_forming
     use mod_iterate
@@ -36,7 +37,6 @@ module mod_solving
     contains
 
     subroutine dstream(comm)
-        use mod_parameters,only : solver_mode,levels
         implicit none
         PetscInt,intent(in) :: comm
 
@@ -58,7 +58,6 @@ module mod_solving
     end subroutine dstream
 
     subroutine ksp_equation(comm,level)
-        use mod_parameters,only:meshDA,whale,turtle,RHS
         implicit none
         integer,intent(in) :: level
         integer,intent(in) :: comm
@@ -72,12 +71,11 @@ module mod_solving
     end subroutine ksp_equation
 
     subroutine snes_equation(comm,fx)
-        use mod_parameters,only:meshDA,whale,turtle,RHS
         implicit none
         integer, intent(in) :: comm
         external :: fx
 
-        call PetscPrintf(comm,"\n   「 Forming Jacobi Jacobi 」\n",ierr)
+        call PetscPrintf(comm,"\n   「 Forming Jacobi Matrix 」\n",ierr)
         call init_mat_from_da(comm,meshDA,whale)
         call form_global_mat_2ord(whale)
         call duplicate_vec(turtle,RHS)
@@ -86,28 +84,27 @@ module mod_solving
     end subroutine snes_equation
 
     subroutine newt_equation(comm,fx_rhs,fx_bc)
-        use mod_parameters,only:meshDA,whale,turtle
         implicit none
         integer,intent(in) :: comm
         external :: fx_rhs
         external :: fx_bc
 
         call PetscPrintf(comm,"\n   「 Forming Jacobi Matrix 」\n",ierr)
-        call init_mat_from_da(comm,meshDA,whale)
+        call set_medDA(comm,med1DA)
+        call init_mat_from_da(comm,med1DA,whale)
         call form_global_mat_2ord(whale)
         call solve_newt(comm,whale,turtle,fx_rhs,fx_bc)
     end subroutine newt_equation
 
     subroutine newtsub_equation(comm,fx_rhs,fx_bc)
-        use mod_parameters,only:turtle,whale,subDA
         implicit none
         integer,intent(in) :: comm
         external :: fx_rhs
         external :: fx_bc
 
+        call PetscPrintf(comm,"\n   「 Forming Jacobi Matrix 」\n",ierr)
         call set_subDA(subDA)
         call init_sub_vecs()
-        call PetscPrintf(comm,"\n   「 Forming Jacobi Mat 」\n",ierr)
         call init_mat_from_da(comm,subDA,whale)
         call form_sub_mat_2_ord(whale)
         call solve_newtsub(comm,whale,turtle,fx_rhs,fx_bc)
@@ -117,7 +114,6 @@ module mod_solving
     !   迭代格式一：标准线性求解器 Ax=b
 
     subroutine solve_ksp(comm,mat,x,r,level)
-        use mod_parameters,only : meshDA,init_guess_flg,lns_mode
         implicit none
         integer,intent(in) :: level
         PetscInt,intent(in) :: comm
@@ -363,7 +359,6 @@ module mod_solving
     !   迭代格式四：分块求解 Newton-Like
 
     subroutine solve_newtsub(comm,mat,x,fx_rhs,fx_bc)
-        use mod_parameters,only:localx,subx,subDA
         implicit none
         character(len=20) :: str_norm
         character(len=6) :: str_count

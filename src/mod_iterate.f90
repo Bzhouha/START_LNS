@@ -15,6 +15,7 @@ module mod_iterate
     public :: push_bc
     public :: fx_rhs_Ax_4ord
     public :: fx_rhs_Ax_center
+    public :: set_medDA
     public :: set_subDA
     public :: init_sub_vecs
     public :: get_subf
@@ -371,7 +372,7 @@ module mod_iterate
         write(str_norm,"(ES20.12)") nrm
         call PetscPrintf(PETSC_COMM_WORLD," "//str_it//" < residual i-Norm > "//str_norm//"\n",ierr)
         if (nrm .le. 1.e-5) reason = SNES_CONVERGED_FNORM_ABS
-        
+
     end subroutine snes_converged_test
 
     subroutine push_bc(comm,x)
@@ -702,6 +703,19 @@ module mod_iterate
         call DMRestoreLocalVector(meshDA,bell,ierr)
 
     end subroutine fx_rhs_Ax_center
+
+    subroutine set_medDA(comm,da)
+        implicit none
+        integer,intent(in) :: comm
+        DM,intent(inout) :: da
+        PetscErrorCode :: ierr
+
+        call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_PERIODIC,&
+        &                 DMDA_STENCIL_BOX, in, jn, kn, nx, ny, nz,&
+        &                 5, 1, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, da, ierr)
+        call DMSetMatType(da,MATBAIJ,ierr)
+        call DMSetUp(da, ierr)
+    end subroutine set_medDA
 
     subroutine set_subDA(da)
 
