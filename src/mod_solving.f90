@@ -7,21 +7,21 @@ module mod_solving
 !
 !       call dstream(comm) 数据流。
 !
-!           1.call ksp_equations(comm,mat,x,r) 迭代格式一：标准线性求解器 Ax=b
+!           1.call ksp_equation(comm,mat,x,r) 迭代格式一：标准线性求解器 Ax=b
 !
 !               1).call solve_ksp_mf(comm,mat,x,r,level) 设置KSP免矩阵求解过程。
 !
 !               2).call solve_ksp(comm,mat,x,r,level) 设置KSP显式矩阵求解过程。
 !
-!           2.call snes_equations(comm,mat,x,fx,r) 迭代格式二：借用SNES模块 Jac x = - F(x)
+!           2.call snes_equation(comm,mat,x,fx,r) 迭代格式二：借用SNES模块 Jac x = - F(x)
 !
 !               1).call solve_snes(comm,jac,x,fx,r) 设置SNES求解过程。
 !
 !               2).call snes_converged_test(snes,it,xnorm,snorm,fnorm,reason,dummy,ierr) SNES收敛判断函数。
 !
-!           3.call ksps_equations(comm,mat,x,ksps_fx) 迭代格式三：借用KSP模块 A x = - (Ax-b)
+!           3.call newt_equation(comm,mat,x,ksps_fx) 迭代格式三：借用KSP模块 A x = - (Ax-b)
 !
-!               call solve_ksps(comm,mat,x,fx_rhs) 设置KSPs求解过程。
+!               call solve_newt(comm,mat,x,fx_rhs) 设置KSPs求解过程。
 !
 ! ----------------------------------------------------
     use mod_metrics
@@ -42,63 +42,63 @@ module mod_solving
 
         call PetscPrintf(comm, "\n -----------------------------------\n", ierr)
         call PetscPrintf(comm, "               DStream            \n", ierr)
-        call PetscPrintf(comm, "\n   Data :: Preparation\n", ierr)
+        call PetscPrintf(comm, "\n   「 Data Preparation 」\n", ierr)
         call metric_coefficient(comm)
         call partial_derivatives(comm)
         select case (solver_mode)
             case('ksp')
-                call ksp_equations(comm,levels)
+                call ksp_equation(comm,levels)
             case('snes')
-                call snes_equations(comm,snes_rhs_fx_4ord)
-            case('ksps')
-                call ksps_equations(comm,fx_rhs_Ax_4ord,push_bc)
-            case('subs')
-                call subs_equations(comm,fx_rhs_Ax_4ord,push_bc)
+                call snes_equation(comm,snes_rhs_fx_4ord)
+            case('newt')
+                call newt_equation(comm,fx_rhs_Ax_4ord,push_bc)
+            case('newt_sub')
+                call newtsub_equation(comm,fx_rhs_Ax_4ord,push_bc)
         end select
     end subroutine dstream
 
-    subroutine ksp_equations(comm,level)
+    subroutine ksp_equation(comm,level)
         use mod_parameters,only:meshDA,whale,turtle,RHS
         implicit none
         integer,intent(in) :: level
         integer,intent(in) :: comm
 
-        call PetscPrintf(comm,"\n   KSP :: Forming Matrix\n",ierr)
+        call PetscPrintf(comm,"\n   「 Forming Matrix 」\n",ierr)
         call init_mat_from_da(comm,meshDA,whale)
         call form_global_mat_4ord(whale)
         call duplicate_vec(turtle,RHS)
         call linear_rhs(comm,RHS)
         call solve_ksp(comm,whale,turtle,RHS,level)
-    end subroutine ksp_equations
+    end subroutine ksp_equation
 
-    subroutine snes_equations(comm,fx)
+    subroutine snes_equation(comm,fx)
         use mod_parameters,only:meshDA,whale,turtle,RHS
         implicit none
         integer, intent(in) :: comm
         external :: fx
 
-        call PetscPrintf(comm,"\n   SNES :: Forming Jacobi Jacobi\n",ierr)
+        call PetscPrintf(comm,"\n   「 Forming Jacobi Jacobi 」\n",ierr)
         call init_mat_from_da(comm,meshDA,whale)
         call form_global_mat_2ord(whale)
         call duplicate_vec(turtle,RHS)
         call linear_rhs(comm,RHS)
         call solve_snes(comm,whale,turtle,fx,RHS)
-    end subroutine snes_equations
+    end subroutine snes_equation
 
-    subroutine ksps_equations(comm,fx_rhs,fx_bc)
+    subroutine newt_equation(comm,fx_rhs,fx_bc)
         use mod_parameters,only:meshDA,whale,turtle
         implicit none
         integer,intent(in) :: comm
         external :: fx_rhs
         external :: fx_bc
 
-        call PetscPrintf(comm,"\n   KSPs :: Forming Jacobi Matrix\n",ierr)
+        call PetscPrintf(comm,"\n   「 Forming Jacobi Matrix 」\n",ierr)
         call init_mat_from_da(comm,meshDA,whale)
         call form_global_mat_2ord(whale)
-        call solve_ksps(comm,whale,turtle,fx_rhs,fx_bc)
-    end subroutine ksps_equations
+        call solve_newt(comm,whale,turtle,fx_rhs,fx_bc)
+    end subroutine newt_equation
 
-    subroutine subs_equations(comm,fx_rhs,fx_bc)
+    subroutine newtsub_equation(comm,fx_rhs,fx_bc)
         use mod_parameters,only:turtle,whale,subDA
         implicit none
         integer,intent(in) :: comm
@@ -107,11 +107,11 @@ module mod_solving
 
         call set_subDA(subDA)
         call init_sub_vecs()
-        call PetscPrintf(comm,"\n   subs-ksps :: Forming Jacobi Mat\n",ierr)
+        call PetscPrintf(comm,"\n   「 Forming Jacobi Mat 」\n",ierr)
         call init_mat_from_da(comm,subDA,whale)
         call form_sub_mat_2_ord(whale)
-        call solve_subs(comm,whale,turtle,fx_rhs,fx_bc)
-    end subroutine subs_equations
+        call solve_newtsub(comm,whale,turtle,fx_rhs,fx_bc)
+    end subroutine newtsub_equation
 
     ! -----------------------------------------------------------------------------------------------------
     !   迭代格式一：标准线性求解器 Ax=b
@@ -135,7 +135,7 @@ module mod_solving
         ! Set parameter
         rtol = 1e-8
         if(level==0)then
-            call PetscPrintf(comm, "\n   KSP :: Solving\n\n", ierr)
+            call PetscPrintf(comm, "\n   「 Krylov Subspace Method 」\n\n", ierr)
             ! Create & set KSP
             call KSPCreate(comm,ksp,ierr)
             call KSPSetOperators(ksp,mat,mat,ierr)
@@ -226,7 +226,7 @@ module mod_solving
         Vec :: t
         PC :: pc
 
-        call PetscPrintf(comm, "\n   SNES :: Solving\n\n", ierr)
+        call PetscPrintf(comm, "\n    「 Nonlinear Solver 」\n\n", ierr)
         ! 设置参数
         rtol = 1e-8
         ! 初始化向量
@@ -273,7 +273,7 @@ module mod_solving
     ! -----------------------------------------------------------------------------------------------------
     !   迭代格式三：借用KSP模块 Newton-Like
 
-    subroutine solve_ksps(comm,mat,x,fx_rhs,fx_bc)
+    subroutine solve_newt(comm,mat,x,fx_rhs,fx_bc)
         implicit none
         character(len=20) :: str_norm
         character(len=6) :: str_count
@@ -291,7 +291,7 @@ module mod_solving
         KSP :: ksp
         PC :: pc
 
-        call PetscPrintf(comm, "\n   KSPs :: Solving\n\n", ierr)
+        call PetscPrintf(comm, "\n   「 Newton-Like Method 」\n\n", ierr)
         ! Set parameters
         one = 1.0d0
         ine = -1.0d0
@@ -357,12 +357,12 @@ module mod_solving
         call MatDestroy(mat,ierr)
         call cleanup()
 
-    end subroutine solve_ksps
+    end subroutine solve_newt
 
     ! -----------------------------------------------------------------------------------------------------
     !   迭代格式四：分块求解 Newton-Like
 
-    subroutine solve_subs(comm,mat,x,fx_rhs,fx_bc)
+    subroutine solve_newtsub(comm,mat,x,fx_rhs,fx_bc)
         use mod_parameters,only:localx,subx,subDA
         implicit none
         character(len=20) :: str_norm
@@ -382,7 +382,7 @@ module mod_solving
         KSP :: ksp
         PC :: pc
 
-        call PetscPrintf(comm, "\n   subs-ksps :: Solving\n\n", ierr)
+        call PetscPrintf(comm, "\n   「 Newton-Like Subs Method 」\n\n", ierr)
 
         ! 初始化变量
         one = 1.0d0
@@ -454,7 +454,7 @@ module mod_solving
         call VecDestroy(res,ierr)
         call VecDestroy(localx,ierr)
         call cleanup()
-    end subroutine solve_subs
+    end subroutine solve_newtsub
 
     subroutine cleanup()
 

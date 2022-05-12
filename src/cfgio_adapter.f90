@@ -98,6 +98,7 @@ module mod_cfgio_adapter
         implicit none
         real(R_P), allocatable, dimension(:) :: Ber
         character(len=256) :: hfile
+        character(len=256) :: pfile
         character(len=256) :: ffile
         character(len=256) :: gfile
         character(len=256) :: ifile
@@ -106,6 +107,8 @@ module mod_cfgio_adapter
         type(cfg_t) :: cfg
         integer :: npar
         npar=2
+
+        call system("mkdir -p data")
 
         if(cfg%has_key("hlns", "Alpha"))then
             call cfg%get("hlns", "Alpha", Ber, npar)
@@ -137,6 +140,9 @@ module mod_cfgio_adapter
 
         call cfg%get("hlns", "hdf5 file", hfile)
         hdf5file=trim(hfile)
+
+        call cfg%get("hlns", "plot3d file", pfile)
+        pltfile=trim(pfile)
 
         call cfg%get("hlns", "initial guess", ifile)
         initfile=trim(ifile)
