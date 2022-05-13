@@ -455,7 +455,7 @@ module mod_solving
 
         use mod_parameters
         deallocate(bf)
-        deallocate(disturb)
+        deallocate(inlet)
         deallocate(xi_x,xi_y,xi_z)
         deallocate(eta_x,eta_y,eta_z)
         deallocate(phi_x,phi_y,phi_z)

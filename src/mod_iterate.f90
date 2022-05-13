@@ -49,7 +49,7 @@ module mod_iterate
             call DMDAVecGetArrayF90(meshDA,r,r_array,ierr)
                 do k=ks,ke
                     do j=js,je
-                        r_array(:,0,j,k)=disturb(:,j,k)
+                        r_array(:,0,j,k)=inlet(:,j,k)
                     enddo
                 enddo
             call DMDAVecRestoreArrayF90(meshDA,r,r_array,ierr)
@@ -393,7 +393,7 @@ module mod_iterate
             do k=ks,ke
                 do j=js,je
                     do i=is,is
-                        x(:,i,j,k)=disturb(:,j,k)
+                        x(:,i,j,k)=inlet(:,j,k)
                     enddo
                 enddo
             enddo

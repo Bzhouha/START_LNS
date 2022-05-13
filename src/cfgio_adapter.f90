@@ -148,8 +148,9 @@ module mod_cfgio_adapter
         initfile=trim(ifile)
         inquire(file=trim(initfile),exist=init_guess_flg)
 
-        call cfg%get("hlns", "disturb", dfile)
-        turbfile=trim(dfile)
+        call cfg%get("hlns", "inlet", dfile)
+        inletfile=trim(dfile)
+        inquire(file=trim(inletfile),exist=inlet_file_flg)
 
     end subroutine cfg_hlns
 end module mod_cfgio_adapter

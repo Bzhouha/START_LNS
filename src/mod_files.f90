@@ -108,48 +108,50 @@ module mod_files
 
     subroutine bcast(comm)
         implicit none
-        integer(KIND=MPI_ADDRESS_KIND) :: address_in,address_jn,address_kn,address_ln
-        integer(KIND=MPI_ADDRESS_KIND) :: address_mode,address_Ma,address_Re,address_Te
-        integer(KIND=MPI_ADDRESS_KIND) :: address_Alpha,address_Omega,address_Beta
-        integer(KIND=MPI_ADDRESS_KIND) :: address_initguess,address_h5fn
-        integer(KIND=MPI_ADDRESS_KIND) :: displacement(13)
-        integer :: block_lengths(13)
+        integer(KIND=MPI_ADDRESS_KIND) :: adres_in,adres_jn,adres_kn,adres_ln
+        integer(KIND=MPI_ADDRESS_KIND) :: adres_mode,adres_Ma,adres_Re,adres_Te
+        integer(KIND=MPI_ADDRESS_KIND) :: adres_Alpha,adres_Omega,adres_Beta
+        integer(KIND=MPI_ADDRESS_KIND) :: adres_initguess,adres_inlet,adres_h5fn
+        integer(KIND=MPI_ADDRESS_KIND) :: displacement(14)
+        integer :: block_lengths(14)
         PetscInt,intent(in) :: comm
         integer :: pack_type
-        integer :: types(13)
+        integer :: types(14)
 
-        call MPI_Get_address(in,address_in,ierr)
-        call MPI_Get_address(jn,address_jn,ierr)
-        call MPI_Get_address(kn,address_kn,ierr)
-        call MPI_Get_address(ln,address_ln,ierr)
-        call MPI_Get_address(lns_mode,address_mode,ierr)
-        call MPI_Get_address(init_guess_flg,address_initguess,ierr)
-        call MPI_Get_address(Ma,address_Ma,ierr)
-        call MPI_Get_address(Re,address_Re,ierr)
-        call MPI_Get_address(Te,address_Te,ierr)
-        call MPI_Get_address(Alpha,address_Alpha,ierr)
-        call MPI_Get_address(Beta,address_Beta,ierr)
-        call MPI_Get_address(Omega,address_Omega,ierr)
-        call MPI_Get_address(hdf5file,address_h5fn,ierr)
-        displacement(1)=0
-        displacement(2)=address_jn-address_in
-        displacement(3)=address_kn-address_in
-        displacement(4)=address_ln-address_in
-        displacement(5)=address_mode-address_in
-        displacement(6)=address_initguess-address_in
-        displacement(7)=address_Ma-address_in
-        displacement(8)=address_Re-address_in
-        displacement(9)=address_Te-address_in
-        displacement(10)=address_Alpha-address_in
-        displacement(11)=address_Beta-address_in
-        displacement(12)=address_Omega-address_in
-        displacement(13)=address_h5fn-address_in
+        call MPI_Get_address(in,adres_in,ierr)
+        call MPI_Get_address(jn,adres_jn,ierr)
+        call MPI_Get_address(kn,adres_kn,ierr)
+        call MPI_Get_address(ln,adres_ln,ierr)
+        call MPI_Get_address(lns_mode,adres_mode,ierr)
+        call MPI_Get_address(init_guess_flg,adres_initguess,ierr)
+        call MPI_Get_address(inlet_file_flg,adres_inlet,ierr)
+        call MPI_Get_address(Ma,adres_Ma,ierr)
+        call MPI_Get_address(Re,adres_Re,ierr)
+        call MPI_Get_address(Te,adres_Te,ierr)
+        call MPI_Get_address(Alpha,adres_Alpha,ierr)
+        call MPI_Get_address(Beta,adres_Beta,ierr)
+        call MPI_Get_address(Omega,adres_Omega,ierr)
+        call MPI_Get_address(hdf5file,adres_h5fn,ierr)
+        displacement(1)  = 0
+        displacement(2)  = adres_jn-adres_in
+        displacement(3)  = adres_kn-adres_in
+        displacement(4)  = adres_ln-adres_in
+        displacement(5)  = adres_mode-adres_in
+        displacement(6)  = adres_initguess-adres_in
+        displacement(7)  = adres_inlet-adres_in
+        displacement(8)  = adres_Ma-adres_in
+        displacement(9)  = adres_Re-adres_in
+        displacement(10) = adres_Te-adres_in
+        displacement(11) = adres_Alpha-adres_in
+        displacement(12) = adres_Beta-adres_in
+        displacement(13) = adres_Omega-adres_in
+        displacement(14) = adres_h5fn-adres_in
         block_lengths=1
-        block_lengths(13)=256
+        block_lengths(14)=256
         types=(/MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,MPI_INTEGER4,&
-                MPI_LOGICAL,MPI_REAL8,MPI_REAL8,MPI_REAL8,&
+                MPI_LOGICAL,MPI_LOGICAL,MPI_REAL8,MPI_REAL8,MPI_REAL8,&
                 MPI_COMPLEX16,MPI_COMPLEX16,MPI_COMPLEX16,MPI_CHAR/)
-        call MPI_Type_create_struct(13,block_lengths,displacement,types,pack_type,ierr)
+        call MPI_Type_create_struct(14,block_lengths,displacement,types,pack_type,ierr)
         call MPI_Type_commit(pack_type,ierr)
         call MPI_Bcast(in,1,pack_type,0,comm,ierr)
         call MPI_Barrier(comm,ierr)
@@ -210,8 +212,8 @@ module mod_files
                 call load_hdf5_files(comm)
         end select
 
-        call set_disturb(comm)
         call set_init_guess(comm)
+        call load_inlet(comm)
         call check(comm)
     end subroutine load
 
@@ -231,7 +233,7 @@ module mod_files
     subroutine raw_to_binary()
         implicit none
         real(R_P),dimension(:,:,:,:),allocatable :: qq_0
-        PetscScalar, pointer :: disturbs(:,:,:,:)
+        PetscScalar, pointer :: inlets(:,:,:,:)
         PetscScalar, pointer :: grid(:,:,:,:)
         PetscScalar, pointer :: flow(:,:,:,:)
         PetscScalar, pointer :: slice(:,:,:)
@@ -458,86 +460,6 @@ module mod_files
 
     end subroutine load_hdf5_files
 
-    subroutine set_disturb(comm)
-        implicit none
-        PetscScalar, pointer :: disturbs(:,:,:,:)
-        integer :: xs,ys,zs,xl,yl,zl,xe,ye,ze
-        PetscScalar, pointer :: slice(:,:,:)
-        integer,intent(in) :: comm
-        Vec :: disturb_gather
-        Vec :: disturb_slice
-        DM :: disturbDA
-        integer :: i,j,k
-        DM :: sliceDA
-
-        turbfiles = "./data/disturbs.pet"
-        if(rank==0)then
-            call DMDACreate2d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
-            &                 DMDA_STENCIL_BOX, jn, kn, PETSC_DECIDE, PETSC_DECIDE, &
-            &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, sliceDA, ierr)
-            call DMSetUp(sliceDA, ierr)
-
-            call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
-            &                 DMDA_STENCIL_BOX, sink, jn, kn, PETSC_DECIDE, 1, 1,&
-            &                 5, 0, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, disturbDA, ierr)
-            call DMSetUp(disturbDA, ierr)
-
-            call DMGetGlobalVector(sliceDA, disturb_slice, ierr)
-            call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(turbfile), FILE_MODE_READ, viewer, ierr)
-            call VecLoad(disturb_slice, viewer, ierr)
-            call PetscViewerDestroy(viewer, ierr)
-
-            call DMDAGetCorners(disturbDA,xs,ys,zs,xl,yl,zl,ierr)
-            call DMGetGlobalVector(disturbDA, disturb_gather, ierr)
-            call DMDAVecGetArrayF90(disturbDA, disturb_gather, disturbs, ierr)
-            call DMDAVecGetArrayReadF90(sliceDA, disturb_slice, slice, ierr)
-            do i=xs,xs+xl-1
-                do j=ys,ys+yl-1
-                    do k=zs,zs+zl-1
-                        disturbs(:,i,j,k)=slice(:,j,k)
-                    enddo
-                enddo
-            enddo
-            call DMDAVecRestoreArrayReadF90(sliceDA, disturb_slice, slice, ierr)
-            call DMDAVecRestoreArrayF90(disturbDA, disturb_gather, disturbs, ierr)
-
-            call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(turbfiles),FILE_MODE_WRITE, viewer, ierr)
-            call VecView(disturb_gather, viewer, ierr)
-            call PetscViewerDestroy(viewer, ierr)
-
-            call DMRestoreGlobalVector(disturbDA,disturb_gather,ierr)
-            call DMRestoreGlobalVector(sliceDA,disturb_slice,ierr)
-            call DMDestroy(sliceDA,ierr)
-            call DMDestroy(disturbDA,ierr)
-        endif
-        call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
-        &                 DMDA_STENCIL_BOX, sink, jn, kn, PETSC_DECIDE, 1, 1,&
-        &                 5, 0, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, disturbDA, ierr)
-        call DMSetUp(disturbDA, ierr)
-        call DMGetGlobalVector(disturbDA, disturb_gather, ierr)
-        call PetscViewerBinaryOpen(comm, trim(turbfiles),FILE_MODE_READ, viewer, ierr)
-        call VecLoad(disturb_gather, viewer, ierr)
-        call PetscViewerDestroy(viewer, ierr)
-
-        call DMDAGetCorners(disturbDA,xs,ys,zs,xl,yl,zl,ierr)
-        xe=xs+xl-1;ye=ys+yl-1;ze=zs+zl-1
-        allocate(disturb(0:4, ys:ye, zs:ze))
-        call DMDAVecGetArrayReadF90(disturbDA, disturb_gather, disturbs, ierr)
-        do i=xs,xe
-            do j=ys,ye
-                do k=zs,ze
-                    disturb(:,j,k) = disturbs(:,i,j,k)
-                enddo
-            enddo
-        enddo
-        call DMDAVecRestoreArrayReadF90(disturbDA, disturb_gather, disturbs, ierr)
-
-        if(rank==0) call system("rm -f "//trim(turbfiles)//"*")
-        call DMRestoreGlobalVector(disturbDA,disturb_gather,ierr)
-        call DMDestroy(disturbDA,ierr)
-
-    end subroutine set_disturb
-
     subroutine set_init_guess(comm) ! binary
         implicit none
         integer,intent(in) :: comm
@@ -551,6 +473,116 @@ module mod_files
                 call VecZeroEntries(turtle,ierr)
         end select
     end subroutine set_init_guess
+
+    subroutine load_inlet(comm)
+        implicit none
+        integer,intent(in) :: comm
+        select case(inlet_file_flg)
+        case(.True.)
+            call load_inlet_file(comm)
+        case(.False.)
+            call load_inlet_from_ini_gus(comm)
+        end select
+    end subroutine load_inlet
+
+    subroutine load_inlet_from_ini_gus(comm)
+        implicit none
+        PetscScalar,pointer :: xr(:,:,:,:)
+        integer,intent(in) :: comm
+
+        allocate(inlet(0:4, js:je, ks:ke))
+        inlet = 0.0d0
+        call DMDAVecGetArrayReadF90(meshDA, turtle, xr, ierr)
+        if(is==0)then
+            inlet(:,:,:)=xr(:,is,:,:)
+        endif
+        call DMDAVecRestoreArrayReadF90(meshDA, turtle, xr, ierr)
+        call MPI_Barrier(comm,ierr)
+    end subroutine load_inlet_from_ini_gus
+
+    subroutine load_inlet_file(comm)
+        implicit none
+        character(len=256) :: inletfiles ! 文件名：边界文件
+        PetscScalar, pointer :: inlets(:,:,:,:)
+        integer :: xs,ys,zs,xl,yl,zl,xe,ye,ze
+        PetscScalar, pointer :: slice(:,:,:)
+        integer,intent(in) :: comm
+        Vec :: inlet_gather
+        Vec :: inlet_slice
+        DM :: inletDA
+        integer :: i,j,k
+        DM :: sliceDA
+
+        inletfiles = "./data/inlets.pet"
+        if(rank==0)then
+            call DMDACreate2d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
+            &                 DMDA_STENCIL_BOX, jn, kn, PETSC_DECIDE, PETSC_DECIDE, &
+            &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, sliceDA, ierr)
+            call DMSetUp(sliceDA, ierr)
+
+            call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
+            &                 DMDA_STENCIL_BOX, sink, jn, kn, PETSC_DECIDE, 1, 1,&
+            &                 5, 0, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, inletDA, ierr)
+            call DMSetUp(inletDA, ierr)
+
+            call DMGetGlobalVector(sliceDA, inlet_slice, ierr)
+            call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(inletfile), FILE_MODE_READ, viewer, ierr)
+            call VecLoad(inlet_slice, viewer, ierr)
+            call PetscViewerDestroy(viewer, ierr)
+
+            call DMDAGetCorners(inletDA,xs,ys,zs,xl,yl,zl,ierr)
+            call DMGetGlobalVector(inletDA, inlet_gather, ierr)
+            call DMDAVecGetArrayF90(inletDA, inlet_gather, inlets, ierr)
+            call DMDAVecGetArrayReadF90(sliceDA, inlet_slice, slice, ierr)
+            do i=xs,xs+xl-1
+                do j=ys,ys+yl-1
+                    do k=zs,zs+zl-1
+                        inlets(:,i,j,k)=slice(:,j,k)
+                    enddo
+                enddo
+            enddo
+            call DMDAVecRestoreArrayReadF90(sliceDA, inlet_slice, slice, ierr)
+            call DMDAVecRestoreArrayF90(inletDA, inlet_gather, inlets, ierr)
+
+            call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(inletfiles),FILE_MODE_WRITE, viewer, ierr)
+            call VecView(inlet_gather, viewer, ierr)
+            call PetscViewerDestroy(viewer, ierr)
+
+            call DMRestoreGlobalVector(inletDA,inlet_gather,ierr)
+            call DMRestoreGlobalVector(sliceDA,inlet_slice,ierr)
+            call DMDestroy(sliceDA,ierr)
+            call DMDestroy(inletDA,ierr)
+        endif
+        call MPI_Barrier(comm,ierr)
+        call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
+        &                 DMDA_STENCIL_BOX, sink, jn, kn, PETSC_DECIDE, 1, 1,&
+        &                 5, 0, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, inletDA, ierr)
+        call DMSetUp(inletDA, ierr)
+        call DMGetGlobalVector(inletDA, inlet_gather, ierr)
+        call PetscViewerBinaryOpen(comm, trim(inletfiles),FILE_MODE_READ, viewer, ierr)
+        call VecLoad(inlet_gather, viewer, ierr)
+        call PetscViewerDestroy(viewer, ierr)
+
+        call DMDAGetCorners(inletDA,xs,ys,zs,xl,yl,zl,ierr)
+        xe=xs+xl-1;ye=ys+yl-1;ze=zs+zl-1
+        allocate(inlet(0:4, ys:ye, zs:ze))
+        inlet = 0.0d0
+        call DMDAVecGetArrayReadF90(inletDA, inlet_gather, inlets, ierr)
+        do i=xs,xe
+            do j=ys,ye
+                do k=zs,ze
+                    inlet(:,j,k) = inlets(:,i,j,k)
+                enddo
+            enddo
+        enddo
+        call DMDAVecRestoreArrayReadF90(inletDA, inlet_gather, inlets, ierr)
+
+        if(rank==0) call system("rm -f "//trim(inletfiles)//"*")
+        call DMRestoreGlobalVector(inletDA,inlet_gather,ierr)
+        call DMDestroy(inletDA,ierr)
+        call MPI_Barrier(comm,ierr)
+
+    end subroutine load_inlet_file
 
     subroutine check(comm)
         implicit none
