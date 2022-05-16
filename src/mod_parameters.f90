@@ -87,7 +87,8 @@ module mod_parameters
     integer :: nz = PETSC_DECIDE
     character(len=7) :: io_type ! file I/O type
     logical :: inlet_file_flg ! 是否读入入口
-    logical :: init_guess_flg ! 是否赋初值
+    logical :: ex_ini_gus_flg ! 是否赋初值
+    logical :: ini_gus_flg=.False. ! 是否赋初值
     PetscInt :: in,jn,kn,ln=5 ! 流场网格数、自由度数
     DM :: coordDA,meshDA,DA ! DM.Object
     integer :: split_mode=0 ! 对流系数矩阵拆分方式选择

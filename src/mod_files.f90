@@ -123,7 +123,7 @@ module mod_files
         call MPI_Get_address(kn,adres_kn,ierr)
         call MPI_Get_address(ln,adres_ln,ierr)
         call MPI_Get_address(lns_mode,adres_mode,ierr)
-        call MPI_Get_address(init_guess_flg,adres_initguess,ierr)
+        call MPI_Get_address(ex_ini_gus_flg,adres_initguess,ierr)
         call MPI_Get_address(inlet_file_flg,adres_inlet,ierr)
         call MPI_Get_address(Ma,adres_Ma,ierr)
         call MPI_Get_address(Re,adres_Re,ierr)
@@ -407,15 +407,20 @@ module mod_files
         PetscInt, intent(in) :: comm
         Vec :: coord,flowfield
         integer :: l,i,j,k
+        PetscBool :: has
 
         call DMGetGlobalVector(meshDA, flowfield, ierr)
         call PetscObjectSetName(flowfield,"baseflow",ierr)
         call DMGetGlobalVector(coordDA, coord, ierr)
         call PetscObjectSetName(coord,"grid",ierr)
+        call PetscObjectSetName(turtle,"hlns",ierr)
 
         call PetscViewerHDF5Open(comm,trim(hdf5file),FILE_MODE_READ,viewer,ierr)
         call VecLoad(flowfield,viewer,ierr)
         call VecLoad(coord,viewer,ierr)
+        call PetscViewerHDF5HasDataset(viewer,'hlns',has,ierr)
+        if(has) call VecLoad(turtle,viewer,ierr)
+        if(has) ini_gus_flg=.True.
         call PetscViewerDestroy(viewer, ierr)
 
         call DMGetLocalVector(coordDA, coord_local, ierr)
@@ -463,15 +468,13 @@ module mod_files
     subroutine set_init_guess(comm) ! binary
         implicit none
         integer,intent(in) :: comm
-        select case (init_guess_flg)
-            case(.True.)
-                call VecZeroEntries(turtle,ierr)
-                call PetscViewerBinaryOpen(comm, trim(initfile),FILE_MODE_READ,viewer,ierr)
-                call VecLoad(turtle, viewer, ierr)
-                call PetscViewerDestroy(viewer, ierr)
-            case(.False.)
-                call VecZeroEntries(turtle,ierr)
-        end select
+        if(ex_ini_gus_flg)then
+            ini_gus_flg=.True.
+            call VecZeroEntries(turtle,ierr)
+            call PetscViewerBinaryOpen(comm, trim(initfile),FILE_MODE_READ,viewer,ierr)
+            call VecLoad(turtle, viewer, ierr)
+            call PetscViewerDestroy(viewer, ierr)
+        endif
     end subroutine set_init_guess
 
     subroutine load_inlet(comm)
@@ -603,7 +606,7 @@ module mod_files
         write(str_1,"(I1)") lns_mode
         call PetscPrintf(comm,"   LNS Dimension -> "//str_1//"D-LNS\n\n",ierr)
 
-        write(str_5,"(L3)") init_guess_flg
+        write(str_5,"(L3)") ini_gus_flg
         call PetscPrintf(comm,"   Initial Guess -> "//str_5//"\n\n",ierr)
 
         write(str_18,"(3I6)") in,jn,kn
@@ -707,9 +710,9 @@ module mod_files
                 call PetscViewerDestroy(sviewer, ierr)
                 call PetscObjectSetName(coord,"grid",ierr)
                 call VecView(coord,viewer,ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"grid","grid.In",PETSC_INT,in,ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"grid","grid.Jn",PETSC_INT,jn,ierr)
-                call PetscViewerHDF5WriteAttribute(viewer,"grid","grid.Kn",PETSC_INT,kn,ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,"grid","In",PETSC_INT,in,ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,"grid","Jn",PETSC_INT,jn,ierr)
+                call PetscViewerHDF5WriteAttribute(viewer,"grid","Kn",PETSC_INT,kn,ierr)
                 call PetscViewerDestroy(viewer, ierr)
 
                 call DMRestoreGlobalVector(unimeshDA,flowfield,ierr)

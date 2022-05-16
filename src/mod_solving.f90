@@ -136,7 +136,7 @@ module mod_solving
             call KSPCreate(comm,ksp,ierr)
             call KSPSetOperators(ksp,mat,mat,ierr)
             call KSPSetType(ksp,KSPFGMRES,ierr)
-            call KSPSetInitialGuessNonzero(ksp,init_guess_flg,ierr)
+            call KSPSetInitialGuessNonzero(ksp,ex_ini_gus_flg,ierr)
             call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
             call KSPGMRESSetRestart(ksp,40,ierr)
             call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)

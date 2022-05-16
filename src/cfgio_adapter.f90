@@ -146,7 +146,7 @@ module mod_cfgio_adapter
 
         call cfg%get("hlns", "initial guess", ifile)
         initfile=trim(ifile)
-        inquire(file=trim(initfile),exist=init_guess_flg)
+        inquire(file=trim(initfile),exist=ex_ini_gus_flg)
 
         call cfg%get("hlns", "inlet", dfile)
         inletfile=trim(dfile)
