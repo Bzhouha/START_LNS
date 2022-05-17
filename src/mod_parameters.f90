@@ -103,7 +103,6 @@ module mod_parameters
     integer :: rank ! 进程编号
     integer :: sink ! 进程数
     Vec :: turtle ! 解向量
-    Vec :: localx
     Mat :: whale ! 矩阵
     DM :: med1DA
     DM :: subDA

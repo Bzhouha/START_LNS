@@ -548,32 +548,17 @@ module mod_forming
         PetscErrorCode :: ierr
         integer :: i,j,k
 
-        select case(lns_mode)
-        case(2)
-            do k=kgs,kge
-                do j=jgs,jge
-                    do i=igs,ige
-                        if(i==igs .or. i==ige .or. j==jgs .or. j==jge)then
-                            call sub_mat_set_boundary_conditions(mat,i,j,k)  !!子矩阵边界点的\delta\hat\phi=0
-                        else
-                            call sub_mat_insert_values_2_ord(mat,i,j,k)  !!设置子矩阵内点的值
-                        endif
-                    enddo
+        do k=kgs,kge
+            do j=jgs,jge
+                do i=igs,ige
+                    if(i==igs .or. i==ige .or. j==jgs .or. j==jge)then
+                        call sub_mat_set_boundary_conditions(mat,i,j,k)  !!子矩阵边界点的\delta\hat\phi=0
+                    else
+                        call sub_mat_insert_values_2_ord(mat,i,j,k)  !!设置子矩阵内点的值
+                    endif
                 enddo
             enddo
-        case(3)
-            do k=kgs,kge
-                do j=jgs,jge
-                    do i=igs,ige
-                        if(i==igs .or. i==ige .or. j==jgs .or. j==jge .or. k==kgs .or. k==kge)then
-                            call sub_mat_set_boundary_conditions(mat,i,j,k)  !!子矩阵边界点的\delta\hat\phi=0
-                        else
-                            call sub_mat_insert_values_2_ord(mat,i,j,k)  !!设置子矩阵内点的值
-                        endif
-                    enddo
-                enddo
-            enddo
-        end select
+        enddo
 
         call MatAssemblyBegin(mat,MAT_FINAL_ASSEMBLY,ierr)
         call MatAssemblyEnd(mat,MAT_FINAL_ASSEMBLY,ierr)

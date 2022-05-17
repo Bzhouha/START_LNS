@@ -51,9 +51,9 @@ module mod_solving
             case('snes')
                 call snes_equation(comm,snes_rhs_fx_4ord)
             case('newt')
-                call newt_equation(comm,fx_rhs_Ax_4ord,push_bc)
+                call newt_equation(comm,fx_rhs_Ax_4ord)
             case('newt_sub')
-                call newtsub_equation(comm,fx_rhs_Ax_4ord,push_bc)
+                call newtsub_equation(comm,fx_rhs_Ax_4ord)
         end select
     end subroutine dstream
 
@@ -83,31 +83,29 @@ module mod_solving
         call solve_snes(comm,whale,turtle,fx,RHS)
     end subroutine snes_equation
 
-    subroutine newt_equation(comm,fx_rhs,fx_bc)
+    subroutine newt_equation(comm,fx_rhs)
         implicit none
         integer,intent(in) :: comm
         external :: fx_rhs
-        external :: fx_bc
 
         call PetscPrintf(comm,"\n   「 Forming Jacobi Matrix 」\n",ierr)
         call set_medDA(comm,med1DA)
         call init_mat_from_da(comm,med1DA,whale)
         call form_global_mat_2ord(whale)
-        call solve_newt(comm,whale,turtle,fx_rhs,fx_bc)
+        call solve_newt(comm,whale,turtle,fx_rhs)
     end subroutine newt_equation
 
-    subroutine newtsub_equation(comm,fx_rhs,fx_bc)
+    subroutine newtsub_equation(comm,fx_rhs)
         implicit none
         integer,intent(in) :: comm
         external :: fx_rhs
-        external :: fx_bc
 
         call PetscPrintf(comm,"\n   「 Forming Jacobi Matrix 」\n",ierr)
         call set_subDA(subDA)
         call init_sub_vecs()
         call init_mat_from_da(comm,subDA,whale)
         call form_sub_mat_2_ord(whale)
-        call solve_newtsub(comm,whale,turtle,fx_rhs,fx_bc)
+        call solve_newtsub(comm,whale,turtle,fx_rhs)
     end subroutine newtsub_equation
 
     ! -----------------------------------------------------------------------------------------------------
@@ -269,7 +267,7 @@ module mod_solving
     ! -----------------------------------------------------------------------------------------------------
     !   迭代格式三：借用KSP模块 Newton-Like
 
-    subroutine solve_newt(comm,mat,x,fx_rhs,fx_bc)
+    subroutine solve_newt(comm,mat,x,fx_rhs)
         implicit none
         character(len=20) :: str_norm
         character(len=6) :: str_count
@@ -279,7 +277,6 @@ module mod_solving
         PetscErrorCode :: ierr
         Mat,intent(in) :: mat
         external :: fx_rhs
-        external :: fx_bc
         PetscInt :: count
         PetscReal :: rtol
         PetscReal :: nrm
@@ -321,7 +318,7 @@ module mod_solving
             ! Count
             count = count + 1
             ! Update Boundary Conditions
-            call fx_bc(comm,x)
+            call push_bc(comm,x)
             ! Get rhs
             call fx_rhs(x,f)
             ! Solve
@@ -340,7 +337,7 @@ module mod_solving
                 exit
             endif
             ! If converged
-            if(nrm<1e-4)then
+            if(nrm<1e-5)then
                 call PetscPrintf(comm,"\n   < Converged. >\n",ierr)
                 exit
             endif
@@ -358,7 +355,7 @@ module mod_solving
     ! -----------------------------------------------------------------------------------------------------
     !   迭代格式四：分块求解 Newton-Like
 
-    subroutine solve_newtsub(comm,mat,x,fx_rhs,fx_bc)
+    subroutine solve_newtsub(comm,mat,x,fx_rhs)
         implicit none
         character(len=20) :: str_norm
         character(len=6) :: str_count
@@ -369,7 +366,6 @@ module mod_solving
         Vec :: subres,subf
         PetscScalar :: one
         external :: fx_rhs
-        external :: fx_bc
         PetscInt :: count
         PetscReal :: rtol
         PetscReal :: nrm
@@ -411,7 +407,7 @@ module mod_solving
             ! 迭代计数
             count = count + 1
             ! 载入边界条件
-            call fx_bc(comm,x)
+            call push_bc(comm,x)
             ! 计算右端项
             call fx_rhs(x,f)
             ! 分发右端项
@@ -434,7 +430,7 @@ module mod_solving
                 exit
             endif
             ! 如果收敛
-            if(nrm<1e-4)then
+            if(nrm<1e-5)then
                 call PetscPrintf(comm,"\n   < Converged. >\n",ierr)
                 exit
             endif
@@ -447,7 +443,6 @@ module mod_solving
         call VecDestroy(subres,ierr)
         call VecDestroy(f,ierr)
         call VecDestroy(res,ierr)
-        call VecDestroy(localx,ierr)
         call cleanup()
     end subroutine solve_newtsub
 

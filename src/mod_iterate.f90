@@ -23,6 +23,7 @@ module mod_iterate
 
     private
     type(lns_OP_point_type) :: Jor
+    Vec :: localx
 
     contains
 
@@ -760,20 +761,25 @@ module mod_iterate
         call DMDAVecGetArrayF90(meshDA, localf, fr, ierr)
         call DMDAVecGetArrayF90(subDA, subf, sfr, ierr)
 
-        select case(lns_mode)
-        case(2)
-            fr(:, igs:igs, :, :)=0.0d0
-            fr(:, ige:ige, :, :)=0.0d0
-            fr(:, :, jgs:jgs, :)=0.0d0
-            fr(:, :, jge:jge, :)=0.0d0
-        case(3)
-            fr(:, igs:igs, :, :)=0.0d0
-            fr(:, ige:ige, :, :)=0.0d0
-            fr(:, :, jgs:jgs, :)=0.0d0
-            fr(:, :, jge:jge, :)=0.0d0
-            fr(:, :, :, kgs:kgs)=0.0d0
-            fr(:, :, :, kge:kge)=0.0d0
-        end select
+        fr(:, igs:igs, :, :)=0.0d0
+        fr(:, ige:ige, :, :)=0.0d0
+        fr(:, :, jgs:jgs, :)=0.0d0
+        fr(:, :, jge:jge, :)=0.0d0
+
+        ! select case(lns_mode)
+        ! case(2)
+        !     fr(:, igs:igs, :, :)=0.0d0
+        !     fr(:, ige:ige, :, :)=0.0d0
+        !     fr(:, :, jgs:jgs, :)=0.0d0
+        !     fr(:, :, jge:jge, :)=0.0d0
+        ! case(3)
+        !     fr(:, igs:igs, :, :)=0.0d0
+        !     fr(:, ige:ige, :, :)=0.0d0
+        !     fr(:, :, jgs:jgs, :)=0.0d0
+        !     fr(:, :, jge:jge, :)=0.0d0
+        !     fr(:, :, :, kgs:kgs)=0.0d0
+        !     fr(:, :, :, kge:kge)=0.0d0
+        ! end select
 
         do k=kgs, kge
             do j=jgs, jge
