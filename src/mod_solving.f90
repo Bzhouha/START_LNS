@@ -100,7 +100,7 @@ module mod_solving
         integer,intent(in) :: comm
         external :: fx_rhs
 
-        call PetscPrintf(comm,"\n   「 Forming Jacobi Matrix 」\n",ierr)
+        call PetscPrintf(comm,"\n   「 Forming sub Jacobi Matrix 」\n",ierr)
         call set_subDA(subDA)
         call init_sub_vecs()
         call init_mat_from_da(comm,subDA,whale)
@@ -214,15 +214,13 @@ module mod_solving
         Vec,intent(in) :: r
         character(len=256) :: reason
         external :: fx
-        real(8) :: rtol
         SNES :: snes
         KSP :: ksp
         Vec :: t
         PC :: pc
 
         call PetscPrintf(comm, "\n    「 Nonlinear Solver 」\n\n", ierr)
-        ! 设置参数
-        rtol = 1e-8
+
         ! 初始化向量
         call VecDuplicate(x,t,ierr)
         call VecZeroEntries(t,ierr)
@@ -236,7 +234,6 @@ module mod_solving
         call KSPSetType(ksp,KSPFGMRES,ierr)
         call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
         call KSPGMRESSetRestart(ksp,40,ierr)
-        call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
         ! 设置PC
         call KSPGetPC(ksp,pc,ierr)
         call PCSetType(pc,PCASM,ierr)
@@ -244,7 +241,6 @@ module mod_solving
         call PCFactorSetUseInPlace(pc,PETSC_TRUE,ierr)
         call PCSetFromOptions(pc,ierr)
         call KSPSetFromOptions(ksp,ierr)
-        call SNESSetTolerances(snes,PETSC_DEFAULT_REAL,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,PETSC_DEFAULT_INTEGER,ierr)
         call SNESSetFromOptions(snes,ierr)
         call SNESSetUp(snes,ierr)
         ! 求解
@@ -278,7 +274,6 @@ module mod_solving
         Mat,intent(in) :: mat
         external :: fx_rhs
         PetscInt :: count
-        PetscReal :: rtol
         PetscReal :: nrm
         Vec :: f,res
         KSP :: ksp
@@ -288,7 +283,6 @@ module mod_solving
         ! Set parameters
         one = 1.0d0
         ine = -1.0d0
-        rtol = 1e-8
         count = 0
         ! Initialize Vecs
         call VecDuplicate(x,f,ierr)
@@ -301,7 +295,6 @@ module mod_solving
         call KSPSetType(ksp,KSPFGMRES,ierr)
         call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
         call KSPGMRESSetRestart(ksp,40,ierr)
-        call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
         ! Get & Set PC
         call KspGetPC(ksp,pc,ierr)
         call PCSetType(pc,PCASM,ierr)
@@ -332,7 +325,7 @@ module mod_solving
             ! Get solution
             call VecAXPY(x,one,res,ierr)
             ! If iterated too much times
-            if(count>500)then
+            if(count>5000)then
                 call PetscPrintf(comm,"\n   < Maximum number of iterations reached. >\n",ierr)
                 exit
             endif
@@ -367,7 +360,6 @@ module mod_solving
         PetscScalar :: one
         external :: fx_rhs
         PetscInt :: count
-        PetscReal :: rtol
         PetscReal :: nrm
         Vec :: f,res
         KSP :: ksp
@@ -377,7 +369,6 @@ module mod_solving
 
         ! 初始化变量
         one = 1.0d0
-        rtol = 1e-8
         count = 0
         call VecDuplicate(x,f,ierr)
         call VecZeroEntries(f,ierr)
@@ -394,7 +385,6 @@ module mod_solving
         call KSPSetType(ksp,KSPFGMRES,ierr)
         call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
         call KSPGMRESSetRestart(ksp,40,ierr)
-        call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
         call KspGetPC(ksp,pc,ierr)
         call PCSetType(pc,PCILU,ierr)
         call PCSetFromOptions(pc,ierr)
@@ -425,7 +415,7 @@ module mod_solving
             ! 刷新近似解
             call VecAXPY(x,one,res,ierr)
             ! 如果达到最大迭代数
-            if(count>500)then
+            if(count>5000)then
                 call PetscPrintf(comm,"\n   < Maximum number of iterations reached. >\n",ierr)
                 exit
             endif
@@ -460,6 +450,7 @@ module mod_solving
         deallocate(xi_xy,xi_xz,xi_yz)
         deallocate(eta_xy,eta_yz,eta_xz)
         deallocate(phi_xy,phi_yz,phi_xz)
+        call DMDestroy(DA,ierr)
 
     end subroutine cleanup
 

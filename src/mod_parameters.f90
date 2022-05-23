@@ -75,12 +75,14 @@ module mod_parameters
     character(len=10) :: solver_mode ! KSP.or.SNES.or.newt.or.newt_sub
     character(len=256) :: bigridfile ! 文件名：流场文件
     character(len=256) :: biflowfile ! 文件名：流场文件
+    character(len=256) :: biresfile ! 文件名：结果文件
     PetscBool :: usedt,calculate_dt
+    character(len=256) :: inletfile ! 文件名：边界文件
     character(len=256) :: gridfile ! 文件名：网格文件
     character(len=256) :: flowfile ! 文件名：流场文件
     character(len=256) :: hdf5file ! 文件名：HDF5文件
-    character(len=256) :: inletfile ! 文件名：边界文件
     character(len=256) :: initfile ! 文件名：初值文件
+    logical :: ini_gus_flg=.False. ! 是否赋初值
     character(len=256) :: pltfile ! 文件名：plot3d文件
     integer :: nx = PETSC_DECIDE
     integer :: ny = PETSC_DECIDE
@@ -88,9 +90,7 @@ module mod_parameters
     character(len=7) :: io_type ! file I/O type
     logical :: inlet_file_flg ! 是否读入入口
     logical :: ex_ini_gus_flg ! 是否赋初值
-    logical :: ini_gus_flg=.False. ! 是否赋初值
     PetscInt :: in,jn,kn,ln=5 ! 流场网格数、自由度数
-    DM :: coordDA,meshDA,DA ! DM.Object
     integer :: split_mode=0 ! 对流系数矩阵拆分方式选择
     real(R_P) :: lm=1.0d0 ! 松弛系数
     complex(R_P) :: Alpha ! 波数
@@ -100,6 +100,7 @@ module mod_parameters
     integer :: lns_mode ! 2D-HLNS.or.3D-HLNS
     real(R_P) :: cfl=30
     integer :: levels
+    DM :: meshDA,DA ! DM.Object
     integer :: rank ! 进程编号
     integer :: sink ! 进程数
     Vec :: turtle ! 解向量

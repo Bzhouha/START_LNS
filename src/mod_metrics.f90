@@ -544,41 +544,6 @@ module mod_metrics
         deallocate(phi_z_local)
     end subroutine compute_convariant_metrics_3d
 
-    subroutine deallocate_memory()
-        implicit none
-        deallocate(xx)
-        deallocate(yy)
-        deallocate(zz)
-        deallocate(jacobi)
-        deallocate(x_xi)
-        deallocate(y_xi)
-        deallocate(z_xi)
-        deallocate(x_eta)
-        deallocate(y_eta)
-        deallocate(z_eta)
-        deallocate(x_phi)
-        deallocate(y_phi)
-        deallocate(z_phi)
-        call VecDestroy(XIX, ierr)
-        call VecDestroy(XIY, ierr)
-        call VecDestroy(XIZ, ierr)
-        call VecDestroy(ETAX, ierr)
-        call VecDestroy(ETAY, ierr)
-        call VecDestroy(ETAZ, ierr)
-        call VecDestroy(PHIX, ierr)
-        call VecDestroy(PHIY, ierr)
-        call VecDestroy(PHIZ, ierr)
-        call VecDestroy(XIX_local, ierr)
-        call VecDestroy(XIY_local, ierr)
-        call VecDestroy(XIZ_local, ierr)
-        call VecDestroy(ETAX_local, ierr)
-        call VecDestroy(ETAY_local, ierr)
-        call VecDestroy(ETAZ_local, ierr)
-        call VecDestroy(PHIX_local, ierr)
-        call VecDestroy(PHIY_local, ierr)
-        call VecDestroy(PHIZ_local, ierr)
-    end subroutine deallocate_memory
-
     subroutine delivery_by_dmda()
         implicit none
         Vec :: XIXX, XIYY, XIZZ, XIXY, XIXZ, XIYZ
@@ -907,5 +872,40 @@ module mod_metrics
         call VecDestroy(PHIXZ_local,ierr);call VecDestroy(PHIYZ_local,ierr)
 
     end subroutine  delivery_by_dmda
+
+    subroutine deallocate_memory()
+        implicit none
+        deallocate(xx)
+        deallocate(yy)
+        deallocate(zz)
+        deallocate(jacobi)
+        deallocate(x_xi)
+        deallocate(y_xi)
+        deallocate(z_xi)
+        deallocate(x_eta)
+        deallocate(y_eta)
+        deallocate(z_eta)
+        deallocate(x_phi)
+        deallocate(y_phi)
+        deallocate(z_phi)
+        call VecDestroy(XIX, ierr)
+        call VecDestroy(XIY, ierr)
+        call VecDestroy(XIZ, ierr)
+        call VecDestroy(ETAX, ierr)
+        call VecDestroy(ETAY, ierr)
+        call VecDestroy(ETAZ, ierr)
+        call VecDestroy(PHIX, ierr)
+        call VecDestroy(PHIY, ierr)
+        call VecDestroy(PHIZ, ierr)
+        call VecDestroy(XIX_local, ierr)
+        call VecDestroy(XIY_local, ierr)
+        call VecDestroy(XIZ_local, ierr)
+        call VecDestroy(ETAX_local, ierr)
+        call VecDestroy(ETAY_local, ierr)
+        call VecDestroy(ETAZ_local, ierr)
+        call VecDestroy(PHIX_local, ierr)
+        call VecDestroy(PHIY_local, ierr)
+        call VecDestroy(PHIZ_local, ierr)
+    end subroutine deallocate_memory
 
 end module mod_metrics
