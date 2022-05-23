@@ -450,7 +450,6 @@ module mod_solving
         deallocate(xi_xy,xi_xz,xi_yz)
         deallocate(eta_xy,eta_yz,eta_xz)
         deallocate(phi_xy,phi_yz,phi_xz)
-        call DMDestroy(DA,ierr)
 
     end subroutine cleanup
 
