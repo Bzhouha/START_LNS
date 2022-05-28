@@ -664,7 +664,6 @@ module mod_files
         call PetscViewerDestroy(viewer, ierr)
         call PetscPrintf(comm, "   Binary Result -> "//trim(biresfile)//"\n", ierr)
         call MPI_Barrier(comm,ierr)
-        call DMRestoreGlobalVector(meshDA,turtle,ierr)
         call DMDestroy(meshDA,ierr)
         call MPI_Barrier(comm,ierr)
 
