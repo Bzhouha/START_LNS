@@ -37,9 +37,9 @@ module mod_files
     subroutine config(comm)
         use mod_cfgio_adapter
         implicit none
-        PetscInt,intent(in) :: comm
-        character(len=256) :: cfg_file
         PetscBool :: ksp_flg,snes_flg,newt_flg,newtsub_flg,mg_flg
+        character(len=256) :: cfg_file
+        PetscInt,intent(in) :: comm
         PetscBool :: set
 
         call mpi_comm_rank(comm,rank,ierr)
@@ -109,10 +109,10 @@ module mod_files
 
     subroutine bcast(comm)
         implicit none
-        integer(KIND=MPI_ADDRESS_KIND) :: adres_in,adres_jn,adres_kn,adres_ln
-        integer(KIND=MPI_ADDRESS_KIND) :: adres_mode,adres_Ma,adres_Re,adres_Te
-        integer(KIND=MPI_ADDRESS_KIND) :: adres_Alpha,adres_Omega,adres_Beta
         integer(KIND=MPI_ADDRESS_KIND) :: adres_initguess,adres_inlet,adres_h5fn
+        integer(KIND=MPI_ADDRESS_KIND) :: adres_mode,adres_Ma,adres_Re,adres_Te
+        integer(KIND=MPI_ADDRESS_KIND) :: adres_in,adres_jn,adres_kn,adres_ln
+        integer(KIND=MPI_ADDRESS_KIND) :: adres_Alpha,adres_Omega,adres_Beta
         integer(KIND=MPI_ADDRESS_KIND) :: displacement(14)
         integer :: block_lengths(14)
         PetscInt,intent(in) :: comm
@@ -507,15 +507,15 @@ module mod_files
 
     subroutine load_inlet_file(comm)
         implicit none
-        character(len=256) :: inletfiles ! 文件名：边界文件
         PetscScalar, pointer :: inlets(:,:,:,:)
         integer :: xs,ys,zs,xl,yl,zl,xe,ye,ze
         PetscScalar, pointer :: slice(:,:,:)
+        character(len=256) :: inletfiles ! 文件名：边界文件
         integer,intent(in) :: comm
         Vec :: inlet_gather
         Vec :: inlet_slice
-        DM :: inletDA
         integer :: i,j,k
+        DM :: inletDA
         DM :: sliceDA
 
         inletfiles = "./data/inlets.pet"
@@ -650,10 +650,10 @@ module mod_files
         implicit none
         PetscScalar,pointer :: tmp(:,:,:,:)
         PetscInt, intent(in) :: comm
-        integer :: i,j,k,l
-        DM :: unimeshDA,unicordDA
         Vec :: VecT,coord,flowfield
+        DM :: unimeshDA,unicordDA
         PetscViewer :: sviewer
+        integer :: i,j,k,l
 
         call PetscPrintf(comm, "\n -----------------------------------\n", ierr)
         call PetscPrintf(comm, "                Ostream              \n\n", ierr)
