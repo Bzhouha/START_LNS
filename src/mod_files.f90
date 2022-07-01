@@ -639,7 +639,7 @@ module mod_files
         &                  qq(3,igs,jgs,kgs),qq(4,igs,jgs,kgs),qq(5,igs,jgs,kgs)
         call PetscPrintf(comm,str_75//"\n",ierr)
 
-        write(str_75,1444) ige,jge,kge,qq(1,igs,jgs,kgs),qq(2,ige,jge,kge),    &
+        write(str_75,1444) ige,jge,kge,qq(1,ige,jge,kge),qq(2,ige,jge,kge),    &
         &                  qq(3,ige,jge,kge),qq(4,ige,jge,kge),qq(5,ige,jge,kge)
         call PetscPrintf(comm,str_75//"\n",ierr)
 
