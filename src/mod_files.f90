@@ -654,10 +654,26 @@ module mod_files
         DM :: unimeshDA,unicordDA
         PetscViewer :: sviewer
         integer :: i,j,k,l
+        character(len=96) :: hdf5out
+        complex(R_P),parameter :: Ci = cmplx(0.0d0,1.0d0,R_P)
+        real(R_P),allocatable,dimension(:,:) :: x0
 
         call PetscPrintf(comm, "\n -----------------------------------\n", ierr)
         call PetscPrintf(comm, "                Ostream              \n\n", ierr)
 
+        allocate(x0(jn,kn))
+        x0(:,:) = xx(0,:,:)
+        call DMDAVecGetArrayF90(meshDA, turtle, tmp, ierr)
+        do k=ks,ke 
+            do j=js,je 
+                do i=is,ie 
+                    tmp(:,i,j,k) = tmp(:,i,j,k)*exp(Ci*Alpha*(xx(i,j,k)-x0(j,k)))
+                enddo 
+            enddo
+        enddo
+        call DMDAVecRestoreArrayF90(meshDA, turtle, tmp, ierr)
+
+        hdf5out = "data/hlns_out.h5"
         biresfile = "./data/hlns.pet"
         call PetscViewerBinaryOpen(comm,trim(biresfile),FILE_MODE_WRITE,viewer,ierr)
         call VecView(turtle, viewer, ierr)
@@ -700,25 +716,25 @@ module mod_files
             call DMGetGlobalVector(unicordDA,coord,ierr)
             call DMGetGlobalVector(unimeshDA,flowfield,ierr)
 
-            call PetscViewerHDF5Open(PETSC_COMM_SELF,trim(hdf5file),FILE_MODE_WRITE,viewer,ierr)
+            call PetscViewerHDF5Open(PETSC_COMM_SELF,trim(hdf5out),FILE_MODE_WRITE,viewer,ierr)
 
-            call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(biflowfile),FILE_MODE_READ, sviewer, ierr)
-            call VecLoad(flowfield, sviewer, ierr)
-            call PetscViewerDestroy(sviewer, ierr)
-            call PetscObjectSetName(flowfield,"baseflow",ierr)
-            call VecView(flowfield,viewer,ierr)
-            call DMRestoreGlobalVector(unimeshDA,flowfield,ierr)
+            ! call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(biflowfile),FILE_MODE_READ, sviewer, ierr)
+            ! call VecLoad(flowfield, sviewer, ierr)
+            ! call PetscViewerDestroy(sviewer, ierr)
+            ! call PetscObjectSetName(flowfield,"baseflow",ierr)
+            ! call VecView(flowfield,viewer,ierr)
+            ! call DMRestoreGlobalVector(unimeshDA,flowfield,ierr)
 
-            call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(bigridfile),FILE_MODE_READ, sviewer, ierr)
-            call VecLoad(coord, sviewer, ierr)
-            call PetscViewerDestroy(sviewer, ierr)
-            call PetscObjectSetName(coord,"grid",ierr)
-            call VecView(coord,viewer,ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"grid","In",PETSC_INT,in,ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"grid","Jn",PETSC_INT,jn,ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"grid","Kn",PETSC_INT,kn,ierr)
-            call DMRestoreGlobalVector(unicordDA,coord,ierr)
-            call DMDestroy(unicordDA,ierr)
+            ! call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(bigridfile),FILE_MODE_READ, sviewer, ierr)
+            ! call VecLoad(coord, sviewer, ierr)
+            ! call PetscViewerDestroy(sviewer, ierr)
+            ! call PetscObjectSetName(coord,"grid",ierr)
+            ! call VecView(coord,viewer,ierr)
+            ! call PetscViewerHDF5WriteAttribute(viewer,"grid","In",PETSC_INT,in,ierr)
+            ! call PetscViewerHDF5WriteAttribute(viewer,"grid","Jn",PETSC_INT,jn,ierr)
+            ! call PetscViewerHDF5WriteAttribute(viewer,"grid","Kn",PETSC_INT,kn,ierr)
+            ! call DMRestoreGlobalVector(unicordDA,coord,ierr)
+            ! call DMDestroy(unicordDA,ierr)
 
             call PetscObjectSetName(VecT,"hlns",ierr)
             call VecView(VecT,viewer,ierr)
@@ -731,7 +747,7 @@ module mod_files
             call DMRestoreGlobalVector(unimeshDA,VecT,ierr)
             call DMDestroy(unimeshDA,ierr)
             call PetscViewerDestroy(viewer, ierr)
-            call PetscPrintf(comm, "   HDF5 Result -> "//trim(hdf5file)//"\n", ierr)
+            call PetscPrintf(comm, "   HDF5 Result -> "//trim(hdf5out)//"\n", ierr)
             call PetscPrintf(comm, "\n", ierr)
 
             call PetscViewerDestroy(viewer, ierr)

@@ -58,7 +58,7 @@ module mod_cubes
         contains
             procedure,public  :: get_adorned_cubes
             procedure,public  :: get_transed_cubes
-            procedure,private :: get_unadorned_cubes
+            procedure,private :: get_unadorned_cubes,get_rotated_cubes
             procedure,private :: get_splited_cubes,get_colored_cubes
             procedure,private :: teal_cubes,mint_cubes,skyblue_cubes,lilac_cubes
     end type lns_OP_point_type
@@ -391,7 +391,10 @@ module mod_cubes
 
         A_p=0.0d0;B_p=0.0d0;C_p=0.0d0
         A_m=0.0d0;B_m=0.0d0;C_m=0.0d0
-        call Jor%get_unadorned_cubes(i,j,k)
+
+        Jor = this
+        ! call Jor%get_unadorned_cubes(i,j,k)
+
         select case (split_mode)
             case(0)
                     call split_upwin(Jor%A_c,Jor%G,A_p,A_m)
@@ -443,7 +446,7 @@ module mod_cubes
             diag_plus(i, i)=max(0.0d0, lambda_(i)%re)
             diag_minus(i, i)=min(0.0d0, lambda_(i)%re)
         enddo
-        vl=vr !! vl is inv(vr)
+        vl=vr ! vl is inv(vr)
         call dgetrf(5, 5, vl, 5, ipiv, info)
         call dgetri(5, vl, 5, ipiv, work, 5, info)
 
@@ -510,7 +513,8 @@ module mod_cubes
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
-        call Jor%get_splited_cubes(i,j,k)
+        Jor = this
+        ! call Jor%get_splited_cubes(i,j,k)
         this%G=Jor%G
         this%D=Jor%D-Ci*Omega*Jor%G+Ci*Beta*Jor%C+Beta*Beta*Jor%Vzz
         this%A=Jor%A-Ci*Beta*Jor%Vxz
@@ -532,7 +536,8 @@ module mod_cubes
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
-        call Jor%get_splited_cubes(i,j,k)
+        Jor = this
+        ! call Jor%get_splited_cubes(i,j,k)
         this%G=Jor%G
         this%D=Jor%D-Ci*Omega*Jor%G+Ci*Alpha*Jor%A &
         +Ci*Beta*Jor%C+Alpha*Alpha*Jor%Vxx+Beta*Beta*Jor%Vzz+Alpha*Beta*Jor%Vxz
@@ -555,7 +560,8 @@ module mod_cubes
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
-        call Jor%get_splited_cubes(i,j,k)
+        Jor = this
+        ! call Jor%get_splited_cubes(i,j,k)
         this%G=Jor%G
         this%D=Jor%D-Ci*Omega*Jor%G
         this%A=Jor%A;     this%B=Jor%B;     this%C=Jor%C
@@ -573,29 +579,31 @@ module mod_cubes
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
-        call Jor%get_splited_cubes(i,j,k)
+        Jor = this
+        ! call Jor%get_splited_cubes(i,j,k)
         this%G=Jor%G
         this%D=Jor%D-Ci*Omega*Jor%G+Ci*Alpha*Jor%A+Alpha*Alpha*Jor%Vxx
-        this%A=Jor%A-2*Ci*Alpha*Jor%Vxx
+        this%A=Jor%A-2.0d0*Ci*Alpha*Jor%Vxx
         this%B=Jor%B-Ci*Alpha*Jor%Vxy
         this%C=Jor%C-Ci*Alpha*Jor%Vxz
         this%A_c=Jor%A_c; this%B_c=Jor%B_c; this%C_c=Jor%C_c
         this%A_p=Jor%A_p; this%B_p=Jor%B_p; this%C_p=Jor%C_p
         this%A_m=Jor%A_m; this%B_m=Jor%B_m; this%C_m=Jor%C_m
-        this%A_v=Jor%A_v-2*Ci*Alpha*Jor%Vxx
+        this%A_v=Jor%A_v-2.0d0*Ci*Alpha*Jor%Vxx
         this%B_v=Jor%B_v-Ci*Alpha*Jor%Vxy
         this%C_v=Jor%C_v-Ci*Alpha*Jor%Vxz
         this%Vxx=Jor%Vxx; this%Vyy=Jor%Vyy; this%Vzz=Jor%Vzz
         this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
     end subroutine lilac_cubes
 
-    subroutine get_transed_cubes(this,i,j,k)
+    subroutine get_rotated_cubes(this,i,j,k)
         use mod_parameters
         implicit none
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
-        call Jor%get_colored_cubes(i,j,k)
+        Jor = this
+        ! call Jor%get_colored_cubes(i,j,k)
         associate( &
             xi_x => xi_x(i,j,k), &
             xi_y => xi_y(i,j,k), &
@@ -663,6 +671,16 @@ module mod_cubes
             +(eta_x*phi_y+phi_x*eta_y)*Jor%Vxy+(eta_x*phi_z+phi_x*eta_z)*Jor%Vxz &
             +(eta_y*phi_z+phi_y*eta_z)*Jor%Vyz
         end associate
+    end subroutine get_rotated_cubes
+
+    subroutine get_transed_cubes(this,i,j,k)
+        implicit none
+        class(lns_OP_point_type),intent(inout) :: this
+        integer,intent(in) :: i,j,k
+        call this%get_unadorned_cubes(i,j,k)
+        call this%get_splited_cubes(i,j,k)
+        call this%get_colored_cubes(i,j,k)
+        call this%get_rotated_cubes(i,j,k)
     end subroutine get_transed_cubes
 
     subroutine get_adorned_cubes(this,i,j,k)

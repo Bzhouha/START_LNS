@@ -431,26 +431,6 @@ module mod_iterate
             enddo
         endif
 
-        ! if(lns_mode=3.and.ks==0)then
-        !      do k=ks,ks
-        !          do j=js,je
-        !              do i=is,ie
-        !                  x(:,i,j,k)=(x(:,i,j,k-2)-8.0d0*x(:,i,j,k-1)+8.0d0*x(:,i,j,k+1)-x(:,i,j,k+2))/12.0d0
-        !              enddo
-        !          enddo
-        !      enddo
-        ! endif
-
-        ! if(lns_mode=3.and.ke==(kn-1))then
-        !      do k=ke,ke
-        !          do j=js,je
-        !              do i=is,ie
-        !                  x(:,i,j,k)=(x(:,i,j,k-2)-8.0d0*x(:,i,j,k-1)+8.0d0*x(:,i,j,k+1)-x(:,i,j,k+2))/12.0d0
-        !              enddo
-        !          enddo
-        !      enddo 
-        ! endif
-
         end associate
 
         call DMDAVecRestoreArrayF90(meshDA,x,xr,ierr)

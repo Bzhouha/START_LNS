@@ -875,7 +875,6 @@ module mod_metrics
 
     subroutine deallocate_memory()
         implicit none
-        deallocate(xx)
         deallocate(yy)
         deallocate(zz)
         deallocate(jacobi)
