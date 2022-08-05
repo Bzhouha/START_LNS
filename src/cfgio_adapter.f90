@@ -36,6 +36,7 @@ module mod_cfgio_adapter
         implicit none
         character(len=256) :: grid
         character(len=256) :: flow
+        character(len=256) :: hdf5
         type(cfg_t) :: cfg
 
         if(cfg%has_key("filenames", "dir")) then
@@ -46,9 +47,12 @@ module mod_cfgio_adapter
 
         call cfg%get("filenames", "grid", grid)
         call cfg%get("filenames", "flow", flow)
+        call cfg%get("filenames", "hdf5", hdf5)
+        call cfg%get("filenames", "output prefix", output_prefix)
 
         gridfile=trim(dir)//trim(grid)
         flowfile=trim(dir)//trim(flow)
+        hdf5file=trim(dir)//trim(hdf5)
     end subroutine cfg_filename
 
     subroutine cfg_domain(cfg)
@@ -132,25 +136,25 @@ module mod_cfgio_adapter
             stop
         endif
 
-        call cfg%get("hlns", "flow file", ffile)
-        biflowfile=trim(ffile)
+        ! call cfg%get("hlns", "flow file", ffile)
+        ! biflowfile=trim(ffile)
 
-        call cfg%get("hlns", "grid file", gfile)
-        bigridfile=trim(gfile)
+        ! call cfg%get("hlns", "grid file", gfile)
+        ! bigridfile=trim(gfile)
 
-        call cfg%get("hlns", "hdf5 file", hfile)
-        hdf5file=trim(hfile)
+        ! call cfg%get("hlns", "hdf5 file", hfile)
+        ! hdf5file=trim(hfile)
 
-        call cfg%get("hlns", "plot3d file", pfile)
-        pltfile=trim(pfile)
+        ! call cfg%get("hlns", "plot3d file", pfile)
+        ! pltfile=trim(pfile)
 
-        call cfg%get("hlns", "initial guess", ifile)
-        initfile=trim(ifile)
-        inquire(file=trim(initfile),exist=ex_ini_gus_flg)
+        ! call cfg%get("hlns", "initial guess", ifile)
+        ! initfile=trim(ifile)
+        ! inquire(file=trim(initfile),exist=ex_ini_gus_flg)
 
-        call cfg%get("hlns", "inlet", dfile)
-        inletfile=trim(dfile)
-        inquire(file=trim(inletfile),exist=inlet_file_flg)
+        ! call cfg%get("hlns", "inlet", dfile)
+        ! inletfile=trim(dfile)
+        ! inquire(file=trim(inletfile),exist=inlet_file_flg)
 
     end subroutine cfg_hlns
 end module mod_cfgio_adapter

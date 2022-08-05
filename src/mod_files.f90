@@ -415,15 +415,15 @@ module mod_files
         call PetscPrintf(comm,"   Input File -> "//trim(hdf5file)//"\n\n",ierr)
 
         call DMGetGlobalVector(meshDA, flowfield, ierr)
-        call PetscObjectSetName(flowfield,"baseflow",ierr)
+        call PetscObjectSetName(flowfield,"flow",ierr)
         call DMGetGlobalVector(coordDA, coord, ierr)
         call PetscObjectSetName(coord,"grid",ierr)
-        call PetscObjectSetName(turtle,"hlns",ierr)
+        call PetscObjectSetName(turtle,"shapefunc",ierr)
 
         call PetscViewerHDF5Open(comm,trim(hdf5file),FILE_MODE_READ,viewer,ierr)
         call VecLoad(flowfield,viewer,ierr)
         call VecLoad(coord,viewer,ierr)
-        call PetscViewerHDF5HasDataset(viewer,'hlns',has,ierr)
+        call PetscViewerHDF5HasDataset(viewer,'shapefunc',has,ierr)
         if(has) call VecLoad(turtle,viewer,ierr)
         call PetscViewerDestroy(viewer, ierr)
 
@@ -653,7 +653,7 @@ module mod_files
         complex(R_P),parameter :: Ci = cmplx(0.0d0,1.0d0,R_P)
         PetscScalar,pointer :: tmp(:,:,:,:),grid(:,:,:,:)
         real(R_P),allocatable,dimension(:,:) :: x0
-        character(len=96) :: hdf5out
+        character(len=96) :: hdf5out,pltout
         PetscInt, intent(in) :: comm
         Vec :: VecT,coord,flowfield
         DM :: unimeshDA,unicordDA
@@ -664,7 +664,7 @@ module mod_files
         call PetscPrintf(comm, "\n -----------------------------------\n", ierr)
         call PetscPrintf(comm, "                Ostream              \n\n", ierr)
 
-        biresfile = "./data/hlns.pet"
+        biresfile = "./data/shapefunc.pet"
         call PetscViewerBinaryOpen(comm,trim(biresfile),FILE_MODE_WRITE,viewer,ierr)
         call VecView(turtle, viewer, ierr)
         call PetscViewerDestroy(viewer, ierr)
@@ -674,7 +674,7 @@ module mod_files
         call MPI_Barrier(comm,ierr)
 
         if(rank==0)then
-            hdf5out = "data/hlns_out.h5"
+            hdf5out = trim(output_prefix)//".h5"
             ! 生成单进程DM
             call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
             &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
@@ -716,8 +716,9 @@ module mod_files
 
             ! 把大乌龟写入Plot3D格式文件
 
+            ! pltout = trim(output_prefix)//".p3d"
             ! call DMDAVecGetArrayReadF90(unimeshDA, VecT, tmp, ierr)
-            ! open(18, file=trim(pltfile),action='write',form='unformatted')
+            ! open(18, file=trim(pltout),action='write',form='unformatted')
             ! write(18)
             ! select case (lns_mode)
             ! case(2)
@@ -728,7 +729,7 @@ module mod_files
             ! write(18) ((((tmp(l,i,j,k), i=0,in-1), j=0,jn-1), k=0,kn-1), l=0,4)
             ! close(18)
             ! call DMDAVecRestoreArrayReadF90(unimeshDA, VecT, tmp, ierr)
-            ! call PetscPrintf(comm, "   Plot3D Result -> "//trim(pltfile)//"\n", ierr)
+            ! call PetscPrintf(comm, "   Plot3D Result -> "//trim(pltout)//"\n", ierr)
 
             ! 把大乌龟写入HDF5格式文件
 
@@ -738,7 +739,7 @@ module mod_files
             ! call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(biflowfile),FILE_MODE_READ, sviewer, ierr)
             ! call VecLoad(flowfield, sviewer, ierr)
             ! call PetscViewerDestroy(sviewer, ierr)
-            ! call PetscObjectSetName(flowfield,"baseflow",ierr)
+            ! call PetscObjectSetName(flowfield,"flow",ierr)
             ! call VecView(flowfield,viewer,ierr)
             ! call DMRestoreGlobalVector(unimeshDA,flowfield,ierr)
 
@@ -753,14 +754,14 @@ module mod_files
             ! call DMRestoreGlobalVector(unicordDA,coord,ierr)
             ! call DMDestroy(unicordDA,ierr)
 
-            call PetscObjectSetName(VecT,"hlns",ierr)
+            call PetscObjectSetName(VecT,"shapefunc",ierr)
             call VecView(VecT,viewer,ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Alpha.r",PETSC_DOUBLE,real(Alpha),ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Alpha.i",PETSC_DOUBLE,aimag(Alpha),ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Beta.r",PETSC_DOUBLE,real(Beta),ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Beta.i",PETSC_DOUBLE,aimag(Beta),ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega.r",PETSC_DOUBLE,real(Omega),ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"hlns","disturb.Omega.i",PETSC_DOUBLE,aimag(Omega),ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Alpha.r",PETSC_DOUBLE,real(Alpha),ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Alpha.i",PETSC_DOUBLE,aimag(Alpha),ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Beta.r",PETSC_DOUBLE,real(Beta),ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Beta.i",PETSC_DOUBLE,aimag(Beta),ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Omega.r",PETSC_DOUBLE,real(Omega),ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Omega.i",PETSC_DOUBLE,aimag(Omega),ierr)
             call DMRestoreGlobalVector(unimeshDA,VecT,ierr)
             call DMDestroy(unimeshDA,ierr)
             call PetscViewerDestroy(viewer, ierr)

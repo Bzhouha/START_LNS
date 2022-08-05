@@ -73,7 +73,9 @@ module mod_parameters
     character(len=10) :: solver_mode='newt' ! KSP.or.SNES.or.newt.or.newt_sub
     integer :: is,js,ks,il,jl,kl,ie,je,ke ! MPI网格分块位置
     real(R_P),parameter :: TAG = -1.0d0
+    character(len=256) :: output_prefix
     character(len=7) :: io_type='hdf5' ! file I/O type
+    logical :: ex_ini_gus_flg=.False. ! 是否赋初值
     logical :: inlet_file_flg=.False. ! 是否读入入口
     character(len=256) :: bigridfile ! 文件名：流场文件
     character(len=256) :: biflowfile ! 文件名：流场文件
@@ -89,7 +91,6 @@ module mod_parameters
     integer :: nx = PETSC_DECIDE
     integer :: ny = PETSC_DECIDE
     integer :: nz = PETSC_DECIDE
-    logical :: ex_ini_gus_flg ! 是否赋初值
     PetscInt :: in,jn,kn,ln=5 ! 流场网格数、自由度数
     integer :: split_mode=0 ! 对流系数矩阵拆分方式选择
     real(R_P) :: lm=1.0d0 ! 松弛系数
