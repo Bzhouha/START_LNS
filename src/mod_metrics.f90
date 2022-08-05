@@ -871,10 +871,11 @@ module mod_metrics
         call VecDestroy(PHIZZ_local,ierr);call VecDestroy(PHIXY_local,ierr)
         call VecDestroy(PHIXZ_local,ierr);call VecDestroy(PHIYZ_local,ierr)
 
-    end subroutine  delivery_by_dmda
+    end subroutine delivery_by_dmda
 
     subroutine deallocate_memory()
         implicit none
+        deallocate(xx)
         deallocate(yy)
         deallocate(zz)
         deallocate(jacobi)

@@ -70,9 +70,11 @@ module mod_parameters
     real(R_P), dimension(:,:,:,:), allocatable :: qq ! 数组：基本流
     real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re ! 流场参数
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge ! MPI网格分块位置
+    character(len=10) :: solver_mode='newt' ! KSP.or.SNES.or.newt.or.newt_sub
     integer :: is,js,ks,il,jl,kl,ie,je,ke ! MPI网格分块位置
     real(R_P),parameter :: TAG = -1.0d0
-    character(len=10) :: solver_mode ! KSP.or.SNES.or.newt.or.newt_sub
+    character(len=7) :: io_type='hdf5' ! file I/O type
+    logical :: inlet_file_flg=.False. ! 是否读入入口
     character(len=256) :: bigridfile ! 文件名：流场文件
     character(len=256) :: biflowfile ! 文件名：流场文件
     character(len=256) :: biresfile ! 文件名：结果文件
@@ -87,8 +89,6 @@ module mod_parameters
     integer :: nx = PETSC_DECIDE
     integer :: ny = PETSC_DECIDE
     integer :: nz = PETSC_DECIDE
-    character(len=7) :: io_type ! file I/O type
-    logical :: inlet_file_flg ! 是否读入入口
     logical :: ex_ini_gus_flg ! 是否赋初值
     PetscInt :: in,jn,kn,ln=5 ! 流场网格数、自由度数
     integer :: split_mode=0 ! 对流系数矩阵拆分方式选择
