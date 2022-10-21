@@ -205,13 +205,13 @@ module mod_files
         call PetscPrintf(comm, char(27)//"[0;1;36m"//" -----------------------------------\n"//char(27)//"[0m", ierr)
         select case(io_type)
             case("plt")
-                call PetscPrintf(comm, "\n   I/O type -> "//char(27)//"[0;33m"//"Plot3d"//char(27)//"[0m"//"\n\n", ierr)
+                call PetscPrintf(comm, "\n   I/O type      -> "//char(27)//"[0;33m"//"Plot3d"//char(27)//"[0m"//"\n\n", ierr)
                 call load_raw_files(comm)
             case("binary")
-                call PetscPrintf(comm, "\n   I/O type -> "//char(27)//"[0;33m"//"Binary"//char(27)//"[0m"//"\n\n", ierr)
+                call PetscPrintf(comm, "\n   I/O type      -> "//char(27)//"[0;33m"//"Binary"//char(27)//"[0m"//"\n\n", ierr)
                 call load_binary_files(comm)
             case("hdf5")
-                call PetscPrintf(comm, "\n   I/O type -> "//char(27)//"[0;33m"//"HDF5"//char(27)//"[0m"//"\n\n", ierr)
+                call PetscPrintf(comm, "\n   I/O type      -> "//char(27)//"[0;33m"//"HDF5"//char(27)//"[0m"//"\n\n", ierr)
                 call load_hdf5_files(comm)
         end select
 
@@ -417,7 +417,7 @@ module mod_files
         integer :: l,i,j,k
         PetscBool :: has
 
-        call PetscPrintf(comm,"   Input File -> "//char(27)//"[0;33m"//trim(hdf5file)//char(27)//"[0m"//"\n\n",ierr)
+        call PetscPrintf(comm,"   Input File    -> "//char(27)//"[0;33m"//trim(hdf5file)//char(27)//"[0m"//"\n\n",ierr)
 
         call DMGetGlobalVector(meshDA, flowfield, ierr)
         call PetscObjectSetName(flowfield,"flow",ierr)
@@ -625,16 +625,16 @@ module mod_files
         write(str_5,"(I5)") sink
         call PetscPrintf(comm,"   Process Count -> "//char(27)//"[0;33m"//str_5//char(27)//"[0m"//"\n\n",ierr)
 
-        call PetscPrintf(comm,"   Solver Type -> "//char(27)//"[0;33m"//solver_mode//char(27)//"[0m"//"\n\n",ierr)
+        call PetscPrintf(comm,"   Solver Type   -> "//char(27)//"[0;33m"//solver_mode//char(27)//"[0m"//"\n\n",ierr)
 
         write(str_1,"(I1)") lns_mode
         call PetscPrintf(comm,"   LNS Dimension -> "//char(27)//"[0;33m"//str_1//"D-LNS"//char(27)//"[0m"//"\n\n",ierr)
 
         write(str_18,"(3I6)") in,jn,kn
-        call PetscPrintf(comm,"   Grid Size -> "//char(27)//"[0;33m"//str_18//char(27)//"[0m"//"\n\n",ierr)
+        call PetscPrintf(comm,"   Grid Size     -> "//char(27)//"[0;33m"//str_18//char(27)//"[0m"//"\n\n",ierr)
 
         write(str_18,"(3I6)") nx,ny,nz
-        call PetscPrintf(comm,"   Partition -> "//char(27)//"[0;33m"//str_18//char(27)//"[0m"//"\n\n",ierr)
+        call PetscPrintf(comm,"   Partition     -> "//char(27)//"[0;33m"//str_18//char(27)//"[0m"//"\n\n",ierr)
 
         7888 format (F17.9)
         7777 format (2F17.13) 
