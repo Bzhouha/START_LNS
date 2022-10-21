@@ -410,16 +410,29 @@ module mod_iterate
             enddo
         endif
 
-        if(js==0)then
-            do k=ks,ke
-                do j=js,js
-                    do i=is,ie
-                        x(:,i,j,k)=0.0d0
-                        x(0,i,j,k)=(bf(i,j+1,k)%BF%rho*x(4,i,j+1,k)+bf(i,j+1,k)%BF%T*x(0,i,j+1,k))/bf(i,j,k)%BF%T
+        select case(wall_bc)
+        case(0)
+            if(js==0)then
+                do k=ks,ke
+                    do j=js,js
+                        do i=is,ie
+                            x(:,i,j,k)=0.0d0
+                            x(0,i,j,k)=(bf(i,j+1,k)%BF%rho*x(4,i,j+1,k)+bf(i,j+1,k)%BF%T*x(0,i,j+1,k))/bf(i,j,k)%BF%T
+                        enddo
                     enddo
                 enddo
-            enddo
-        endif
+            endif
+        case(797)
+            if(js==0)then 
+                do k=ks,ke 
+                    do j=js,js
+                        do i=is,ie 
+                            x(:,i,j,k)=wall(:,i,k)
+                        enddo 
+                    enddo 
+                enddo
+            endif
+        end select
 
         if(je==(jn-1))then
             do k=ks,ke

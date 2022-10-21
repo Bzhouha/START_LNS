@@ -40,8 +40,8 @@ module mod_solving
         implicit none
         PetscInt,intent(in) :: comm
 
-        call PetscPrintf(comm, "\n -----------------------------------\n", ierr)
-        call PetscPrintf(comm, "               DStream            \n", ierr)
+        call PetscPrintf(comm, char(27)//"[0;36m"//" DStream            \n"//char(27)//"[0m", ierr)
+        call PetscPrintf(comm, char(27)//"[0;1;36m"//" -----------------------------------\n"//char(27)//"[0m", ierr)
         call PetscPrintf(comm, "\n   「 Data Preparation 」\n", ierr)
         call metric_coefficient(comm)
         call partial_derivatives(comm)
@@ -321,17 +321,19 @@ module mod_solving
             ! Print residual
             write(str_count,"(I5)") count
             write(str_norm,"(ES20.12)") nrm
-            call PetscPrintf(comm," "//str_count//" < residual i-Norm > "//str_norm//"\n",ierr)
+            call PetscPrintf(comm," "//char(27)//"[0;33m"//str_count//char(27)//"[0m"//" < residual i-Norm > "//str_norm//"\n",ierr)
             ! Get solution
             call VecAXPY(x,one,res,ierr)
             ! If iterated too much times
             if(count>5000)then
-                call PetscPrintf(comm,"\n   < Maximum number of iterations reached. >\n",ierr)
+                call PetscPrintf(comm,"\n   "//char(27)//"[0;31m"// &
+                &   "< Maximum number of iterations reached. >"//char(27)//"[0m"//"\n",ierr)
                 exit
             endif
             ! If converged
             if(nrm<1e-5)then
-                call PetscPrintf(comm,"\n   < Converged. >\n",ierr)
+                call PetscPrintf(comm,"\n   "//char(27)//"[0;31m"// &
+                &   "< Converged. >"//char(27)//"[0m"//"\n",ierr)
                 exit
             endif
         enddo
@@ -411,17 +413,19 @@ module mod_solving
             ! 输出残差
             write(str_count,"(I5)") count
             write(str_norm,"(ES20.12)") nrm
-            call PetscPrintf(comm," "//str_count//" < residual i-Norm > "//str_norm//"\n",ierr)
+            call PetscPrintf(comm," "//char(27)//"[0;33m"//str_count//char(27)//"[0m"//" < residual i-Norm > "//str_norm//"\n",ierr)
             ! 刷新近似解
             call VecAXPY(x,one,res,ierr)
             ! 如果达到最大迭代数
             if(count>5000)then
-                call PetscPrintf(comm,"\n   < Maximum number of iterations reached. >\n",ierr)
+                call PetscPrintf(comm,"\n   "//char(27)//"[0;31m"// &
+                &   "< Maximum number of iterations reached. >"//char(27)//"[0m"//"\n",ierr)
                 exit
             endif
             ! 如果收敛
             if(nrm<1e-5)then
-                call PetscPrintf(comm,"\n   < Converged. >\n",ierr)
+                call PetscPrintf(comm,"\n   "//char(27)//"[0;31m"// &
+                &   "< Converged. >"//char(27)//"[0m"//"\n",ierr)
                 exit
             endif
         enddo

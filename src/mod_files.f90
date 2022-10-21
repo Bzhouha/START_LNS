@@ -44,7 +44,8 @@ module mod_files
 
         call mpi_comm_rank(comm,rank,ierr)
         call mpi_comm_size(comm,sink,ierr)
-        call PetscPrintf(comm, "\n          S T A R T - L N S\n", ierr)
+        call PetscPrintf(comm, "\n"//char(27)//"[0m"//"           "//char(27)//"[0;1;4;37;44m"// &
+        &    "S T A R T - L N S"// char(27)//"[0m"//"\n\n\n", ierr)
 
         call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-f',cfg_file,set,ierr)
         if(.not. set) then
@@ -198,23 +199,25 @@ module mod_files
         implicit none
         integer,intent(in) :: comm
 
-        call PetscPrintf(comm, "\n -----------------------------------\n", ierr)
-        call PetscPrintf(comm, "               IStream            \n", ierr)
-
+        call PetscPrintf(comm, char(27)//"[0;36m"//" IStream            \n"//char(27)//"[0m", ierr)
+        call PetscPrintf(comm, char(27)//"[0;1;36m"//" -----------------------------------\n"//char(27)//"[0m", ierr)
         select case(io_type)
             case("plt")
-                call PetscPrintf(comm, "\n   I/O type -> Plot3d\n\n", ierr)
+                call PetscPrintf(comm, "\n   I/O type -> "//char(27)//"[0;33m"//"Plot3d"//char(27)//"[0m"//"\n\n", ierr)
                 call load_raw_files(comm)
             case("binary")
-                call PetscPrintf(comm, "\n   I/O type -> Binary\n\n", ierr)
+                call PetscPrintf(comm, "\n   I/O type -> "//char(27)//"[0;33m"//"Binary"//char(27)//"[0m"//"\n\n", ierr)
                 call load_binary_files(comm)
             case("hdf5")
-                call PetscPrintf(comm, "\n   I/O type -> HDF5\n\n", ierr)
+                call PetscPrintf(comm, "\n   I/O type -> "//char(27)//"[0;33m"//"HDF5"//char(27)//"[0m"//"\n\n", ierr)
                 call load_hdf5_files(comm)
         end select
 
         call set_init_guess(comm)
         call load_inlet(comm)
+        if(wall_bc==797)then 
+            call load_wallbc_from_ini_gus(comm)
+        endif
         call check(comm)
         call DMDestroy(coordDA,ierr)
     end subroutine load
@@ -412,7 +415,7 @@ module mod_files
         integer :: l,i,j,k
         PetscBool :: has
 
-        call PetscPrintf(comm,"   Input File -> "//trim(hdf5file)//"\n\n",ierr)
+        call PetscPrintf(comm,"   Input File -> "//char(27)//"[0;33m"//trim(hdf5file)//char(27)//"[0m"//"\n\n",ierr)
 
         call DMGetGlobalVector(meshDA, flowfield, ierr)
         call PetscObjectSetName(flowfield,"flow",ierr)
@@ -507,6 +510,21 @@ module mod_files
         call MPI_Barrier(comm,ierr)
     end subroutine load_inlet_from_ini_gus
 
+    subroutine load_wallbc_from_ini_gus(comm)
+        implicit none
+        PetscScalar,pointer :: xr(:,:,:,:)
+        integer,intent(in) :: comm
+
+        allocate(wall(0:4,is:ie,ks:ke))
+        wall = 0.0d0 
+        call DMDAVecGetArrayReadF90(meshDA, turtle, xr, ierr)
+        if(js==0)then 
+            wall(:,:,:) = xr(:,:,js,:)
+        endif
+        call DMDAVecRestoreArrayReadF90(meshDA, turtle, xr, ierr)
+        call MPI_Barrier(comm,ierr)
+    end subroutine load_wallbc_from_ini_gus
+
     subroutine load_inlet_file(comm)
         implicit none
         PetscScalar, pointer :: inlets(:,:,:,:)
@@ -594,56 +612,65 @@ module mod_files
     subroutine check(comm)
         implicit none
         PetscInt,intent(in) :: comm
-        character(len=75) :: str_75
-        character(len=57) :: str_57
+        character(len=45) :: str_45
         character(len=34) :: str_34
-        character(len=24) :: str_24
+        character(len=30) :: str_30
+        character(len=27) :: str_27
         character(len=18) :: str_18
         character(len=5) :: str_5
         character(len=1) :: str_1
 
         write(str_5,"(I5)") sink
-        call PetscPrintf(comm,"   Process Count -> "//str_5//"\n\n",ierr)
+        call PetscPrintf(comm,"   Process Count -> "//char(27)//"[0;33m"//str_5//char(27)//"[0m"//"\n\n",ierr)
 
-        call PetscPrintf(comm,"   Solver Type -> "//solver_mode//"\n\n",ierr)
+        call PetscPrintf(comm,"   Solver Type -> "//char(27)//"[0;33m"//solver_mode//char(27)//"[0m"//"\n\n",ierr)
 
         write(str_1,"(I1)") lns_mode
-        call PetscPrintf(comm,"   LNS Dimension -> "//str_1//"D-LNS\n\n",ierr)
-
-        ! write(str_5,"(L3)") ini_gus_flg
-        ! call PetscPrintf(comm,"   Initial Guess -> "//str_5//"\n\n",ierr)
+        call PetscPrintf(comm,"   LNS Dimension -> "//char(27)//"[0;33m"//str_1//"D-LNS"//char(27)//"[0m"//"\n\n",ierr)
 
         write(str_18,"(3I6)") in,jn,kn
-        call PetscPrintf(comm,"   Grid Size -> "//str_18//"\n\n",ierr)
+        call PetscPrintf(comm,"   Grid Size -> "//char(27)//"[0;33m"//str_18//char(27)//"[0m"//"\n\n",ierr)
 
         write(str_18,"(3I6)") nx,ny,nz
-        call PetscPrintf(comm,"   Partition -> "//str_18//"\n\n",ierr)
+        call PetscPrintf(comm,"   Partition -> "//char(27)//"[0;33m"//str_18//char(27)//"[0m"//"\n\n",ierr)
 
-        1111 format (3X,A,'    -> ',F11.3)
-        1222 format (3X,A,' -> ',2F11.7)
-        1333 format (3X,'Grid[',2(I5,','),I5,' ] ->',3(F9.3))
-        1444 format (3X,'Flow[',2(I5,','),I5,' ] ->',5(F9.3))
+        7888 format (F17.9)
+        7777 format (2F17.13) 
+        7666 format (3X,'Grid[',2(I5,','),I5,' ] ->')
+        7555 format (3(F9.3))
+        7444 format (3X,'Flow[',2(I5,','),I5,' ] ->')
+        7333 format (5(F9.3))
 
-        write(str_24,1111) 'Re',Re;call PetscPrintf(comm,str_24//"\n",ierr)
-        write(str_24,1111) 'Ma',Ma;call PetscPrintf(comm,str_24//"\n",ierr)
-        write(str_24,1111) 'Te',Te;call PetscPrintf(comm,str_24//"\n",ierr)
+        write(str_18,7888) Re 
+        call PetscPrintf(comm,"   Re    -> "//char(27)//"[0;33m"//str_18//char(27)//"[0m"//"\n",ierr)
+        write(str_18,7888) Ma 
+        call PetscPrintf(comm,"   Ma    -> "//char(27)//"[0;33m"//str_18//char(27)//"[0m"//"\n",ierr)
+        write(str_18,7888) Te
+        call PetscPrintf(comm,"   Te    -> "//char(27)//"[0;33m"//str_18//char(27)//"[0m"//"\n",ierr)
 
-        write(str_34,1222) "Alpha",Alpha;call PetscPrintf(comm,str_34//"\n",ierr)
-        write(str_34,1222) "Beta ",Beta;call PetscPrintf(comm,str_34//"\n",ierr)
-        write(str_34,1222) "Omega",Omega;call PetscPrintf(comm,str_34//"\n\n",ierr)
+        write(str_34,7777) Alpha
+        call PetscPrintf(comm,"   Alpha -> "//char(27)//"[0;33m"//str_34//char(27)//"[0m"//"\n",ierr)
+        write(str_34,7777) Beta
+        call PetscPrintf(comm,"   Beta  -> "//char(27)//"[0;33m"//str_34//char(27)//"[0m"//"\n",ierr)
+        write(str_34,7777) Omega
+        call PetscPrintf(comm,"   Omega -> "//char(27)//"[0;33m"//str_34//char(27)//"[0m"//"\n\n",ierr)
 
-        write(str_57,1333) igs,jgs,kgs,xx(igs,jgs,kgs),yy(igs,jgs,kgs),zz(igs,jgs,kgs)
-        call PetscPrintf(comm,str_57//"\n",ierr)
-        write(str_57,1333) ige,jge,kge,xx(ige,jge,kge),yy(ige,jge,kge),zz(ige,jge,kge)
-        call PetscPrintf(comm,str_57//"\n",ierr)
+        write(str_30,7666) igs,jgs,kgs; write(str_27,7555) xx(igs,jgs,kgs),yy(igs,jgs,kgs),zz(igs,jgs,kgs)
+        call PetscPrintf(comm,str_30//char(27)//"[0;33m"//str_27//char(27)//"[0m"//"\n",ierr)
+        write(str_30,7666) ige,jge,kge; write(str_27,7555) xx(ige,jge,kge),yy(ige,jge,kge),zz(ige,jge,kge)
+        call PetscPrintf(comm,str_30//char(27)//"[0;33m"//str_27//char(27)//"[0m"//"\n",ierr)
 
-        write(str_75,1444) igs,jgs,kgs,qq(1,igs,jgs,kgs),qq(2,igs,jgs,kgs),    &
+        write(str_30,7444) igs,jgs,kgs
+        write(str_45,7333) qq(1,igs,jgs,kgs),qq(2,igs,jgs,kgs),    &
         &                  qq(3,igs,jgs,kgs),qq(4,igs,jgs,kgs),qq(5,igs,jgs,kgs)
-        call PetscPrintf(comm,str_75//"\n",ierr)
+        call PetscPrintf(comm,str_30//char(27)//"[0;33m"//str_45//char(27)//"[0m"//"\n",ierr)
 
-        write(str_75,1444) ige,jge,kge,qq(1,ige,jge,kge),qq(2,ige,jge,kge),    &
+        write(str_30,7444) ige,jge,kge
+        write(str_45,7333) qq(1,ige,jge,kge),qq(2,ige,jge,kge),    &
         &                  qq(3,ige,jge,kge),qq(4,ige,jge,kge),qq(5,ige,jge,kge)
-        call PetscPrintf(comm,str_75//"\n",ierr)
+        call PetscPrintf(comm,str_30//char(27)//"[0;33m"//str_45//char(27)//"[0m"//"\n",ierr)
+
+        call PetscPrintf(comm,"\n\n",ierr)
 
         call MPI_Barrier(comm,ierr)
     end subroutine check
@@ -661,8 +688,10 @@ module mod_files
         integer :: i,j,k,l
         Vec :: VecX
 
-        call PetscPrintf(comm, "\n -----------------------------------\n", ierr)
-        call PetscPrintf(comm, "                Ostream              \n\n", ierr)
+        call PetscPrintf(comm, "\n\n", ierr)
+        call PetscPrintf(comm, char(27)//"[0;36m"//" OStream            \n"//char(27)//"[0m", ierr)
+        call PetscPrintf(comm, char(27)//"[0;1;36m"//" -----------------------------------\n"//char(27)//"[0m", ierr)
+        call PetscPrintf(comm, "\n", ierr)
 
         biresfile = "./data/shapefunc.pet"
         call PetscViewerBinaryOpen(comm,trim(biresfile),FILE_MODE_WRITE,viewer,ierr)
@@ -765,7 +794,7 @@ module mod_files
             call DMRestoreGlobalVector(unimeshDA,VecT,ierr)
             call DMDestroy(unimeshDA,ierr)
             call PetscViewerDestroy(viewer, ierr)
-            call PetscPrintf(comm, "   HDF5 Result -> "//trim(hdf5out)//"\n", ierr)
+            call PetscPrintf(comm, "   HDF5 Result -> "//char(27)//"[0;33m"//trim(hdf5out)//char(27)//"[0m"//"\n", ierr)
             call PetscPrintf(comm, "\n", ierr)
 
             call PetscViewerDestroy(viewer, ierr)
