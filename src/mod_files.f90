@@ -44,7 +44,9 @@ module mod_files
 
         call mpi_comm_rank(comm,rank,ierr)
         call mpi_comm_size(comm,sink,ierr)
-        call PetscPrintf(comm, "\n"//char(27)//"[0m"//"           "//char(27)//"[0;1;4;37;44m"// &
+        ! call PetscPrintf(comm, "\n"//char(27)//"[0m"//"           "//char(27)//"[0;1;4;37;44m"// &
+        ! &    "S T A R T - L N S"// char(27)//"[0m"//"\n\n\n", ierr)
+        call PetscPrintf(comm, "\n\n"//char(27)//"[0;1;31m"//" > "//char(27)//"[0m"//" "//char(27)//"[0;1;4;37;44m"// &
         &    "S T A R T - L N S"// char(27)//"[0m"//"\n\n\n", ierr)
 
         call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-f',cfg_file,set,ierr)
