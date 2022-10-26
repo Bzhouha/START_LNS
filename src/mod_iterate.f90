@@ -427,7 +427,9 @@ module mod_iterate
                 do k=ks,ke 
                     do j=js,js
                         do i=is,ie 
-                            x(:,i,j,k)=wall(:,i,k)
+                            x(0,i,j,k)=(bf(i,j+1,k)%BF%rho*x(4,i,j+1,k)+bf(i,j+1,k)%BF%T*x(0,i,j+1,k))/bf(i,j,k)%BF%T
+                            x(1:3,i,j,k)=0.0d0
+                            x(4,i,j,k)=wall(4,i,k)
                         enddo 
                     enddo 
                 enddo
