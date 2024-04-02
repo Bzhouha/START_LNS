@@ -1,7 +1,20 @@
+!------------------------------------------------------------------------------
+!
+! Copyright (C) 2019-2024 Bzhouha
+! 
+! This file is part of START_LNS.
+!
+! START_LNS is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+!
+! START_LNS is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License along with Foobar. If not, see <https://www.gnu.org/licenses/>. 
+!
+!------------------------------------------------------------------------------
 !#include <petsc/finclude/petsc.h>
 #include <slepc/finclude/slepc.h>
 
-module mod_files
+module mod_files 
 !
 ! 这个模块处理文件流，包括:
 !
@@ -42,6 +55,8 @@ module mod_files
         PetscInt,intent(in) :: comm
         PetscBool :: set
 
+        time0 = MPI_Wtime()
+
         call mpi_comm_rank(comm,rank,ierr)
         call mpi_comm_size(comm,sink,ierr)
         ! call PetscPrintf(comm, "\n"//char(27)//"[0m"//"           "//char(27)//"[0;1;4;37;44m"// &
@@ -55,21 +70,21 @@ module mod_files
             stop
         endif
 
-        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ksp',ksp_flg,ierr)
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-asf',ksp_flg,ierr)
         call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-snes',snes_flg,ierr)
-        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-newt',newt_flg,ierr)
-        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-newt_sub',newtsub_flg,ierr)
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-nasf',newt_flg,ierr)
+        call PetscOptionsHasName(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-lnasf',newtsub_flg,ierr)
         if(ksp_flg)then
-            solver_mode='ksp'; split_mode=0
+            solver_mode='asf'; split_mode=0
         endif
         if(snes_flg)then
             solver_mode='snes';split_mode=1
         endif
         if(newt_flg)then
-            solver_mode='newt';split_mode=0
+            solver_mode='nasf';split_mode=0
         endif
         if(newtsub_flg)then
-            solver_mode='newt_sub';split_mode=0
+            solver_mode='lnasf';split_mode=0
         endif
 
         call PetscOptionsGetInt (PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-lv',levels,mg_flg,ierr)
@@ -675,6 +690,7 @@ module mod_files
         call PetscPrintf(comm,"\n\n",ierr)
 
         call MPI_Barrier(comm,ierr)
+
     end subroutine check
 
     subroutine ostream(comm)
@@ -683,6 +699,7 @@ module mod_files
         PetscScalar,pointer :: tmp(:,:,:,:),grid(:,:,:,:)
         real(R_P),allocatable,dimension(:,:) :: x0
         character(len=96) :: hdf5out,pltout
+        character(len=20) :: str_time
         PetscInt, intent(in) :: comm
         Vec :: VecT,coord,flowfield
         DM :: unimeshDA,unicordDA
@@ -803,6 +820,11 @@ module mod_files
             call system("rm "//trim(biresfile)//"*")
         endif
         call MPI_Barrier(comm,ierr)
+        time = MPI_Wtime()-time0
+        write(str_time,"(F20.1)") time
+        call PetscPrintf(comm, char(27)//"[0;1m"//"   Total time"//char(27)//"[0m"//"  -> "//char(27)//"[0;32m"//trim(str_time)//"s"//char(27)//"[0m"//"\n", ierr)
+        call PetscPrintf(comm, "\n\n", ierr)
+        call PetscBarrier(PETSC_NULL_VEC, ierr)
 
     end subroutine ostream
 

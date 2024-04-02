@@ -1,3 +1,16 @@
+!------------------------------------------------------------------------------
+!
+! Copyright (C) 2019-2024 Bzhouha
+! 
+! This file is part of START_LNS.
+!
+! START_LNS is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+!
+! START_LNS is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License along with Foobar. If not, see <https://www.gnu.org/licenses/>. 
+!
+!------------------------------------------------------------------------------
 ! #include <petsc/finclude/petsc.h>
 #include <slepc/finclude/slepc.h>
 
@@ -62,6 +75,7 @@ module mod_parameters
     real(R_P), parameter :: delta_k(-2:2)=[0.0d0, 0.0d0, 1.0d0, 0.0d0, 0.0d0]
 
     integer, parameter :: wall_bc = 0 ! wall_bc = {'0';'797':'heat source'}
+    real(kind=8) :: time,time0,time1
 
     real(R_P), dimension(:,:,:), allocatable :: xi_xx,xi_yy,xi_zz,eta_xx,eta_yy,eta_zz,phi_xx,phi_yy,phi_zz ! 数组：度量系数
     real(R_P), dimension(:,:,:), allocatable :: xi_xy,xi_xz,xi_yz,eta_xy,eta_yz,eta_xz,phi_xy,phi_yz,phi_xz ! 数组：度量系数
@@ -71,9 +85,9 @@ module mod_parameters
     real(R_P), dimension(:,:,:), allocatable :: xx,yy,zz ! 数组：坐标
     type(flowtype), dimension(:,:,:), allocatable :: bf ! 数组：基本流信息
     real(R_P), dimension(:,:,:,:), allocatable :: qq ! 数组：基本流
-    real(R_P) :: GAMMA=1.4d0, MA, Pr=0.72d0, Te, Re ! 流场参数
+    real(R_P) :: GAMMA=1.4d0, MA, Pr=0.713d0, Te, Re ! 流场参数
     integer :: igs,jgs,kgs,igl,jgl,kgl,ige,jge,kge ! MPI网格分块位置
-    character(len=10) :: solver_mode='newt' ! KSP.or.SNES.or.newt.or.newt_sub
+    character(len=10) :: solver_mode='nasf' ! asf or nasf or lnasf
     integer :: is,js,ks,il,jl,kl,ie,je,ke ! MPI网格分块位置
     real(R_P),parameter :: TAG = -1.0d0
     character(len=256) :: output_prefix

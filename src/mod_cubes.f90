@@ -1,3 +1,16 @@
+!------------------------------------------------------------------------------
+! 
+! Copyright (C) 2019-2024 Bzhouha
+! 
+! This file is part of START_LNS.
+!
+! START_LNS is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+!
+! START_LNS is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License along with Foobar. If not, see <https://www.gnu.org/licenses/>. 
+!
+!------------------------------------------------------------------------------
 module mod_cubes
 ! -----------------------------------------------------------
 !
@@ -596,6 +609,29 @@ module mod_cubes
         this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
     end subroutine lilac_cubes
 
+    subroutine pink_cubes(this,i,j,k)
+        use mod_parameters,only:Alpha,Beta,Omega
+        implicit none
+        class(lns_OP_point_type),intent(inout) :: this
+        type(lns_OP_point_type) :: Jor
+        integer,intent(in) :: i,j,k
+        Jor = this
+        this%G = Jor%G
+        this%D = Jor%D - Ci*Omega*Jor%G + Ci*Alpha*Jor%A + Ci*Beta*Jor%C & 
+        &      + Alpha*Alpha*Jor%Vxx + Beta*Beta*Jor%Vzz + Alpha*Beta*Jor%Vxz
+        this%A = Jor%A - 2.0d0*Ci*Alpha*Jor%Vxx - Ci*Beta*Jor%Vxz
+        this%B = Jor%B -       Ci*Alpha*Jor%Vxy - Ci*Beta*Jor%Vyz
+        this%C = Jor%C - 2.0d0*Ci*Beta*Jor%Vzz  - Ci*Alpha*Jor%Vxz
+        this%A_c = Jor%A_c; this%B_c = Jor%B_c; this%C_c = Jor%C_c
+        this%A_p = Jor%A_p; this%B_p = Jor%B_p; this%C_p = Jor%C_p
+        this%A_m = Jor%A_m; this%B_m = Jor%B_m; this%C_m = Jor%C_m
+        this%A_v = Jor%A_v - 2.0d0*Ci*Alpha*Jor%Vxx - Ci*Beta*Jor%Vxz
+        this%B_v = Jor%B_v -       Ci*Alpha*Jor%Vxy - Ci*Beta*Jor%Vyz
+        this%C_v = Jor%C_v - 2.0d0*Ci*Beta*Jor%Vzz  - Ci*Alpha*Jor%Vxz
+        this%Vxx = Jor%Vxx; this%Vyy = Jor%Vyy; this%Vzz = Jor%Vzz
+        this%Vxy = Jor%Vxy; this%Vxz = Jor%Vxz; this%Vyz = Jor%Vyz
+    end subroutine pink_cubes
+
     subroutine get_rotated_cubes(this,i,j,k)
         use mod_parameters
         implicit none
@@ -678,6 +714,7 @@ module mod_cubes
         class(lns_OP_point_type),intent(inout) :: this
         integer,intent(in) :: i,j,k
         call this%get_unadorned_cubes(i,j,k)
+        ! call this%get_rotated_cubes(i,j,k)
         call this%get_splited_cubes(i,j,k)
         call this%get_colored_cubes(i,j,k)
         call this%get_rotated_cubes(i,j,k)

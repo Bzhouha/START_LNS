@@ -1,14 +1,17 @@
 !------------------------------------------------------------------------------
-! TJU/Department of Mechanics, Fluid Mechanics, Code START
-!------------------------------------------------------------------------------
 !
-!  File: cfgio_adapter.f90
-!> @file
-!> @breif cfgio代码适配器文件.
-!  DESCRIPTION:
-!     call cfg%set("domain", "in", in)
-!>
+! Copyright (C) 2019-2024 Bzhouha
+! 
+! This file is part of START_LNS.
+!
+! START_LNS is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+!
+! START_LNS is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License along with Foobar. If not, see <https://www.gnu.org/licenses/>. 
+!
 !------------------------------------------------------------------------------
+
 module mod_cfgio_adapter
     use cfgio_mod
     use mod_parameters

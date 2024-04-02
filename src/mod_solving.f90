@@ -1,3 +1,16 @@
+!------------------------------------------------------------------------------
+!
+! Copyright (C) 2019-2024 Bzhouha
+! 
+! This file is part of START_LNS.
+!
+! START_LNS is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+!
+! START_LNS is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License along with Foobar. If not, see <https://www.gnu.org/licenses/>. 
+!
+!------------------------------------------------------------------------------
 #include <slepc/finclude/slepc.h>
 
 module mod_solving
@@ -46,13 +59,13 @@ module mod_solving
         call metric_coefficient(comm)
         call partial_derivatives(comm)
         select case (solver_mode)
-            case('ksp')
+            case('asf')
                 call ksp_equation(comm,levels)
             case('snes')
                 call snes_equation(comm,snes_rhs_fx_4ord)
-            case('newt')
+            case('nasf')
                 call newt_equation(comm,fx_rhs_Ax_4ord)
-            case('newt_sub')
+            case('lnasf')
                 call newtsub_equation(comm,fx_rhs_Ax_4ord)
         end select
     end subroutine dstream
@@ -65,6 +78,7 @@ module mod_solving
         call PetscPrintf(comm,"\n   「 Forming Matrix 」\n",ierr)
         call init_mat_from_da(comm,meshDA,whale)
         call form_global_mat_4ord(whale)
+
         call duplicate_vec(turtle,RHS)
         call linear_rhs(comm,RHS)
         call solve_ksp(comm,whale,turtle,RHS,level)
@@ -90,8 +104,11 @@ module mod_solving
 
         call PetscPrintf(comm,"\n   「 Forming Jacobi Matrix 」\n",ierr)
         call set_medDA(comm,med1DA)
+        call PetscBarrier(PETSC_NULL_VEC,ierr)
         call init_mat_from_da(comm,med1DA,whale)
+        call PetscBarrier(PETSC_NULL_VEC,ierr)
         call form_global_mat_2ord(whale)
+        call PetscBarrier(PETSC_NULL_VEC,ierr)
         call solve_newt(comm,whale,turtle,fx_rhs)
     end subroutine newt_equation
 
@@ -265,7 +282,7 @@ module mod_solving
 
     subroutine solve_newt(comm,mat,x,fx_rhs)
         implicit none
-        character(len=20) :: str_norm
+        character(len=20) :: str_norm,str_time
         character(len=6) :: str_count
         integer,intent(in) :: comm
         Vec,intent(inout) :: x
@@ -279,7 +296,7 @@ module mod_solving
         KSP :: ksp
         PC :: pc
 
-        call PetscPrintf(comm, "\n   「 Newton-Like Method 」\n\n", ierr)
+        call PetscPrintf(comm, "\n   「 Newton-ASF Method 」\n\n", ierr)
         ! Set parameters
         one = 1.0d0
         ine = -1.0d0
@@ -304,9 +321,9 @@ module mod_solving
         call PCSetUp(pc,ierr)
         call KSPSetFromOptions(ksp,ierr)
         call KSPSetUp(ksp,ierr)
+        call PetscBarrier(PETSC_NULL_VEC,ierr)
+        time1 = MPI_Wtime()
         ! Iteration loops
-        ! call PetscPrintf(comm,"    using *Newtom-Like* method\n",ierr)
-
         do while(.True.)
             ! Count
             count = count + 1
@@ -321,11 +338,13 @@ module mod_solving
             ! Print residual
             write(str_count,"(I5)") count
             write(str_norm,"(ES20.12)") nrm
-            call PetscPrintf(comm," "//char(27)//"[0;33m"//str_count//char(27)//"[0m"//" < residual i-Norm > "//str_norm//"\n",ierr)
+            write(str_time,"(F10.1)") MPI_Wtime()-time1
+            call PetscPrintf(comm," "//char(27)//"[0;33m"//str_count//char(27)//"[0m"//" < residual i-Norm > "//str_norm// &
+                "  "//char(27)//"[0;32m"//trim(str_time)//"s"//char(27)//"[0m"//"\n",ierr)
             ! Get solution
             call VecAXPY(x,one,res,ierr)
             ! If iterated too much times
-            if(count>5000)then
+            if(count>10000)then
                 call PetscPrintf(comm,"\n   "//char(27)//"[0;31m"// &
                 &   "< Maximum number of iterations reached. >"//char(27)//"[0m"//"\n",ierr)
                 exit
@@ -367,7 +386,7 @@ module mod_solving
         KSP :: ksp
         PC :: pc
 
-        call PetscPrintf(comm, "\n   「 Newton-Like Subs Method 」\n\n", ierr)
+        call PetscPrintf(comm, "\n   「 Localized N-ASF Method 」\n\n", ierr)
 
         ! 初始化变量
         one = 1.0d0
@@ -417,7 +436,7 @@ module mod_solving
             ! 刷新近似解
             call VecAXPY(x,one,res,ierr)
             ! 如果达到最大迭代数
-            if(count>5000)then
+            if(count>10000)then
                 call PetscPrintf(comm,"\n   "//char(27)//"[0;31m"// &
                 &   "< Maximum number of iterations reached. >"//char(27)//"[0m"//"\n",ierr)
                 exit

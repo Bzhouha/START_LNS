@@ -1,6 +1,18 @@
-module mod_difference
-! ----------------------------------------------------
+!------------------------------------------------------------------------------
+!
+! Copyright (C) 2019-2024 Bzhouha
 ! 
+! This file is part of START_LNS.
+!
+! START_LNS is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+!
+! START_LNS is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License along with Foobar. If not, see <https://www.gnu.org/licenses/>. 
+!
+!------------------------------------------------------------------------------
+! ---------------------------------------------------- 
+!
 !  这个模块是计算导数的函数
 ! 
 !       1.call fd1(out_array,mo,no,po,qo,ro,so,in_array,mi,ni,pi,qi,ri,si,flg,dof) 计算一整块数据的一阶导数
@@ -8,6 +20,7 @@ module mod_difference
 !       2.call fd2(out_array,mo,no,po,qo,ro,so,in_array,mi,ni,pi,qi,ri,si,flg,dof) 计算一整块数据的二阶导数
 ! 
 ! ----------------------------------------------------
+module mod_difference
     use penf, only: R_P
     use mod_parameters
     public :: fd1,fd2

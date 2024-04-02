@@ -1,3 +1,17 @@
+!------------------------------------------------------------------------------
+!
+! Copyright (C) 2019-2024 Bzhouha
+! 
+! This file is part of START_LNS.
+!
+! START_LNS is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+!
+! START_LNS is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+!
+! You should have received a copy of the GNU General Public License along with Foobar. If not, see <https://www.gnu.org/licenses/>. 
+!
+!------------------------------------------------------------------------------
+
 !#include <petsc/finclude/petsc.h>
 #include <slepc/finclude/slepc.h>
 
@@ -427,7 +441,11 @@ module mod_iterate
                 do k=ks,ke 
                     do j=js,js
                         do i=is,ie 
-                            x(0,i,j,k)=(bf(i,j+1,k)%BF%rho*x(4,i,j+1,k)+bf(i,j+1,k)%BF%T*x(0,i,j+1,k))/bf(i,j,k)%BF%T
+                            ! x(0,i,j,k)=(-1.0d0 * bf(i,j,k)%BF%rho * x(2,i,j+1,k)) / bf(i,j,k)%BFDy%y
+                            ! x(0,i,j,k)=( bf(i,j+1,k)%BF%rho * x(4,i,j+1,k) - bf(i,j,k)%BF%rho * wall(4,i,k) &
+                            ! &         + bf(i,j+1,k)%BF%T * x(0,i,j+1,k) ) / bf(i,j,k)%BF%T
+                            x(0, i, j, k) = ( bf(i, j, k)%BF%rho * ( x(4, i, j+1, k) - wall(4, i, k) ) + wall(4, i, k) * bf(i, j, k)%BFDy%rho + &
+                            &               bf(i, j, k)%BF%T * x(0, i, j+1, k) ) / ( bf(i, j, k)%BF%T - bf(i, j, k)%BFDy%T )
                             x(1:3,i,j,k)=0.0d0
                             x(4,i,j,k)=wall(4,i,k)
                         enddo 
@@ -435,7 +453,7 @@ module mod_iterate
                 enddo
             endif
         end select
-
+        
         if(je==(jn-1))then
             do k=ks,ke
                 do j=je,je
