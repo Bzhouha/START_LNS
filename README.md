@@ -24,24 +24,8 @@ The standard MPI startup command, as the START_LNS is the executable file.
 `-f` specifies the configuration file, and optional solver commands `solver_type`: `[-asf,-nasf,-lnasf]` correspond to as-fgmres, nas-fgmres, lnas-fgmres methods respectively, the default value is nas-fgmres.
 	
 The contents of the parameter file and a description of each item are listed here:
-> **[general]** <br>
-			title = linear parallel test *# identifier name* <br>	
-	**[filenames]** <br>
-			dir  = ./data/ *# relative path of data file*  <br>
-			hdf5 = Linear-2d.h5 *# input data file name*  <br>
-			output prefix = ./data/linear\_parallel\_test\_out *# relative path and prefixe of output file* <br>
-	**[freestream]** <br>
-			ma = 6.00d0 *# Mach number* <br>
-			re = 32500.0000000000 *# Reynolds number* <br>
-			te = 63.3340000000000 *# far-field temperature* <br>
-	**[domain]** <br>
-			in = 301 *# number of grids in streamwise direction* <br>
-			jn = 501 *# number of grids in normal direction* <br>
-			kn = 1   *# number of grids in spanwise direction* <br>
-	**[hlns]** <br>
-			Alpha = 2.6625941d0, -0.05993730 *# streamwise wave number* <br>
-			Beta  = 0.0d0, 0.0d0 *# normal wave number* <br>
-			Omega = 2.43d0, 0.0d0 *# frequency*
+
+![](./doc-imgs/config.png)
 
 The input file as shown in following figure has three datasets with names: flow, grid, and shapfunc, which correspond to the base flow, grid, and the initial value containing the inlet boundary condition information.
 
