@@ -7,13 +7,13 @@ To install the solver, a MPI implementation and a fortran compiler are needed, P
 ```
 Once you have these prerequisites installed, you can follow these steps to install the software:
 1. Clone the repository to your local machine.
-2. Change directories to the project directory:
+2. Change directories to the project directory:<br>
 ```cd START_LNS```
-3. Run the make command to build the software:<br>
+3. Run the `make` command to build the software:<br>
 ```make```
-4. Run the make install command to install the software:
+4. Run the `make install` command to install the software:<br>
 ```make install```
-5. This will install the software to the ~/bin directory. You can then run the software by typing the following command in a terminal:
+5. This will install the software to the ~/bin directory. You can then run the software by typing the following command in a terminal:<br>
 ```START_LNS -f config.ini```
 
 
