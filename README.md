@@ -45,9 +45,20 @@ The contents of the parameter file and a description of each item are listed her
 
 The input file as shown in following figure has three datasets with names: flow, grid, and shapfunc, which correspond to the base flow, grid, and the initial value containing the inlet boundary condition information.
 
+![](./doc-imgs/input_demo.png)
+
 The solver runs with the following interface after console `> mpirun -n 6 START_LNS -f config.ini -asf` :
 
+![](./doc-imgs/interface-1.jpeg)
+
+![](./doc-imgs/interface-2.jpeg)
+
+![](./doc-imgs/interface-3.jpeg)
+
 While the output file contains only the results as follow:
+
+![](./doc-imgs/output_demo.png)
+
 ## License
 
 This project is licensed under the GNU Lesser General Public License (LGPL v3). You are free to use, modify, and distribute the code in this project, but you must comply with the terms of the LGPL license.
