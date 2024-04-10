@@ -14,7 +14,9 @@ Once you have these prerequisites installed, you can follow these steps to insta
 4. Run the make install command to install the software:
 ```make install```
 5. This will install the software to the ~/bin directory. You can then run the software by typing the following command in a terminal:
-```START+LNS -f config.ini```
+```START_LNS -f config.ini```
+
+
 
 ## Usage
 ## License
