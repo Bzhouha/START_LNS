@@ -9,7 +9,7 @@ Once you have these prerequisites installed, you can follow these steps to insta
 1. Clone the repository to your local machine.
 2. Change directories to the project directory:
 ```cd START_LNS```
-3. Run the make command to build the software:
+3. Run the make command to build the software:<br>
 ```make```
 4. Run the make install command to install the software:
 ```make install```
