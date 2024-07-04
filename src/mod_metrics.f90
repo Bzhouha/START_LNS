@@ -120,6 +120,7 @@ module mod_metrics
         allocate(phi_yz(is:ie, js:je, ks:ke))
 
         allocate(jacobi(is:ie, js:je, ks:ke))
+        allocate(xi_scale(is:ie, js:je, ks:ke))
     end subroutine allocate_memory
 
     subroutine compute_contravariant_metrics()
@@ -189,6 +190,18 @@ module mod_metrics
                 enddo
             enddo
         enddo
+
+        do k=ks, ke
+            do j=js, je
+                do i=is, ie-1
+                    xi_scale(i, j, k)=sqrt((xx(i+1, j, k)-xx(i, j, k))**2 +&
+                                           (yy(i+1, j, k)-yy(i, j, k))**2 +&
+                                           (zz(i+1, j, k)-zz(i, j, k))**2)
+                enddo
+                xi_scale(ie, j, k)=xi_scale(ie-1, j, k)
+            enddo
+        enddo
+        
         call DMDAVecGetArrayF90(DA, XIX, tmp, ierr)
         tmp(:,:,:)=xi_x(:,:,:)
         call DMDAVecRestoreArrayF90(DA, XIX, tmp, ierr)
@@ -347,6 +360,18 @@ module mod_metrics
                 enddo
             enddo
         enddo
+
+        do k=ks, ke
+            do j=js, je
+                do i=is, ie-1
+                    xi_scale(i, j, k)=sqrt((xx(i+1, j, k)-xx(i, j, k))**2 +&
+                                           (yy(i+1, j, k)-yy(i, j, k))**2 +&
+                                           (zz(i+1, j, k)-zz(i, j, k))**2)
+                enddo
+                xi_scale(ie, j, k)=xi_scale(ie-1, j, k)
+            enddo
+        enddo
+
         call DMDAVecGetArrayF90(DA, XIX, tmp, ierr)
         tmp(:,:,:) = xi_x(:,:,:)
         call DMDAVecRestoreArrayF90(DA, XIX, tmp, ierr)

@@ -29,7 +29,7 @@ The contents of the parameter file and a description of each item are listed her
 
 The input file as shown in following figure has three datasets with names: flow, grid, and shapfunc, which correspond to the base flow, grid, and the initial value containing the inlet boundary condition information.
 
-![](./doc-imgs/input_demo.png)
+<img src="./doc-imgs/input_demo.png"  />
 
 The solver runs with the following interface after console `> mpirun -n 6 START_LNS -f config.ini -asf` :
 

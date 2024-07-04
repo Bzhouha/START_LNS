@@ -398,6 +398,7 @@ module mod_cubes
 
     end subroutine get_unadorned_cubes
 
+    !> 分裂技术矩阵
     subroutine get_splited_cubes(this,i,j,k)
         use mod_parameters,only : split_mode
         implicit none
@@ -434,6 +435,7 @@ module mod_cubes
         this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
     end subroutine get_splited_cubes
 
+    !> 第一个分裂格式 S-W分裂
     subroutine split_upwin(A,G,A_p,A_m)
         implicit none
         real(R_P),dimension(5, 5),intent(out) :: A_p,A_m
@@ -480,6 +482,7 @@ module mod_cubes
 
     end subroutine split_upwin
 
+    !> 谱半径分裂
     subroutine split_eigen(A,G,A_p,A_m)
         use mod_parameters,only:lm
         implicit none
@@ -525,6 +528,7 @@ module mod_cubes
         end select
     end subroutine get_colored_cubes
 
+    !> 获得对应随体坐标系下的系数矩阵（坐标变换）
     subroutine teal_cubes(this,i,j,k)
         use mod_parameters,only:Beta,Omega
         implicit none
@@ -548,12 +552,16 @@ module mod_cubes
         this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0
     end subroutine teal_cubes
 
+    !> 多尺度法处理: 2D-HLNS对应的系数小矩阵,disturbance=f(x,y)*e^i(ax+bz-wt)
     subroutine mint_cubes(this,i,j,k)
-        use mod_parameters,only:Alpha,Beta,Omega
+        use mod_parameters,only:Alpha0=>Alpha,Beta,Omega, xi_scale
         implicit none
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
+        complex(R_P) :: Alpha
+
+        Alpha=Alpha0*xi_scale(i, j, k)
         Jor = this
         ! call Jor%get_splited_cubes(i,j,k)
         this%G=Jor%G
@@ -572,6 +580,7 @@ module mod_cubes
         this%Vxy=Jor%Vxy; this%Vxz=0.0d0;   this%Vyz=0.0d0
     end subroutine mint_cubes
 
+    !> 多尺度法处理: 3D-HLNS对应的系数小矩阵,disturbance=f(x,y,z)*e^i(-wt)
     subroutine skyblue_cubes(this,i,j,k)
         use mod_parameters,only:Omega
         implicit none
@@ -591,12 +600,16 @@ module mod_cubes
         this%Vxy=Jor%Vxy; this%Vxz=Jor%Vxz; this%Vyz=Jor%Vyz
     end subroutine skyblue_cubes
 
+    !> 多尺度法处理: 3D-HLNS对应的系数小矩阵,disturbance=f(x,y,z)*e^i(ax-wt)
     subroutine lilac_cubes(this,i,j,k)
-        use mod_parameters,only:Alpha,Omega
+        use mod_parameters,only:Alpha0=>Alpha,Omega, xi_scale
         implicit none
         class(lns_OP_point_type),intent(inout) :: this
         type(lns_OP_point_type) :: Jor
         integer,intent(in) :: i,j,k
+        complex(R_P) :: Alpha
+
+        Alpha=Alpha0*xi_scale(i, j, k)
         Jor = this
         ! call Jor%get_splited_cubes(i,j,k)
         this%G=Jor%G
@@ -714,17 +727,19 @@ module mod_cubes
         end associate
     end subroutine get_rotated_cubes
 
+    !> 对外接口: 获得系数矩阵
     subroutine get_transed_cubes(this,i,j,k)
         implicit none
         class(lns_OP_point_type),intent(inout) :: this
         integer,intent(in) :: i,j,k
         call this%get_unadorned_cubes(i,j,k)
-        ! call this%get_rotated_cubes(i,j,k)
+        call this%get_rotated_cubes(i,j,k)
         call this%get_splited_cubes(i,j,k)
         call this%get_colored_cubes(i,j,k)
-        call this%get_rotated_cubes(i,j,k)
+        ! call this%get_rotated_cubes(i,j,k)
     end subroutine get_transed_cubes
 
+    !> 对外接口: 获得坐标变换后的系数小矩阵
     subroutine get_adorned_cubes(this,i,j,k)
         use mod_parameters
         implicit none

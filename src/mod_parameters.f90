@@ -85,6 +85,7 @@ module mod_parameters
     real(R_P), dimension(:,:,:), allocatable :: xi_xx,xi_yy,xi_zz,eta_xx,eta_yy,eta_zz,phi_xx,phi_yy,phi_zz ! 数组：度量系数
     real(R_P), dimension(:,:,:), allocatable :: xi_xy,xi_xz,xi_yz,eta_xy,eta_yz,eta_xz,phi_xy,phi_yz,phi_xz ! 数组：度量系数
     real(R_P), dimension(:, :,:), allocatable :: xi_x,xi_y,xi_z,eta_x,eta_y,eta_z,phi_x,phi_y,phi_z ! 数组：度量系数
+    real(R_P), dimension(:, :, :), allocatable :: xi_scale
     complex(R_P), dimension(:,:,:), allocatable :: inlet
     complex(R_P), dimension(:,:,:), allocatable :: wall
     real(R_P), dimension(:,:,:), allocatable :: xx,yy,zz ! 数组：坐标
