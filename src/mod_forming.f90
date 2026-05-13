@@ -105,8 +105,8 @@ module mod_forming
         call VecZeroEntries(bell,ierr)
         call DMGlobalToLocalBegin(meshDA,X,INSERT_VALUES,bell,ierr)
         call DMGlobalToLocalEnd(meshDA,X,INSERT_VALUES,bell,ierr)
-        call DMDAVecGetArrayReadF90(meshDA,bell,xr,ierr)
-        call DMDAVecGetArrayF90(meshDA,F,fr,ierr)
+        call DMDAVecGetArrayRead(meshDA,bell,xr,ierr)
+        call DMDAVecGetArray(meshDA,F,fr,ierr)
         associate ( &
         &   coef_c4  => FDM_1nd_4ORD_CENTER,   &
         &   coef_d4  => FDM_2nd_4ORD_CENTER,   &
@@ -232,8 +232,8 @@ module mod_forming
             enddo
         enddo
         end associate
-        call DMDAVecRestoreArrayReadF90(meshDA,bell,xr,ierr)
-        call DMDAVecRestoreArrayF90(meshDA,F,fr,ierr)
+        call DMDAVecRestoreArrayRead(meshDA,bell,xr,ierr)
+        call DMDAVecRestoreArray(meshDA,F,fr,ierr)
         call DMRestoreLocalVector(meshDA,bell,ierr)
 
     end subroutine mat_mult_4ord
@@ -279,7 +279,7 @@ module mod_forming
 
         implicit none
         PetscScalar :: box(5,5),trans(5,5)
-        MatStencil :: idxm(4,1),idxn(4,1)
+        MatStencil :: idxm(1),idxn(1)
         integer :: ic_index, jc_index
         integer :: lib, lie, ljb, lje
         integer,intent(in) :: i,j,k
@@ -290,13 +290,13 @@ module mod_forming
         if(i==0 .or. j==(jn-1))then
             box=0.0d0
             box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
-            idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
-            idxn(MatStencil_i, 1)=i; idxn(MatStencil_j, 1)=j; idxn(MatStencil_k, 1)=k
-            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+            idxm(1)%i=i; idxm(1)%j=j; idxm(1)%k=k
+            idxn(1)%i=i; idxn(1)%j=j; idxn(1)%k=k
+            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, reshape(box,[25]), INSERT_VALUES, ierr)
         elseif(j==0 .and. i/=0)then
             ljb=0;lje=1
             jc_index=1
-            idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
+            idxm(1)%i=i; idxm(1)%j=j; idxm(1)%k=k
             call Jor%get_transed_cubes(i,j,k)
             do lj=1,5
                 do li=2,5
@@ -306,32 +306,32 @@ module mod_forming
             enddo
             Jor%D(2,2)=1.0d0;Jor%D(3,3)=1.0d0
             Jor%D(4,4)=1.0d0;Jor%D(5,5)=1.0d0
-            idxn(MatStencil_i, 1)=i;idxn(MatStencil_j, 1)=j;idxn(MatStencil_k, 1)=k
+            idxn(1)%i=i;idxn(1)%j=j;idxn(1)%k=k
             box=0.0d0;trans=0.0d0
             box=Jor%D-1.0d0*Jor%B
             trans=transpose(box)
-            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
-            idxn(MatStencil_i, 1)=i;idxn(MatStencil_j, 1)=j+1;idxn(MatStencil_k, 1)=k
+            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, reshape(trans,[25]), INSERT_VALUES, ierr)
+            idxn(1)%i=i;idxn(1)%j=j+1;idxn(1)%k=k
             box=0.0d0;trans=0.0d0
             box=Jor%B
             trans=transpose(box)
-            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, reshape(trans,[25]), INSERT_VALUES, ierr)
         elseif(i==(in-1) .and. j/=0 .and. j/=(jn-1))then
             lib=-2;lie=0
             ic_index=0
-            idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
-            idxn(MatStencil_i, 1)=i-2;idxn(MatStencil_j, 1)=j;idxn(MatStencil_k, 1)=k
+            idxm(1)%i=i; idxm(1)%j=j; idxm(1)%k=k
+            idxn(1)%i=i-2;idxn(1)%j=j;idxn(1)%k=k
             box=0.0d0;box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
             box=1.0d0/2.0d0*box
-            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
-            idxn(MatStencil_i, 1)=i-1;idxn(MatStencil_j, 1)=j;idxn(MatStencil_k, 1)=k
+            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, reshape(box,[25]), INSERT_VALUES, ierr)
+            idxn(1)%i=i-1;idxn(1)%j=j;idxn(1)%k=k
             box=0.0d0;box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
             box=-2.0d0*box
-            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
-            idxn(MatStencil_i, 1)=i;idxn(MatStencil_j, 1)=j;idxn(MatStencil_k, 1)=k
+            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, reshape(box,[25]), INSERT_VALUES, ierr)
+            idxn(1)%i=i;idxn(1)%j=j;idxn(1)%k=k
             box=0.0d0;box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
             box=3.0d0/2.0d0*box
-            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+            call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, reshape(box,[25]), INSERT_VALUES, ierr)
         endif
 
     end subroutine mat_set_boundary_conditions
@@ -339,7 +339,7 @@ module mod_forming
     subroutine mat_bc_set_I(mat,i,j,k)
 
         implicit none
-        MatStencil :: idxm(4,1),idxn(4,1)
+        MatStencil :: idxm(1),idxn(1)
         integer,intent(in) :: i,j,k
         Mat,intent(inout) :: mat
         PetscScalar :: box(5,5)
@@ -347,9 +347,9 @@ module mod_forming
 
         box=0.0d0
         box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
-        idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
-        idxn(MatStencil_i, 1)=i; idxn(MatStencil_j, 1)=j; idxn(MatStencil_k, 1)=k
-        call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+        idxm(1)%i=i; idxm(1)%j=j; idxm(1)%k=k
+        idxn(1)%i=i; idxn(1)%j=j; idxn(1)%k=k
+        call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, reshape(box,[25]), INSERT_VALUES, ierr)
 
     end subroutine mat_bc_set_I
 
@@ -359,7 +359,7 @@ module mod_forming
         integer :: ic_index, jc_index, kc_index
         integer :: lib, lie, ljb, lje, lkb, lke
         PetscScalar :: box(5,5),trans(5,5)
-        MatStencil :: idxm(4,1),idxn(4,1)
+        MatStencil :: idxm(1),idxn(1)
         integer,intent(in) :: i,j,k
         Mat,intent(inout) :: mat
         PetscErrorCode :: ierr
@@ -404,8 +404,7 @@ module mod_forming
             case(3)
                 lkb=-2; lke=2; kc_index=0
         end select
-        idxm=0;
-        idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
+        idxm(1)%i=i; idxm(1)%j=j; idxm(1)%k=k
         associate( &
         &   coef_c4  => FDM_1nd_4ORD_CENTER,   &
         &   coef_d4  => FDM_2nd_4ORD_CENTER,   &
@@ -420,12 +419,12 @@ module mod_forming
         do lk = lkb, lke
             do lj = ljb, lje
                 do li = lib, lie
-                    idxn=0;box=0.0d0;trans=0.0d0
-                    idxn(MatStencil_i, 1)=i+li
-                    idxn(MatStencil_j, 1)=j+lj
-                    idxn(MatStencil_k, 1)=k+lk
-                    !if(idxn(MatStencil_k, 1)>(kn-1)) idxn(MatStencil_k, 1)=idxn(MatStencil_k, 1)-kn
-                    !if(idxn(MatStencil_k, 1)<0)  idxn(MatStencil_k, 1)=idxn(MatStencil_k, 1)+kn  !! kn为展向一个周期的点数
+                    box=0.0d0;trans=0.0d0
+                    idxn(1)%i=i+li
+                    idxn(1)%j=j+lj
+                    idxn(1)%k=k+lk
+                    !if(idxn(1)%k>(kn-1)) idxn(1)%k=idxn(1)%k-kn
+                    !if(idxn(1)%k<0)  idxn(1)%k=idxn(1)%k+kn  !! kn为展向一个周期的点数
                     box=delta_i(li)*delta_j(lj)*delta_k(lk)*D+                     &
                     &   delta_j(lj)*delta_k(lk)*A_v*coef_c4(li,ic_index)+          &
                     &   delta_j(lj)*delta_k(lk)*A_m*coef_c4f(li,ic_index)+         &
@@ -443,7 +442,7 @@ module mod_forming
                     &   delta_j(lj)*Vxz*coef_c4(li,ic_index)*coef_c4(lk,kc_index)- &
                     &   delta_i(li)*Vyz*coef_c4(lj,jc_index)*coef_c4(lk,kc_index)
                     trans=transpose(box)
-                    call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+                    call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, reshape(trans,[25]), INSERT_VALUES, ierr)
                 end do
             end do
         end do
@@ -481,7 +480,7 @@ module mod_forming
         integer :: ic_index, jc_index, kc_index
         integer :: lib, lie, ljb, lje, lkb, lke
         PetscScalar :: box(5,5),trans(5,5)
-        MatStencil :: idxm(4,1),idxn(4,1)
+        MatStencil :: idxm(1),idxn(1)
         integer,intent(in) :: i,j,k
         Mat,intent(inout) :: mat
         PetscErrorCode :: ierr
@@ -514,8 +513,7 @@ module mod_forming
             case(3)
                 lkb=-1; lke=1; kc_index=0
         end select
-        idxm=0;
-        idxm(MatStencil_i, 1)=i; idxm(MatStencil_j, 1)=j; idxm(MatStencil_k, 1)=k
+        idxm(1)%i=i; idxm(1)%j=j; idxm(1)%k=k
         associate( &
             &   coef_c1f=>FDM_1nd_1ORD_Forward,  &
             &   coef_c1b=>FDM_1nd_1ORD_Backward, &
@@ -530,10 +528,10 @@ module mod_forming
             do lk = lkb, lke
                 do lj = ljb, lje
                     do li = lib, lie
-                        idxn=0;box=0.0d0;trans=0.0d0
-                        idxn(MatStencil_i, 1)=i+li
-                        idxn(MatStencil_j, 1)=j+lj
-                        idxn(MatStencil_k, 1)=k+lk
+                        box=0.0d0;trans=0.0d0
+                        idxn(1)%i=i+li
+                        idxn(1)%j=j+lj
+                        idxn(1)%k=k+lk
                         box=delta_i(li)*delta_j(lj)*delta_k(lk)*D+                     &
                         &   delta_j(lj)*delta_k(lk)*A_v*coef_c2(li,ic_index)+          &
                         &   delta_j(lj)*delta_k(lk)*A_m*coef_c1f(li,ic_index)+         &
@@ -551,7 +549,7 @@ module mod_forming
                         &   delta_j(lj)*Vxz*coef_c2(li,ic_index)*coef_c2(lk,kc_index)- &
                         &   delta_i(li)*Vyz*coef_c2(lj,jc_index)*coef_c2(lk,kc_index)
                         trans=transpose(box)
-                        call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+                        call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, reshape(trans,[25]), INSERT_VALUES, ierr)
                     enddo
                 enddo
             enddo
@@ -615,7 +613,7 @@ module mod_forming
     subroutine sub_mat_set_boundary_conditions(mat,i,j,k)
 
         implicit none
-        MatStencil :: idxm(4,1),idxn(4,1)
+        MatStencil :: idxm(1),idxn(1)
         integer,intent(in) :: i,j,k
         Mat,intent(inout) :: mat
         PetscScalar :: box(5,5)
@@ -623,9 +621,9 @@ module mod_forming
 
         box=0.0d0
         box(1,1)=1.0d0;box(2,2)=1.0d0;box(3,3)=1.0d0;box(4,4)=1.0d0;box(5,5)=1.0d0
-        idxm(MatStencil_i, 1)=i-igs; idxm(MatStencil_j, 1)=j-jgs; idxm(MatStencil_k, 1)=k-kgs
-        idxn(MatStencil_i, 1)=i-igs; idxn(MatStencil_j, 1)=j-jgs; idxn(MatStencil_k, 1)=k-kgs
-        call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, box, INSERT_VALUES, ierr)
+        idxm(1)%i=i-igs; idxm(1)%j=j-jgs; idxm(1)%k=k-kgs
+        idxn(1)%i=i-igs; idxn(1)%j=j-jgs; idxn(1)%k=k-kgs
+        call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, reshape(box,[25]), INSERT_VALUES, ierr)
 
     end subroutine sub_mat_set_boundary_conditions
 
@@ -635,7 +633,7 @@ module mod_forming
         integer :: ic_index, jc_index, kc_index
         integer :: lib, lie, ljb, lje, lkb, lke
         PetscScalar :: box(5,5),trans(5,5)
-        MatStencil :: idxm(4,1),idxn(4,1)
+        MatStencil :: idxm(1),idxn(1)
         integer,intent(in) :: i,j,k
         Mat,intent(inout) :: mat
         PetscErrorCode :: ierr
@@ -653,8 +651,7 @@ module mod_forming
             case(3)
                 lkb=-1; lke=1; kc_index=0
         end select
-        idxm=0;
-        idxm(MatStencil_i, 1)=i-igs; idxm(MatStencil_j, 1)=j-jgs; idxm(MatStencil_k, 1)=k-kgs
+        idxm(1)%i=i-igs; idxm(1)%j=j-jgs; idxm(1)%k=k-kgs
         associate( &
             &   coef_c1f=>FDM_1nd_1ORD_Forward,  &
             &   coef_c1b=>FDM_1nd_1ORD_Backward, &
@@ -669,10 +666,10 @@ module mod_forming
             do lk = lkb, lke
                 do lj = ljb, lje
                     do li = lib, lie
-                        idxn=0;box=0.0d0;trans=0.0d0
-                        idxn(MatStencil_i, 1)=i+li-igs
-                        idxn(MatStencil_j, 1)=j+lj-jgs
-                        idxn(MatStencil_k, 1)=k+lk-kgs
+                        box=0.0d0;trans=0.0d0
+                        idxn(1)%i=i+li-igs
+                        idxn(1)%j=j+lj-jgs
+                        idxn(1)%k=k+lk-kgs
                         box=delta_i(li)*delta_j(lj)*delta_k(lk)*D+                     &
                         &   delta_j(lj)*delta_k(lk)*A_v*coef_c2(li,ic_index)+          &
                         &   delta_j(lj)*delta_k(lk)*A_m*coef_c1f(li,ic_index)+         &
@@ -690,7 +687,7 @@ module mod_forming
                         &   delta_j(lj)*Vxz*coef_c2(li,ic_index)*coef_c2(lk,kc_index)- &
                         &   delta_i(li)*Vyz*coef_c2(lj,jc_index)*coef_c2(lk,kc_index)
                         trans=transpose(box)
-                        call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, trans, INSERT_VALUES, ierr)
+                        call MatSetValuesBlockedStencil(mat, 1, idxm, 1, idxn, reshape(trans,[25]), INSERT_VALUES, ierr)
                     enddo
                 enddo
             enddo

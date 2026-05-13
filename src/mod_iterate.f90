@@ -66,13 +66,13 @@ module mod_iterate
         integer :: j,k
 
         if (is==0) then
-            call DMDAVecGetArrayF90(meshDA,r,r_array,ierr)
+            call DMDAVecGetArray(meshDA,r,r_array,ierr)
                 do k=ks,ke
                     do j=js,je
                         r_array(:,0,j,k)=inlet(:,j,k)
                     enddo
                 enddo
-            call DMDAVecRestoreArrayF90(meshDA,r,r_array,ierr)
+            call DMDAVecRestoreArray(meshDA,r,r_array,ierr)
         endif
         call MPI_Barrier(comm,ierr)
 
@@ -97,8 +97,8 @@ module mod_iterate
         call VecZeroEntries(bell,ierr)
         call DMGlobalToLocalBegin(meshDA,X,INSERT_VALUES,bell,ierr)
         call DMGlobalToLocalEnd(meshDA,X,INSERT_VALUES,bell,ierr)
-        call DMDAVecGetArrayReadF90(meshDA,bell,xr,ierr)
-        call DMDAVecGetArrayF90(meshDA,F,fr,ierr)
+        call DMDAVecGetArrayRead(meshDA,bell,xr,ierr)
+        call DMDAVecGetArray(meshDA,F,fr,ierr)
         associate ( &
         &   coef_c4 =>FDM_1nd_4ORD_CENTER, &
         &   coef_d4 =>FDM_2nd_4ORD_CENTER, &
@@ -214,8 +214,8 @@ module mod_iterate
             enddo
         enddo
         end associate
-        call DMDAVecRestoreArrayReadF90(meshDA,bell,xr,ierr)
-        call DMDAVecRestoreArrayF90(meshDA,F,fr,ierr)
+        call DMDAVecRestoreArrayRead(meshDA,bell,xr,ierr)
+        call DMDAVecRestoreArray(meshDA,F,fr,ierr)
         call DMRestoreLocalVector(meshDA,bell,ierr)
 
     end subroutine snes_rhs_fx_center
@@ -238,8 +238,8 @@ module mod_iterate
         call VecZeroEntries(bell,ierr)
         call DMGlobalToLocalBegin(meshDA,X,INSERT_VALUES,bell,ierr)
         call DMGlobalToLocalEnd(meshDA,X,INSERT_VALUES,bell,ierr)
-        call DMDAVecGetArrayReadF90(meshDA,bell,xr,ierr)
-        call DMDAVecGetArrayF90(meshDA,F,fr,ierr)
+        call DMDAVecGetArrayRead(meshDA,bell,xr,ierr)
+        call DMDAVecGetArray(meshDA,F,fr,ierr)
         associate ( &
             &   coef_c4  => FDM_1nd_4ORD_CENTER,   &
             &   coef_d4  => FDM_2nd_4ORD_CENTER,   &
@@ -368,8 +368,8 @@ module mod_iterate
             enddo
         enddo
         end associate
-        call DMDAVecRestoreArrayReadF90(meshDA,bell,xr,ierr)
-        call DMDAVecRestoreArrayF90(meshDA,F,fr,ierr)
+        call DMDAVecRestoreArrayRead(meshDA,bell,xr,ierr)
+        call DMDAVecRestoreArray(meshDA,F,fr,ierr)
         call DMRestoreLocalVector(meshDA,bell,ierr)
 
     end subroutine snes_rhs_fx_4ord
@@ -405,7 +405,7 @@ module mod_iterate
         PetscErrorCode :: ierr
         integer :: i,j,k
 
-        call DMDAVecGetArrayF90(meshDA,x,xr,ierr)
+        call DMDAVecGetArray(meshDA,x,xr,ierr)
 
         associate( x => xr )
 
@@ -471,7 +471,7 @@ module mod_iterate
 
         end associate
 
-        call DMDAVecRestoreArrayF90(meshDA,x,xr,ierr)
+        call DMDAVecRestoreArray(meshDA,x,xr,ierr)
 
         call MPI_Barrier(comm,ierr)
 
@@ -495,8 +495,8 @@ module mod_iterate
         call VecZeroEntries(bell,ierr)
         call DMGlobalToLocalBegin(meshDA,x,INSERT_VALUES,bell,ierr)
         call DMGlobalToLocalEnd(meshDA,x,INSERT_VALUES,bell,ierr)
-        call DMDAVecGetArrayReadF90(meshDA,bell,xr,ierr)
-        call DMDAVecGetArrayF90(meshDA,f,fr,ierr)
+        call DMDAVecGetArrayRead(meshDA,bell,xr,ierr)
+        call DMDAVecGetArray(meshDA,f,fr,ierr)
         associate ( &
         &   coef_c4  => FDM_1nd_4ORD_CENTER,   &
         &   coef_d4  => FDM_2nd_4ORD_CENTER,   &
@@ -611,8 +611,8 @@ module mod_iterate
         enddo
         end associate
 
-        call DMDAVecRestoreArrayReadF90(meshDA,bell,xr,ierr)
-        call DMDAVecRestoreArrayF90(meshDA,f,fr,ierr)
+        call DMDAVecRestoreArrayRead(meshDA,bell,xr,ierr)
+        call DMDAVecRestoreArray(meshDA,f,fr,ierr)
         call DMRestoreLocalVector(meshDA,bell,ierr)
 
     end subroutine fx_rhs_Ax_4ord
@@ -635,8 +635,8 @@ module mod_iterate
         call VecZeroEntries(bell,ierr)
         call DMGlobalToLocalBegin(meshDA,X,INSERT_VALUES,bell,ierr)
         call DMGlobalToLocalEnd(meshDA,X,INSERT_VALUES,bell,ierr)
-        call DMDAVecGetArrayReadF90(meshDA,bell,xr,ierr)
-        call DMDAVecGetArrayF90(meshDA,F,fr,ierr)
+        call DMDAVecGetArrayRead(meshDA,bell,xr,ierr)
+        call DMDAVecGetArray(meshDA,F,fr,ierr)
         associate ( &
         &   coef_c4 =>FDM_1nd_4ORD_CENTER, &
         &   coef_d4 =>FDM_2nd_4ORD_CENTER, &
@@ -737,8 +737,8 @@ module mod_iterate
             enddo
         enddo
         end associate
-        call DMDAVecRestoreArrayReadF90(meshDA,bell,xr,ierr)
-        call DMDAVecRestoreArrayF90(meshDA,F,fr,ierr)
+        call DMDAVecRestoreArrayRead(meshDA,bell,xr,ierr)
+        call DMDAVecRestoreArray(meshDA,F,fr,ierr)
         call DMRestoreLocalVector(meshDA,bell,ierr)
 
     end subroutine fx_rhs_Ax_center
@@ -751,7 +751,7 @@ module mod_iterate
 
         call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_PERIODIC,&
         &                 DMDA_STENCIL_BOX, in, jn, kn, nx, ny, nz,&
-        &                 5, 1, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, da, ierr)
+        &                 5, 1, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, da, ierr)
         call DMSetMatType(da,MATBAIJ,ierr)
         call DMSetUp(da, ierr)
     end subroutine set_medDA
@@ -764,7 +764,7 @@ module mod_iterate
 
         call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_PERIODIC,&
         &                 DMDA_STENCIL_BOX, igl, jgl, kgl, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE, &
-        &                 5, 1, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, da, ierr)
+        &                 5, 1, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, da, ierr)
         call DMSetMatType(da,MATBAIJ,ierr)
         call DMSetFromOptions(da,ierr)
         call DMSetUp(da, ierr)
@@ -796,8 +796,8 @@ module mod_iterate
 
         call DMGlobalToLocalBegin(meshDA, f, INSERT_VALUES, localf, ierr)
         call DMGlobalToLocalEnd(meshDA, f, INSERT_VALUES, localf, ierr)
-        call DMDAVecGetArrayF90(meshDA, localf, fr, ierr)
-        call DMDAVecGetArrayF90(subDA, subf, sfr, ierr)
+        call DMDAVecGetArray(meshDA, localf, fr, ierr)
+        call DMDAVecGetArray(subDA, subf, sfr, ierr)
 
         select case(lns_mode)
         case(2)
@@ -822,8 +822,8 @@ module mod_iterate
             enddo
         enddo
 
-        call DMDAVecRestoreArrayF90(meshDA, localf, fr, ierr)
-        call DMDAVecRestoreArrayF90(subDA, subf, sfr, ierr)
+        call DMDAVecRestoreArray(meshDA, localf, fr, ierr)
+        call DMDAVecRestoreArray(subDA, subf, sfr, ierr)
         call VecDestroy(localf,ierr)
     end subroutine get_subf
 
@@ -836,8 +836,8 @@ module mod_iterate
         PetscErrorCode :: ierr
         integer :: i,j,k
 
-        call DMDAVecGetArrayReadF90(subDA,subres,sr,ierr)
-        call DMDAVecGetArrayF90(meshDA,res,r,ierr)
+        call DMDAVecGetArrayRead(subDA,subres,sr,ierr)
+        call DMDAVecGetArray(meshDA,res,r,ierr)
 
         do k=ks, ke
             do j=js, je
@@ -847,8 +847,8 @@ module mod_iterate
             enddo
         enddo
 
-        call DMDAVecRestoreArrayF90(meshDA,res,r,ierr)
-        call DMDAVecRestoreArrayReadF90(subDA,subres,sr,ierr)
+        call DMDAVecRestoreArray(meshDA,res,r,ierr)
+        call DMDAVecRestoreArrayRead(subDA,subres,sr,ierr)
 
     end subroutine merge_res
 

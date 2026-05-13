@@ -156,7 +156,7 @@ module mod_solving
             call KSPCreate(comm,ksp,ierr)
             call KSPSetOperators(ksp,mat,mat,ierr)
             call KSPSetType(ksp,KSPFGMRES,ierr)
-            call KSPSetInitialGuessNonzero(ksp,ex_ini_gus_flg,ierr)
+            call KSPSetInitialGuessNonzero(ksp,merge(PETSC_TRUE,PETSC_FALSE,ex_ini_gus_flg),ierr)
             call KSPGMRESSetOrthogonalization(ksp,KSPGMRESModifiedGramSchmidtOrthogonalization,ierr)
             call KSPGMRESSetRestart(ksp,40,ierr)
             call KSPSetTolerances(ksp,rtol,PETSC_DEFAULT_REAL,PETSC_DEFAULT_REAL,PETSC_DEFAULT_INTEGER,ierr)
@@ -235,6 +235,7 @@ module mod_solving
         Vec,intent(inout) :: x
         Vec,intent(in) :: r
         character(len=256) :: reason
+        SNESConvergedReason :: reason_code
         external :: fx
         SNES :: snes
         KSP :: ksp
@@ -268,7 +269,8 @@ module mod_solving
         ! 求解
         call SNESSolve(snes,r,x,ierr)
         ! 输出收敛状况
-        call SNESGetConvergedReasonString(snes,reason,ierr)
+        call SNESGetConvergedReason(snes,reason_code,ierr)
+        write(reason,'(A,I0)') 'reason code = ', reason_code
         call PetscPrintf(comm, "\n", ierr)
         call PetscPrintf(comm, "The Reason of Converged is : "//reason//"\n", ierr)
         ! 查看SNES
