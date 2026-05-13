@@ -188,26 +188,26 @@ module mod_files
 
         call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
         &                 DMDA_STENCIL_BOX, in, jn, kn, nx, ny, nz, &
-        &                 1, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, DA, ierr)
+        &                 1, 2, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, DA, ierr)
         call DMSetFromOptions(DA,ierr)
         call DMSetUp(DA, ierr)
 
         call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
         &                 DMDA_STENCIL_BOX, in, jn, kn, nx, ny, nz,&
-        &                 3, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, coordDA, ierr)
+        &                 3, 2, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, coordDA, ierr)
         call DMSetFromOptions(coordDA,ierr)
         call DMSetUp(coordDA, ierr)
 
         call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_PERIODIC,&
         &                 DMDA_STENCIL_BOX, in, jn, kn, nx, ny, nz,&
-        &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, meshDA, ierr)
+        &                 5, 2, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, meshDA, ierr)
         call DMSetMatType(meshDA,MATBAIJ,ierr)
         call DMSetFromOptions(meshDA,ierr)
         call DMSetUp(meshDA, ierr)
 
         call DMDAGetInfo(DA, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, &
-        &   nx, ny, nz, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, &
-        &   PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, ierr)
+        &   nx, ny, nz, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_DMBOUNDARYTYPE, &
+        &   PETSC_NULL_DMBOUNDARYTYPE, PETSC_NULL_DMBOUNDARYTYPE, PETSC_NULL_DMDASTENCILTYPE, ierr)
 
         call DMGetGlobalVector(meshDA, turtle, ierr)
         call VecZeroEntries(turtle,ierr)
@@ -311,17 +311,17 @@ module mod_files
 
         call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
         &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
-        &                 3, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, unicordDA, ierr)
+        &                 3, 2, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, unicordDA, ierr)
         call DMSetUp(unicordDA, ierr)
 
         call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
         &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
-        &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, unimeshDA, ierr)
+        &                 5, 2, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, unimeshDA, ierr)
         call DMSetUp(unimeshDA, ierr)
 
         call DMGetGlobalVector(unicordDA,coord,ierr)
         call DMDAGetCorners(unicordDA,xs,ys,zs,xl,yl,zl,ierr)
-        call DMDAVecGetArrayF90(unicordDA,coord,grid,ierr)
+        call DMDAVecGetArray(unicordDA,coord,grid,ierr)
         do i=xs,xs+xl-1
             do j=ys,ys+yl-1
                 do k=zs,zs+zl-1
@@ -331,11 +331,11 @@ module mod_files
                 enddo
             enddo
         enddo
-        call DMDAVecRestoreArrayF90(unicordDA,coord,grid,ierr)
+        call DMDAVecRestoreArray(unicordDA,coord,grid,ierr)
 
         call DMGetGlobalVector(unimeshDA,flowfield,ierr)
         call DMDAGetCorners(unimeshDA,xs,ys,zs,xl,yl,zl,ierr)
-        call DMDAVecGetArrayF90(unimeshDA,flowfield,flow,ierr)
+        call DMDAVecGetArray(unimeshDA,flowfield,flow,ierr)
         do i=xs,xs+xl-1
             do j=ys,ys+yl-1
                 do k=zs,zs+zl-1
@@ -345,7 +345,7 @@ module mod_files
                 enddo
             enddo
         enddo
-        call DMDAVecRestoreArrayF90(unimeshDA,flowfield,flow,ierr)
+        call DMDAVecRestoreArray(unimeshDA,flowfield,flow,ierr)
 
         call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(bigridfile),FILE_MODE_WRITE, viewer, ierr)
         call VecView(coord, viewer, ierr)
@@ -394,7 +394,7 @@ module mod_files
         allocate(xx(igs:ige, jgs:jge, kgs:kge))
         allocate(yy(igs:ige, jgs:jge, kgs:kge))
         allocate(zz(igs:ige, jgs:jge, kgs:kge))
-        call DMDAVecGetArrayReadF90(coordDA, coord_local, grid, ierr)
+        call DMDAVecGetArrayRead(coordDA, coord_local, grid, ierr)
         do k=kgs, kge
             do j=jgs, jge
                 do i=igs, ige
@@ -404,10 +404,10 @@ module mod_files
                 enddo
           enddo
         enddo
-        call DMDAVecRestoreArrayReadF90(coordDA, coord_local, grid, ierr)
+        call DMDAVecRestoreArrayRead(coordDA, coord_local, grid, ierr)
 
         allocate(qq(5, igs:ige, jgs:jge, kgs:kge))
-        call DMDAVecGetArrayReadF90(meshDA, flowfield_local, flow, ierr)
+        call DMDAVecGetArrayRead(meshDA, flowfield_local, flow, ierr)
         do k=kgs, kge
             do j=jgs, jge
                 do i=igs, ige
@@ -417,7 +417,7 @@ module mod_files
                 enddo
             enddo
         enddo
-        call DMDAVecRestoreArrayReadF90(meshDA, flowfield_local, flow, ierr)
+        call DMDAVecRestoreArrayRead(meshDA, flowfield_local, flow, ierr)
 
         call DMRestoreLocalVector(meshDA,flowfield_local,ierr)
         call DMRestoreLocalVector(coordDA,coord_local,ierr)
@@ -462,7 +462,7 @@ module mod_files
         allocate(xx(igs:ige, jgs:jge, kgs:kge))
         allocate(yy(igs:ige, jgs:jge, kgs:kge))
         allocate(zz(igs:ige, jgs:jge, kgs:kge))
-        call DMDAVecGetArrayReadF90(coordDA, coord_local, grid, ierr)
+        call DMDAVecGetArrayRead(coordDA, coord_local, grid, ierr)
         do k=kgs, kge
             do j=jgs, jge
                 do i=igs, ige
@@ -472,10 +472,10 @@ module mod_files
                 enddo
           enddo
         enddo
-        call DMDAVecRestoreArrayReadF90(coordDA, coord_local, grid, ierr)
+        call DMDAVecRestoreArrayRead(coordDA, coord_local, grid, ierr)
 
         allocate(qq(5, igs:ige, jgs:jge, kgs:kge))
-        call DMDAVecGetArrayReadF90(meshDA, flowfield_local, flow, ierr)
+        call DMDAVecGetArrayRead(meshDA, flowfield_local, flow, ierr)
         do k=kgs, kge
             do j=jgs, jge
                 do i=igs, ige
@@ -485,7 +485,7 @@ module mod_files
                 enddo
             enddo
         enddo
-        call DMDAVecRestoreArrayReadF90(meshDA, flowfield_local, flow, ierr)
+        call DMDAVecRestoreArrayRead(meshDA, flowfield_local, flow, ierr)
 
         call DMRestoreLocalVector(meshDA,flowfield_local,ierr)
         call DMRestoreLocalVector(coordDA,coord_local,ierr)
@@ -524,11 +524,11 @@ module mod_files
 
         allocate(inlet(0:4, js:je, ks:ke))
         inlet = 0.0d0
-        call DMDAVecGetArrayReadF90(meshDA, turtle, xr, ierr)
+        call DMDAVecGetArrayRead(meshDA, turtle, xr, ierr)
         if(is==0)then
             inlet(:,:,:)=xr(:,is,:,:)
         endif
-        call DMDAVecRestoreArrayReadF90(meshDA, turtle, xr, ierr)
+        call DMDAVecRestoreArrayRead(meshDA, turtle, xr, ierr)
         call MPI_Barrier(comm,ierr)
     end subroutine load_inlet_from_ini_gus
 
@@ -539,11 +539,11 @@ module mod_files
 
         allocate(wall(0:4,is:ie,ks:ke))
         wall = 0.0d0 
-        call DMDAVecGetArrayReadF90(meshDA, turtle, xr, ierr)
+        call DMDAVecGetArrayRead(meshDA, turtle, xr, ierr)
         if(js==0)then 
             wall(:,:,:) = xr(:,:,js,:)
         endif
-        call DMDAVecRestoreArrayReadF90(meshDA, turtle, xr, ierr)
+        call DMDAVecRestoreArrayRead(meshDA, turtle, xr, ierr)
         call MPI_Barrier(comm,ierr)
     end subroutine load_wallbc_from_ini_gus
 
@@ -564,12 +564,12 @@ module mod_files
         if(rank==0)then
             call DMDACreate2d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
             &                 DMDA_STENCIL_BOX, jn, kn, PETSC_DECIDE, PETSC_DECIDE, &
-            &                 5, 2, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, sliceDA, ierr)
+            &                 5, 2, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, sliceDA, ierr)
             call DMSetUp(sliceDA, ierr)
 
             call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
             &                 DMDA_STENCIL_BOX, sink, jn, kn, PETSC_DECIDE, 1, 1,&
-            &                 5, 0, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, inletDA, ierr)
+            &                 5, 0, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, inletDA, ierr)
             call DMSetUp(inletDA, ierr)
 
             call DMGetGlobalVector(sliceDA, inlet_slice, ierr)
@@ -579,8 +579,8 @@ module mod_files
 
             call DMDAGetCorners(inletDA,xs,ys,zs,xl,yl,zl,ierr)
             call DMGetGlobalVector(inletDA, inlet_gather, ierr)
-            call DMDAVecGetArrayF90(inletDA, inlet_gather, inlets, ierr)
-            call DMDAVecGetArrayReadF90(sliceDA, inlet_slice, slice, ierr)
+            call DMDAVecGetArray(inletDA, inlet_gather, inlets, ierr)
+            call DMDAVecGetArrayRead(sliceDA, inlet_slice, slice, ierr)
             do i=xs,xs+xl-1
                 do j=ys,ys+yl-1
                     do k=zs,zs+zl-1
@@ -588,8 +588,8 @@ module mod_files
                     enddo
                 enddo
             enddo
-            call DMDAVecRestoreArrayReadF90(sliceDA, inlet_slice, slice, ierr)
-            call DMDAVecRestoreArrayF90(inletDA, inlet_gather, inlets, ierr)
+            call DMDAVecRestoreArrayRead(sliceDA, inlet_slice, slice, ierr)
+            call DMDAVecRestoreArray(inletDA, inlet_gather, inlets, ierr)
 
             call PetscViewerBinaryOpen(PETSC_COMM_SELF, trim(inletfiles),FILE_MODE_WRITE, viewer, ierr)
             call VecView(inlet_gather, viewer, ierr)
@@ -603,7 +603,7 @@ module mod_files
         call MPI_Barrier(comm,ierr)
         call DMDACreate3d(comm, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
         &                 DMDA_STENCIL_BOX, sink, jn, kn, PETSC_DECIDE, 1, 1,&
-        &                 5, 0, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, inletDA, ierr)
+        &                 5, 0, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, inletDA, ierr)
         call DMSetUp(inletDA, ierr)
         call DMGetGlobalVector(inletDA, inlet_gather, ierr)
         call PetscViewerBinaryOpen(comm, trim(inletfiles),FILE_MODE_READ, viewer, ierr)
@@ -614,7 +614,7 @@ module mod_files
         xe=xs+xl-1;ye=ys+yl-1;ze=zs+zl-1
         allocate(inlet(0:4, ys:ye, zs:ze))
         inlet = 0.0d0
-        call DMDAVecGetArrayReadF90(inletDA, inlet_gather, inlets, ierr)
+        call DMDAVecGetArrayRead(inletDA, inlet_gather, inlets, ierr)
         do i=xs,xe
             do j=ys,ye
                 do k=zs,ze
@@ -622,7 +622,7 @@ module mod_files
                 enddo
             enddo
         enddo
-        call DMDAVecRestoreArrayReadF90(inletDA, inlet_gather, inlets, ierr)
+        call DMDAVecRestoreArrayRead(inletDA, inlet_gather, inlets, ierr)
 
         if(rank==0) call system("rm -f "//trim(inletfiles)//"*")
         call DMRestoreGlobalVector(inletDA,inlet_gather,ierr)
@@ -731,11 +731,11 @@ module mod_files
             ! 生成单进程DM
             call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
             &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
-            &                 5, 0, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, unimeshDA, ierr)
+            &                 5, 0, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, unimeshDA, ierr)
             call DMSetUp(unimeshDA, ierr)
             call DMDACreate3d(PETSC_COMM_SELF, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, DM_BOUNDARY_NONE, &
             &                 DMDA_STENCIL_BOX, in, jn, kn, PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,&
-            &                 3, 0, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, unicordDA, ierr)
+            &                 3, 0, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, PETSC_NULL_INTEGER_ARRAY, unicordDA, ierr)
             call DMSetUp(unicordDA, ierr)
             ! 单进程读入大乌龟
             call DMGetGlobalVector(unimeshDA,VecT,ierr)
@@ -750,14 +750,14 @@ module mod_files
             call PetscViewerDestroy(viewer, ierr)
 
             allocate(xx(0:in-1,0:jn-1,0:kn-1))
-            call DMDAVecGetArrayReadF90(unicordDA, VecX, grid, ierr)
+            call DMDAVecGetArrayRead(unicordDA, VecX, grid, ierr)
             xx = real(grid(0, :, :, :))
-            call DMDAVecRestoreArrayReadF90(unicordDA, VecX, grid, ierr)
+            call DMDAVecRestoreArrayRead(unicordDA, VecX, grid, ierr)
 
             ! 后处理
             allocate(x0(0:jn-1,0:kn-1))
             x0(:,:) = xx(0,:,:)
-            call DMDAVecGetArrayF90(unimeshDA, VecT, tmp, ierr)
+            call DMDAVecGetArray(unimeshDA, VecT, tmp, ierr)
             do k=0,kn-1
                 do j=0,jn-1
                     do i=0,in-1
@@ -765,12 +765,12 @@ module mod_files
                     enddo 
                 enddo
             enddo
-            call DMDAVecRestoreArrayF90(unimeshDA, VecT, tmp, ierr)
+            call DMDAVecRestoreArray(unimeshDA, VecT, tmp, ierr)
 
             ! 把大乌龟写入Plot3D格式文件
 
             ! pltout = trim(output_prefix)//".p3d"
-            ! call DMDAVecGetArrayReadF90(unimeshDA, VecT, tmp, ierr)
+            ! call DMDAVecGetArrayRead(unimeshDA, VecT, tmp, ierr)
             ! open(18, file=trim(pltout),action='write',form='unformatted')
             ! write(18)
             ! select case (lns_mode)
@@ -781,7 +781,7 @@ module mod_files
             ! end select
             ! write(18) ((((tmp(l,i,j,k), i=0,in-1), j=0,jn-1), k=0,kn-1), l=0,4)
             ! close(18)
-            ! call DMDAVecRestoreArrayReadF90(unimeshDA, VecT, tmp, ierr)
+            ! call DMDAVecRestoreArrayRead(unimeshDA, VecT, tmp, ierr)
             ! call PetscPrintf(comm, "   Plot3D Result -> "//trim(pltout)//"\n", ierr)
 
             ! 把大乌龟写入HDF5格式文件
@@ -809,12 +809,12 @@ module mod_files
 
             call PetscObjectSetName(VecT,"shapefunc",ierr)
             call VecView(VecT,viewer,ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Alpha.r",PETSC_DOUBLE,real(Alpha),ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Alpha.i",PETSC_DOUBLE,aimag(Alpha),ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Beta.r",PETSC_DOUBLE,real(Beta),ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Beta.i",PETSC_DOUBLE,aimag(Beta),ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Omega.r",PETSC_DOUBLE,real(Omega),ierr)
-            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Omega.i",PETSC_DOUBLE,aimag(Omega),ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Alpha.r",real(Alpha),ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Alpha.i",aimag(Alpha),ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Beta.r",real(Beta),ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Beta.i",aimag(Beta),ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Omega.r",real(Omega),ierr)
+            call PetscViewerHDF5WriteAttribute(viewer,"shapefunc","disturb.Omega.i",aimag(Omega),ierr)
             call DMRestoreGlobalVector(unimeshDA,VecT,ierr)
             call DMDestroy(unimeshDA,ierr)
             call PetscViewerDestroy(viewer, ierr)
